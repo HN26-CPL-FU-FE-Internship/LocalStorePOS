@@ -20,7 +20,7 @@ function AuthenticationLayout({ children }: { children: ReactNode }) {
                             className={cx(`auth-vh justify-content-center align-items-center overflow-auto flex-wrap`)}
                         >
                             <Col xl={8} lg={10} md={8} sm={10} className={cx(`mx-3`)}>
-                                <form action="index.html">
+                                <form>
                                     <div className="d-flex flex-column justify-content-between">
                                         <div className="mb-5">
                                             <Link to={configs.routes.login}>
