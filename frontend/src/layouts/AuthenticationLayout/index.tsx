@@ -21,7 +21,7 @@ function AuthenticationLayout({ children }: { children: ReactNode }) {
                         >
                             <Col xl={8} lg={10} md={8} sm={10} className={cx(`mx-3`)}>
                                 <form>
-                                    <div className="d-flex flex-column justify-content-between">
+                                    <div className="d-flex flex-column justify-content-between p-3">
                                         <div className="mb-5">
                                             <Link to={configs.routes.login}>
                                                 <img src={logo} className="img-fluid" alt="Logo" />
