@@ -6,6 +6,7 @@ import facebook from '@/assets/img/icons/fb.svg';
 import configs from '@/configs';
 
 import { useState, type ChangeEvent, type MouseEvent } from 'react';
+import { toggleHidePassword } from '@/utils';
 
 function Login() {
     const [isHide, setIsHide] = useState(true);
@@ -22,13 +23,7 @@ function Login() {
     };
 
     const handleClickEye = () => {
-        if (inputType === 'password') {
-            setInputType('text');
-            setIsHide(false);
-        } else {
-            setInputType('password');
-            setIsHide(true);
-        }
+        toggleHidePassword(inputType, setInputType, setIsHide);
     };
 
     return (
