@@ -7,4 +7,5 @@ export default defineConfig({
     resolve: {
         tsconfigPaths: true,
     },
+    base: '/restaurant-pos',
 });
