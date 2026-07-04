@@ -115,7 +115,7 @@ function Register() {
                 <p className="fw-normal mb-0">
                     Already have an account?
                     <Link to={routes.login} className="link-primary">
-                        Sign In
+                        &nbsp;Sign In
                     </Link>
                 </p>
             </div>
