@@ -58,7 +58,7 @@ LocalStorePOS/
 ### Clone the repository
 
 ```bash
-git clone <repository-url>
+git clone https://github.com/HN26-CPL-FU-FE-Internship/RestaurantPOS.git
 cd LocalStorePOS
 ```
 
