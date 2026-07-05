@@ -13,7 +13,7 @@ function ForgotPassword() {
                 <label className="form-label">
                     Email<span className="text-danger"> *</span>
                 </label>
-                <input type="email" className="form-control" />
+                <input type="email" className="form-control" placeholder="name@example.com" required />
             </div>
 
             <div className="mb-4">
