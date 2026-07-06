@@ -1,0 +1,12 @@
+@use '../../assets/styles';
+
+.container,
+.container-fluid,
+.container-lg,
+.container-md,
+.container-sm,
+.container-xl,
+.container-xxl {
+    --bs-gutter-x: 0;
+    --bs-gutter-y: 0;
+}

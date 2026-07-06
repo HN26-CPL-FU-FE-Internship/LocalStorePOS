@@ -1,0 +1,13 @@
+/* Ẩn icon con mắt mặc định trên Microsoft Edge và Chrome bản mới */
+input[type='password']::-ms-reveal,
+input[type='password']::-ms-clear {
+    display: none !important;
+}
+
+/* Khử các icon/nút nhấn can thiệp mặc định khác trên một số trình duyệt dựa trên Webkit nếu có */
+input[type='password']::-webkit-contacts-auto-fill-button,
+input[type='password']::-webkit-credentials-auto-fill-button {
+    visibility: hidden;
+    position: absolute;
+    right: 0;
+}
