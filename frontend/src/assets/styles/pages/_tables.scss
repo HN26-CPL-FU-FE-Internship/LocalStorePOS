@@ -1,0 +1,16 @@
+@use '../abstracts' as *;
+
+.table-menu {
+    width: 32px;
+    height: 32px;
+    border: 1px solid $border-color;
+    border-radius: 36px;
+    padding: 8px;
+    background: $white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    &:hover {
+        background-color: $light;
+    }
+}

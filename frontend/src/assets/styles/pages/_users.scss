@@ -1,0 +1,24 @@
+@use '../abstracts' as *;
+
+[data-bs-theme='dark'] .icon-moon::before {
+    content: '\e17c' !important;
+}
+
+.roles-sidebar {
+    ul {
+        list-style: none;
+        li {
+            width: 100%;
+            a {
+                display: block;
+                padding: 8px 12px;
+                display: block;
+                margin-bottom: 8px;
+                &.active {
+                    background-color: var(--primary-100) !important;
+                    color: var(--primary) !important;
+                }
+            }
+        }
+    }
+}

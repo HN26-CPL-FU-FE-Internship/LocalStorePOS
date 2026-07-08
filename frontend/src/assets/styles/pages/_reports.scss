@@ -1,0 +1,386 @@
+@use '../abstracts' as *;
+
+.earning-report-filter-wrap {
+    display: grid;
+    grid-template-columns: 3fr 3fr 3fr 3fr 1fr;
+    column-gap: 20px;
+    align-items: flex-end;
+    margin-bottom: 20px;
+    @include respond-below(lg) {
+        grid-template-columns: repeat(3, 1fr);
+    }
+    @include respond-below(md) {
+        grid-template-columns: repeat(2, 1fr);
+    }
+    @include respond-below(sm) {
+        grid-template-columns: 1fr;
+    }
+}
+
+.order-report-filter-wrap,
+.sales-report-filter-wrap {
+    display: grid;
+    grid-template-columns: 4fr 4fr 4fr 1fr;
+    column-gap: 20px;
+    align-items: flex-end;
+    margin-bottom: 20px;
+    @include respond-below(lg) {
+        grid-template-columns: repeat(3, 1fr);
+    }
+    @include respond-below(md) {
+        grid-template-columns: repeat(2, 1fr);
+    }
+    @include respond-below(sm) {
+        grid-template-columns: 1fr;
+    }
+}
+
+.timeline-border {
+    width: 32px;
+    height: 32px;
+    border: 1px solid $border-color;
+    border-radius: 50px;
+    margin-left: 15px;
+    padding: 8px;
+    position: relative;
+    z-index: 1;
+    @include respond-below(sm) {
+        display: none !important;
+    }
+    &::before {
+        content: '';
+        width: 1px;
+        height: 40px;
+        border-left: 1px solid $border-color;
+        position: absolute;
+        left: 15px;
+        top: 34px;
+        z-index: -1;
+        @include respond-below(sm) {
+            display: none;
+        }
+    }
+}
+
+.timeline-border-none {
+    width: 32px;
+    height: 32px;
+    border: 1px solid $border-color;
+    border-radius: 50px;
+    margin-left: 15px;
+    padding: 8px;
+    position: relative;
+    z-index: 1;
+    @include respond-below(sm) {
+        display: none !important;
+    }
+}
+.log-item {
+    &::after {
+        content: '';
+        border-left: 1px dashed $border-color;
+        position: absolute;
+        left: 20px;
+        top: 30px;
+        height: calc(100% - 60px);
+        @include respond-below(lg) {
+            display: none;
+        }
+    }
+}
+
+.nav-tabs-solid {
+    gap: 12px;
+    .nav-link {
+        padding: 8px 16px;
+        border: 1px solid $border-color;
+        color: $gray-900;
+        border-radius: 6px;
+        background: $white;
+        &.active {
+            background: $primary;
+            border: 1px solid $primary;
+            color: $darkmode-white;
+        }
+    }
+}
+
+.orders-list {
+    .orders {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        @include respond-below(sm) {
+            flex-wrap: wrap;
+        }
+        p {
+            margin-bottom: 0;
+            flex-shrink: 0;
+            font-weight: $font-weight-medium;
+        }
+        .line {
+            border-bottom: 1px dashed $gray-200;
+            width: 100%;
+            display: block;
+        }
+        &-two {
+            position: relative;
+            .line {
+                border-bottom: 1px dashed $gray-200;
+                width: 34%;
+                display: block;
+                position: absolute;
+                right: 50px;
+            }
+        }
+    }
+    .dot {
+        width: 12px;
+        height: 12px;
+        border: 1px solid $danger;
+        display: inline-block;
+        margin-right: 8px;
+        border-radius: 2px;
+        position: relative;
+        &::before {
+            content: '';
+            background: $danger;
+            width: 4px;
+            height: 4px;
+            border-radius: 50%;
+            position: absolute;
+            inset: 0;
+            margin: auto;
+        }
+        &.success {
+            border: 1px solid $success !important;
+            &::before {
+                content: '';
+                background: $success !important;
+            }
+        }
+        &.warning {
+            border: 1px solid $warning !important;
+            &::before {
+                content: '';
+                background: $warning !important;
+            }
+        }
+    }
+    &-two {
+        position: relative;
+        &::before {
+            content: '';
+            background: $light;
+            border-radius: 6px;
+            height: 2px;
+            width: 100%;
+            position: absolute;
+            top: -10px !important;
+            inset: 0;
+            margin: auto;
+            @include respond-below(sm) {
+                content: unset;
+            }
+        }
+    }
+    &-three {
+        position: relative;
+        &::before {
+            content: '';
+            background: $light;
+            border-radius: 6px;
+            width: 2px;
+            height: 80%;
+            position: absolute;
+            left: 19px;
+            top: 19px;
+            bottom: 0;
+            margin: auto;
+        }
+    }
+    &-four {
+        .col-xxl-2 {
+            padding-left: 4px;
+            padding-right: 4px;
+        }
+    }
+}
+.even-line {
+    background: $gray-200;
+    width: 1px;
+    height: 11px;
+}
+.reservation-date {
+    position: relative;
+    overflow: hidden;
+    z-index: 1;
+    &::before {
+        content: '';
+        background: $secondary;
+        width: 33px;
+        height: 33px;
+        position: absolute;
+        left: 0px;
+        top: -64px;
+        bottom: 0;
+        margin: auto;
+        box-shadow: 0px 19px 38px $secondary;
+        border-radius: 50%;
+        filter: blur(11px);
+        opacity: 0.6;
+        z-index: -1;
+    }
+    &::after {
+        content: '';
+        background: $primary;
+        width: 33px;
+        height: 33px;
+        position: absolute;
+        left: -23px;
+        top: -13px;
+        bottom: 0;
+        margin: auto;
+        border-radius: 50%;
+        filter: blur(11px);
+        opacity: 0.6;
+        z-index: -1;
+    }
+    p,
+    span {
+        color: $darkmode-white !important;
+    }
+}
+.progress-item {
+    background: $gray-200;
+    height: 4px;
+    border-radius: 20px;
+    width: 100%;
+    .progress-bar {
+        height: 100%;
+    }
+}
+.border-bottom-dashed {
+    border-bottom: 1px dashed $gray-200;
+}
+.border-end {
+    border-right: 1px dashed $gray-200;
+    @include respond-below(lg) {
+        border: none !important;
+    }
+}
+
+.project-status {
+    min-width: 360px;
+    .card {
+        flex: 0 0 360px !important;
+        min-width: 360px;
+    }
+}
+.kanban-drag-wrap,
+.kanban-drag {
+    min-width: 220px;
+    min-height: 50px;
+}
+.project-status {
+    display: flex;
+    gap: 1rem;
+    overflow-x: auto;
+    .kanban-card {
+        margin-bottom: 16px;
+        min-width: 300px;
+        @include respond-below(xl) {
+            min-width: 300px;
+        }
+        &:last-child {
+            margin-bottom: 0;
+        }
+    }
+}
+
+.viewall-button {
+    border: none;
+    outline: none;
+    box-shadow: unset;
+    background: transparent;
+    padding: 0;
+    margin: 0;
+}
+.count-icon {
+    position: relative;
+    z-index: 1;
+    &::before {
+        content: '';
+        border-width: 2px 0 0 0;
+        border-style: outset;
+        border-color: $primary;
+        position: absolute;
+        top: -4px;
+        right: -6px;
+        width: calc(100% + 8px);
+        height: calc(100% + 8px);
+        border-radius: 50%;
+        transform: rotate(90deg);
+    }
+    &::after {
+        content: '';
+        position: absolute;
+        left: 0;
+        bottom: 0;
+        width: 48px;
+        height: 48px;
+        background: url('../img/bg/count-bg-01.png');
+        z-index: -1;
+        border-radius: 50%;
+    }
+    &.bg-primary {
+        &::before {
+            border-color: $primary;
+        }
+        &::after {
+            background: url('../img/bg/count-bg-02.png');
+        }
+    }
+    &.bg-purple {
+        &::before {
+            border-color: $purple;
+        }
+    }
+    &.bg-orange {
+        &::before {
+            border-color: $orange;
+        }
+        &::after {
+            background: url('../img/bg/count-bg-03.png');
+        }
+    }
+    &.bg-success {
+        &::before {
+            border-color: $success;
+        }
+        &::after {
+            background: url('../img/bg/count-bg-04.png');
+        }
+    }
+}
+.notification-wrap {
+    .hover-btn {
+        opacity: 0;
+        transition: 0.5s all;
+        @include respond-below(md) {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+        }
+    }
+    .card {
+        transition: all 0.7s;
+        &:hover {
+            .hover-btn {
+                opacity: 1;
+                transition: 0.5s all;
+            }
+        }
+    }
+}
