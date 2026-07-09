@@ -1,7 +1,6 @@
 //
 // layout.scss
 //
-
 @use '../abstracts' as *;
 
 .page-wrapper {
@@ -13,9 +12,11 @@
     left: 0;
     min-height: calc(100vh - ($topbar-height + 1px));
     @include transition(all 0.2s ease);
+
     @include respond-below(lg) {
         margin: 0;
     }
+
     .content {
         padding: 1.5rem;
     }
