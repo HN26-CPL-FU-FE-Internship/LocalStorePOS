@@ -1,0 +1,337 @@
+//
+// header.scss
+//
+
+@use '../abstracts' as *;
+
+.navbar-header {
+    position: sticky;
+    top: 0;
+    z-index: 11;
+    background: $topbar-bg;
+    min-height: $topbar-height;
+    margin-left: $sidenav-width;
+    border-bottom: 1px solid $border-color;
+    padding: 0 1.25rem;
+    box-sizing: border-box;
+    @include respond-below(lg) {
+        margin-left: 0;
+    }
+    .header-links {
+        background: $light;
+        border: 1px solid $border-color;
+        border-radius: $border-radius;
+        display: flex;
+        gap: 4px;
+        padding: 4px;
+        a {
+            padding: 4px 12px;
+            font-weight: $font-weight-medium;
+            border-radius: $border-radius;
+            &.active {
+                background: $white;
+                &:hover {
+                    color: $gray-900;
+                }
+            }
+            @include respond-below(xl) {
+                padding: 4px 10px;
+            }
+        }
+    }
+    .topbar-menu {
+        display: flex;
+        justify-content: space-between;
+        position: relative;
+        & > div:first-child {
+            @include respond-below(lg) {
+                flex-direction: row-reverse;
+            }
+        }
+        .header-list {
+            gap: 12px;
+        }
+        .header-link {
+            width: 32px;
+            height: 32px;
+        }
+        .header-item {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: $topbar-height;
+            .topbar-link {
+                z-index: 1;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                cursor: pointer;
+                width: 32px;
+                height: 32px;
+                border-radius: $border-radius;
+                color: $topbar-item-color;
+                background: $topbar-item-bg;
+                border: 1px solid $topbar-item-border;
+                &:hover {
+                    background-color: $topbar-item-hover-bg;
+                }
+                .report-badge {
+                    top: 7px;
+                    right: 7px;
+                    width: 7px;
+                    height: 7px;
+                    border-radius: 50%;
+                }
+            }
+        }
+    }
+    ul {
+        list-style-type: none;
+        margin-bottom: 0;
+    }
+    .logo {
+        @include respond-above(lg) {
+            display: none;
+        }
+        .logo-lg {
+            display: none;
+        }
+        .logo-sm {
+            display: none;
+            @include respond-below(md) {
+                display: block;
+            }
+        }
+        .logo-light {
+            .logo-lg {
+                img {
+                    max-width: 100px;
+                }
+                @include respond-below(lg) {
+                    display: block;
+                }
+                @include respond-below(md) {
+                    display: none;
+                }
+            }
+        }
+    }
+    .notification-dropdown {
+        .notification-footer {
+            padding: 16px 20px;
+        }
+        .notification-item {
+            position: relative;
+            .recent {
+                position: absolute;
+                top: 46%;
+                right: 20px;
+                width: 8px;
+                height: 8px;
+                background-color: $danger;
+                border-radius: 50%;
+            }
+        }
+    }
+    .profile-dropdown {
+        margin-left: 8px;
+    }
+}
+.sidenav-toggle-btn {
+    &:hover {
+        color: $primary;
+    }
+    @include respond-below(lg) {
+        display: none !important;
+    }
+}
+.mobile-btn {
+    @include respond-above(lg) {
+        display: none;
+    }
+}
+
+// Topbar light/Dark Mode icon
+html[data-bs-theme='dark'] {
+    #light-dark-mode {
+        .ti-moon {
+            &::before {
+                content: '\eb30';
+            }
+        }
+    }
+}
+.nav-user {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    border: 1px solid $border-color;
+    padding: 10px;
+    transition: none;
+    border-radius: $border-radius-lg 0;
+}
+
+// Topbar Search
+.header-search {
+    .input-group-sm > .form-control,
+    .input-group-sm > .form-select,
+    .input-group-sm > .input-group-text,
+    .input-group-sm > .btn {
+        padding: 0.3rem 0.5rem;
+    }
+    .input-group-text {
+        background-color: $white !important;
+    }
+    ::placeholder {
+        color: $gray-500 !important;
+    }
+}
+
+// Notification
+
+.notification-badge {
+    position: absolute;
+    top: 8px;
+    right: 10px;
+    width: 6px;
+    height: 6px;
+    background-color: #fd5812;
+    border-radius: 50px;
+}
+.dropdown-menu.notification-dropdown {
+    padding: 20px !important;
+}
+.notification-header {
+    margin-bottom: 20px;
+    padding-bottom: 20px;
+    border-bottom: 1px solid $border-color;
+    flex-wrap: wrap;
+    gap: 4px;
+}
+.notification-body {
+    min-height: 280px;
+    max-height: 280px;
+    .nav-tabs {
+        .nav-link {
+            padding: 4px 12px !important;
+            font-weight: $font-weight-medium;
+            font-size: 14px;
+        }
+    }
+    .simplebar-track.simplebar-vertical {
+        right: -5px;
+        width: 4px;
+    }
+}
+.notification-list {
+    margin-bottom: 20px;
+    &:last-child {
+        margin-bottom: 0;
+    }
+}
+.notification-item {
+    position: relative;
+    cursor: pointer;
+    border-radius: 0 !important;
+    margin-bottom: 20px;
+    padding-right: 10px;
+    &:last-child {
+        margin-bottom: 0;
+    }
+    .notification-item-close {
+        position: absolute;
+        right: 0;
+        display: none;
+        top: 0;
+        bottom: 0;
+        padding: 15px;
+        background-color: $gray-100;
+    }
+    .notification-action {
+        position: absolute;
+        top: 50%;
+        right: 0;
+    }
+    .notification-read {
+        display: block;
+        width: 8px;
+        height: 8px;
+    }
+    .notification-badge {
+        height: 22px;
+        width: 22px;
+        text-align: center;
+        color: $white;
+        top: -12px;
+        right: -8px;
+        border: 2px solid $white;
+        line-height: 18px;
+        font-size: 11px;
+    }
+    &:hover {
+        .notification-item-close {
+            display: block;
+        }
+        .notification-action {
+            display: flex !important;
+        }
+    }
+}
+.animate-ring {
+    animation: tada 1.5s ease infinite;
+}
+@keyframes tada {
+    0% {
+        transform: scaleZ(1);
+    }
+    10%,
+    20% {
+        transform: scale3d(0.95, 0.95, 0.95) rotate3d(0, 0, 1, -10deg);
+    }
+    30%,
+    50%,
+    70%,
+    90% {
+        transform: scaleZ(1) rotate3d(0, 0, 1, 10deg);
+    }
+    40%,
+    60%,
+    80% {
+        transform: rotate3d(0, 0, 1, -10deg);
+    }
+    to {
+        transform: scaleZ(1);
+    }
+}
+@include respond-below(sm) {
+    .navbar-header {
+        .topbar-menu {
+            position: initial;
+        }
+        .dropdown {
+            position: static;
+            .dropdown-menu {
+                width: 100%;
+                left: 0 !important;
+                right: 0 !important;
+            }
+        }
+    }
+}
+@include respond-below(md) {
+    .navbar-header {
+        padding: 0 0.625rem;
+    }
+}
+.badge-icon {
+    width: 20px;
+    height: 20px;
+    background: $danger;
+    border: 1px solid $border-color;
+    color: $darkmode-white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    border-radius: 50%;
+}

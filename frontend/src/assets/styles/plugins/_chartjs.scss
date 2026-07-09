@@ -1,0 +1,14 @@
+@use '../abstracts' as *;
+
+//
+// chartjs.scss
+//
+
+.chartjs-chart {
+    margin: auto;
+    position: relative;
+    width: 100%;
+}
+.chart-container {
+    border-color: $border-color;
+}

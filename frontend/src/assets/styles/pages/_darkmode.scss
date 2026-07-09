@@ -1,0 +1,114 @@
+@use '../abstracts' as *;
+
+[data-bs-theme='dark'] {
+    .pos-wrapper {
+        .header {
+            .logo-dark {
+                display: none;
+            }
+            .logo-light {
+                display: block;
+            }
+        }
+    }
+    .navbar-header {
+        .logo {
+            .logo-light {
+                .logo-lg {
+                    @include respond-below(lg) {
+                        display: none;
+                    }
+                }
+            }
+            .logo-dark {
+                .logo-lg {
+                    @include respond-below(lg) {
+                        display: block;
+                    }
+                    @include respond-below(md) {
+                        display: none;
+                    }
+                }
+            }
+        }
+    }
+
+    .avatar {
+        color: $darkmode-white;
+    }
+    .custom-line-img {
+        filter: invert(1);
+        &-two {
+            filter: brightness(59.5);
+        }
+    }
+    .badge {
+        &.text-white {
+            color: $darkmode-white !important;
+        }
+    }
+    .modal-header {
+        .btn-close.btn-close-modal {
+            background: $gray-300;
+            color: $gray-900;
+            filter: unset;
+        }
+    }
+    .offcanvas {
+        .btn-close.btn-close {
+            background: $gray-300;
+            color: $gray-900;
+            filter: unset;
+        }
+    }
+    .btn-light {
+        &:hover {
+            color: $gray-100 !important;
+        }
+    }
+    .table {
+        tr {
+            tr {
+                background-color: $dark;
+            }
+            td {
+                background-color: transparent !important;
+            }
+        }
+    }
+    .invoice-logo {
+        .logo-white {
+            display: block !important;
+        }
+        .logo {
+            display: none !important;
+        }
+    }
+    .active > .page-link,
+    .page-link.active {
+        color: $darkmode-white !important;
+    }
+    .top-item {
+        .text-white {
+            color: $darkmode-white !important;
+        }
+    }
+    .roles-sidebar {
+        ul {
+            li {
+                a {
+                    &.active {
+                        background-color: $gray-100 !important;
+                        color: $darkmode-white !important;
+                    }
+                }
+            }
+        }
+    }
+    .bg-danger,
+    .bg-indigo {
+        .text-white {
+            color: $darkmode-white !important;
+        }
+    }
+}

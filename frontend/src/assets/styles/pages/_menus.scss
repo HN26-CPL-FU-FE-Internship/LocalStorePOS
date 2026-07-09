@@ -1,0 +1,979 @@
+@use '../abstracts' as *;
+
+.pos-page {
+    @include respond-above(lg) {
+        overflow: hidden;
+    }
+}
+.pos-wrapper {
+    // Header Menu
+    .header {
+        background: $white;
+        width: 100%;
+        border-bottom: 1px solid $gray-200;
+        box-shadow: $box-shadow;
+        @include respond-below(lg) {
+            position: sticky;
+            top: 0;
+            z-index: 999;
+        }
+        .logo-light {
+            display: none;
+        }
+        .header-menu {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            width: 100%;
+            .navbar-header {
+                flex-grow: 1;
+                margin: 0;
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                background: transparent;
+                padding: 0px 0px 0px 25px;
+                margin: 0px 0px 0px 24px;
+                border-left: 1px solid $gray-200;
+                border-bottom: 0;
+                .toggle-btn {
+                    background: transparent;
+                    border: none;
+                    outline: none;
+                    font-size: 20px;
+                    color: $gray-900;
+                }
+            }
+            .header-notification {
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                padding: 0;
+                margin: 0;
+                gap: 12px;
+                li {
+                    .btn-icon {
+                        width: 32px;
+                        height: 32px;
+                        border: 1px solid $gray-200;
+                        background: $white;
+                        border-radius: 50%;
+                        color: $gray-900;
+                        transition: all 0.6s;
+                        &:hover {
+                            background: $light-900;
+                        }
+                    }
+                }
+                .profile-icon {
+                    overflow: hidden;
+                    img {
+                        width: 100%;
+                        height: 100%;
+                    }
+                }
+            }
+        }
+    }
+
+    // Page Wrapper
+    .page-wrapper {
+        padding: 0;
+        margin: 0;
+        .content {
+            padding: 0;
+        }
+        .pos-right {
+            background: $white;
+            border-left: 1px solid $gray-200;
+
+            @include respond-above(lg) {
+                height: calc(100vh - 58px);
+                overflow-y: auto;
+            }
+            .item {
+                padding: 16px;
+            }
+            .input-item {
+                position: relative;
+                border: 1px solid $border-color;
+                border-radius: $border-radius;
+                input {
+                    padding: 8px 35px 8px 12px;
+                }
+                .select2-container {
+                    .select2-selection--single {
+                        border: 0;
+                        .select2-selection__rendered {
+                            box-shadow: none;
+                        }
+                    }
+                }
+                .btn-icon {
+                    position: absolute;
+                    right: 8px;
+                    top: 0;
+                    bottom: 0;
+                    margin: auto;
+                    width: 24px;
+                    height: 24px;
+                    border-radius: 5px !important;
+                }
+            }
+        }
+        .pos-left {
+            padding: 20px;
+            @include respond-above(lg) {
+                height: calc(100vh - 58px);
+                overflow-y: auto;
+            }
+            .order-item {
+                padding: 12px;
+                border: 1px solid $gray-200;
+                background: $white;
+                border-radius: 5px;
+                .time {
+                    padding: 3px 8px 3px 4px !important;
+                    display: inline-flex;
+                    align-items: center;
+                    span {
+                        width: 18px;
+                        height: 18px;
+                        border-radius: 50%;
+                        background: $white;
+                        display: inline-flex;
+                        color: $gray-900;
+                        align-items: center;
+                        justify-content: center;
+                    }
+                }
+            }
+            .category-tab {
+                .nav-link {
+                    border: 1px solid $border-color;
+                    margin: 0;
+                    &.active {
+                        background: $white;
+                        border: 1px solid $primary;
+                    }
+                }
+            }
+        }
+        .nav-tabs {
+            .nav-link {
+                display: flex;
+                align-items: center;
+                gap: 8px;
+                padding: 8px;
+                font-weight: $font-weight-medium;
+                border: 1px solid $border-color;
+                &:hover,
+                &.active {
+                    border-color: $primary;
+                }
+            }
+        }
+        .pos-tab {
+            .nav-item {
+                @include respond-below(xl) {
+                    width: calc(50% - 4px);
+                }
+                @include respond-below(lg) {
+                    width: calc(25% - 4px);
+                }
+                @include respond-below(sm) {
+                    width: calc(50% - 4px);
+                }
+                .nav-link {
+                    padding: 8px;
+                    gap: 4px;
+                }
+            }
+        }
+    }
+}
+
+.food-grid-item {
+    padding: 12px;
+    background: $white;
+    border: 1px solid $border-color;
+    border-radius: 8px;
+    .food-items {
+        position: relative;
+        margin-bottom: 12px;
+        .badge {
+            padding: 2px 8px 2px 8px !important;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            border-radius: 0px 5px 5px 0px;
+            position: absolute;
+            top: 13px;
+            left: 0;
+        }
+    }
+}
+.food-items {
+    .badge {
+        padding: 2px 8px 2px 8px !important;
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        border-radius: 0px 5px 5px 0px;
+        position: absolute;
+        top: 13px;
+        left: 0;
+    }
+}
+.size-tab {
+    .tag {
+        padding: 6px 8px;
+        border: 2px solid $gray-200;
+        font-size: 13px;
+        font-weight: $font-weight-medium;
+        color: $gray-900;
+        border-radius: 6px;
+        background: transparent;
+    }
+    &.active {
+        .tag {
+            border: 2px solid $primary !important;
+        }
+    }
+}
+
+.calci {
+    .modal-dialog {
+        width: 400px;
+    }
+}
+
+.calculator-wrap {
+    .calculator-body {
+        background: $white;
+        padding: 24px 40px 40px;
+        align-items: center;
+        justify-content: center !important;
+        gap: 24px;
+        @include respond-below(md) {
+            padding: 20px;
+        }
+        button {
+            font-size: 20px;
+            font-weight: $font-weight-medium;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 24px;
+            &:hover {
+                box-shadow: $box-shadow;
+                background: $primary;
+                color: $white;
+                border: 1px solid $primary;
+            }
+            &:last-child {
+                margin-bottom: 0;
+            }
+            @include respond-below(md) {
+                font-size: 22px;
+            }
+        }
+        .btn-number {
+            width: 60px;
+            height: 60px;
+            background: $white;
+            border-radius: 50%;
+            border: 1px solid $gray-200;
+            box-shadow: $inset-shadow;
+            @include rounded(50%);
+            @include respond-below(md) {
+                width: 38px;
+                height: 38px;
+            }
+        }
+        .btn-expression {
+            width: 60px;
+            height: 60px;
+            background: $white;
+            border-radius: 50%;
+            border: 1px solid $gray-200;
+            box-shadow: $inset-shadow;
+            @include rounded(50%);
+            @include respond-below(md) {
+                width: 38px;
+                height: 38px;
+            }
+        }
+        .btn-clear {
+            width: 60px;
+            height: 60px;
+            background: $white;
+            border-radius: 50%;
+            border: 1px solid $gray-200;
+            box-shadow: $inset-shadow;
+            @include respond-below(md) {
+                width: 38px;
+                height: 38px;
+            }
+        }
+    }
+}
+
+.quantity-control {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    width: 80px;
+    .minus-btn {
+        width: 20px;
+        height: 20px;
+        background: var(--light);
+        border-radius: 50%;
+        border: 1px solid $gray-200;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 14px;
+        line-height: 1;
+        &:hover {
+            background: $primary;
+            color: $white;
+            border: 1px solid $primary;
+        }
+    }
+    .add-btn {
+        width: 20px;
+        height: 20px;
+        background: var(--light);
+        border-radius: 50%;
+        border: 1px solid $gray-200;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 14px;
+        color: $gray-900;
+        &:hover {
+            background: $primary;
+            color: $white;
+            border: 1px solid $primary;
+        }
+    }
+    .quantity-input {
+        width: 20px;
+        text-align: center;
+        border: none;
+        background: transparent;
+        border: none;
+        outline: none;
+    }
+}
+
+.slick-slide {
+    & > div {
+        margin: 0px 8px;
+    }
+}
+.slick-list {
+    margin: 0px -8px;
+}
+.slick-arrow {
+    width: 32px;
+    height: 32px;
+    border: 1px solid $gray-200;
+    background: $white;
+    font-size: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    transition: all 0.5s;
+    &:hover {
+        background: $primary;
+        color: $white;
+        border: 1px solid $primary;
+    }
+}
+.category-slider {
+    .slick-slide {
+        & > div {
+            margin: 0px 8px;
+        }
+    }
+    .slick-list {
+        margin: 0px -8px;
+    }
+}
+.menu-item {
+    &.active {
+        border-color: $primary !important;
+    }
+    .close-icon {
+        &:hover {
+            background: $danger;
+            border-color: $danger;
+            color: $darkmode-white !important;
+        }
+    }
+}
+.addon-item {
+    &.active {
+        border-color: $primary !important;
+    }
+}
+.drag-item.dragging {
+    opacity: 0.5;
+    background: $light;
+    border: 1px dashed $light;
+}
+
+.drag-item {
+    transition: transform 0.1s ease;
+    & > label {
+        cursor: grab;
+    }
+}
+.input-item {
+    position: relative;
+    border: 1px solid $border-color;
+    border-radius: $border-radius;
+    input {
+        padding: 8px 35px 8px 12px;
+    }
+    .select2-container {
+        .select2-selection--single {
+            border: 0;
+            .select2-selection__rendered {
+                box-shadow: none;
+            }
+        }
+    }
+    .btn-icon {
+        position: absolute;
+        right: 8px;
+        top: 0;
+        bottom: 0;
+        margin: auto;
+        width: 24px;
+        height: 24px;
+        border-radius: 5px !important;
+    }
+}
+#coupon-presets {
+    .touch-pill {
+        justify-content: center;
+    }
+}
+.diet-filter-pills {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+    .touch-pill {
+        padding: 6px 12px;
+        border-radius: 50px;
+        display: flex;
+        align-items: center;
+        gap: 5px;
+        background: $white;
+        border: 1px solid $border-color;
+        flex: none;
+        .diet-count {
+            background: #eee;
+            color: #333;
+            padding: 1px;
+            border-radius: 50px;
+            width: 20px;
+            height: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        &.active {
+            color: $white;
+            background: $primary;
+            .diet-count {
+                background: $gray-200;
+                color: $gray-900;
+            }
+        }
+        &:hover {
+            color: $white;
+            background: $primary;
+            .diet-count {
+                background: $gray-200;
+                color: $gray-900;
+            }
+        }
+    }
+}
+.partner-status-bar {
+    display: flex;
+    align-items: center;
+    padding: 10px;
+    border-bottom: 1px solid $border-color;
+    gap: 5px;
+    .partner-pill {
+        background: $gray-200;
+        padding: 5px 8px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border: 1px solid $border-color;
+        border-radius: 50px;
+        cursor: pointer;
+        gap: 5px;
+        line-height: normal;
+        &.connected {
+            border: 1px solid $success;
+            background: $white;
+        }
+    }
+}
+.cart-item-row {
+    margin-bottom: 5px;
+    border: 1px solid $border-color;
+    border-radius: 5px;
+    padding: 8px;
+}
+.order-type-segmented {
+    display: flex;
+    align-items: center;
+    .seg-btn {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 8px 16px;
+        font-weight: 500;
+        border: 1px solid $border-color;
+        border-radius: 5px;
+        box-shadow: $box-shadow-sm;
+        background: $white;
+        &.active {
+            background: $primary;
+            color: $white;
+            border: 1px solid $primary;
+        }
+        svg {
+            width: 16px;
+            height: 16px;
+        }
+    }
+}
+.cart-items-list {
+    padding: 16px;
+    border-bottom: 1px solid $border-color;
+}
+.cart-footer-totals {
+    padding: 8px;
+    .total-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 10px;
+        &.grand-total {
+            padding: 10px;
+            border-top: 1px solid $border-color;
+            border-bottom: 1px solid $border-color;
+            margin-bottom: 0;
+            span {
+                font-size: 18px;
+                font-weight: 700;
+            }
+        }
+    }
+}
+.discount-btn {
+    padding: 8px;
+    .btn {
+        width: 25%;
+    }
+}
+.cart-footer-sticky {
+    position: sticky;
+    bottom: 0;
+    background: $white;
+    z-index: 99;
+}
+.cart-empty-state {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    padding-top: 15px;
+    span {
+        width: 70px;
+        height: 70px;
+        background: #eee;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 50px;
+        margin-bottom: 15px;
+        font-size: 30px;
+    }
+}
+.cart-qty-badge {
+    background: $danger;
+    color: $white;
+    width: 20px;
+    height: 20px;
+    border-radius: 50px;
+    position: absolute;
+    right: 10px;
+    top: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.partner-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50px;
+}
+#held-count {
+    position: relative;
+    top: -10px;
+}
+.touch-input {
+    min-height: 38px;
+    font-size: 15px;
+    padding: 8px 16px;
+    border-radius: 8px;
+}
+.ubereats {
+    padding-top: 15px;
+    span {
+        font-size: 14px;
+        color: $gray-900;
+        font-weight: 500;
+    }
+}
+.bottom-sheet-row {
+    display: flex;
+    align-items: center;
+    padding: 14px 0;
+    min-height: 56px;
+    border-bottom: 1px solid $border-color;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+}
+.pos-toast-container {
+    position: fixed;
+    top: 80px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 1060;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    pointer-events: none;
+    width: 400px;
+    max-width: 90vw;
+}
+.pos-toast {
+    display: flex;
+    align-items: start;
+    gap: 10px;
+    padding: 12px 16px;
+    background: $white;
+    border-radius: 10px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.12);
+    pointer-events: auto;
+    animation: toast-slide-in 0.3s ease-out;
+    min-height: 48px;
+}
+.pos-toast-icon.info {
+    background: #e3f2fd;
+    color: #0d76e1;
+}
+
+.pos-toast-icon {
+    width: 24px;
+    height: 24px;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+}
+.pos-toast-message {
+    flex: 1;
+    font-size: 14px;
+    font-weight: 500;
+    color: #333;
+}
+.pos-toast-close {
+    background: none;
+    border: none;
+    color: #999;
+    cursor: pointer;
+    padding: 4px;
+    font-size: 18px;
+    line-height: 1;
+}
+.customer-display {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    span {
+        white-space: nowrap;
+        min-width: 120px;
+        border: 1px solid $border-color;
+        height: 36px;
+        border-radius: 5px;
+        padding: 7px 5px;
+    }
+}
+.shoping-bag {
+    width: 40px;
+    height: 40px;
+    background: $light;
+    border-radius: 50px;
+    font-size: 25px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+.touch-pill {
+    min-height: 40px;
+    padding: 8px 20px;
+    border-radius: 22px;
+    font-size: 14px;
+    font-weight: 500;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    cursor: pointer;
+    transition: all 0.15s;
+    -webkit-tap-highlight-color: transparent;
+    user-select: none;
+    border: 1.5px solid transparent;
+    &.active {
+        background: $primary;
+        color: $white;
+    }
+}
+.reservation-div {
+    span {
+        display: flex;
+        align-items: center;
+        gap: 3px;
+    }
+}
+.nav-tabs-touch {
+    border: 0;
+    .nav-link {
+        border: 1px solid $border-color;
+        border-radius: 5px;
+        &.active {
+            background: $primary;
+            color: $white;
+        }
+    }
+}
+/* Modal Container */
+.payment-modal-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 16px;
+    border-bottom: 1px solid #eee;
+    background: $white;
+    h5 {
+        font-weight: 600;
+    }
+}
+
+/* Step Indicator */
+.payment-steps-indicator {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 12px;
+    background: #f8f9fb;
+    font-size: 14px;
+    .payment-step-dot {
+        padding: 6px 10px;
+        border-radius: 20px;
+        background: #e9ecef;
+        color: #6c757d;
+        font-weight: 500;
+        &.active {
+            background: $primary;
+            color: $white;
+        }
+    }
+}
+.payment-modal-body {
+    padding: 16px;
+}
+
+/* Payment Method Cards */
+.payment-method-card {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 14px;
+    border-radius: 12px;
+    border: 1px solid #eee;
+    margin-bottom: 12px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    background: $white;
+    &:hover {
+        border-color: $primary;
+        background: #f5f9ff;
+    }
+    .active {
+        border-color: $primary;
+        background: #e7f1ff;
+    }
+    i {
+        width: 36px;
+        height: 36px;
+        background: #f1f3f5;
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    .touch-btn-lg {
+        padding: 12px;
+        font-size: 16px;
+        border-radius: 10px;
+    }
+}
+
+.touch-btn-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 10px;
+}
+.cash-calculator {
+    text-align: center;
+}
+.cash-display {
+    background: #111;
+    color: $white;
+    padding: 16px;
+    border-radius: 12px;
+    margin-bottom: 12px;
+}
+.cash-display .tendered {
+    font-size: 28px;
+    font-weight: 700;
+}
+.cash-display .order-total,
+.cash-display .change-due {
+    font-size: 14px;
+    margin-top: 4px;
+}
+.quick-tender-pills {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 10px;
+}
+.touch-pill {
+    flex: 1;
+    padding: 8px;
+    border-radius: 20px;
+    border: 1px solid #ddd;
+    background: $white;
+    &:hover {
+        background: $primary;
+        color: $white;
+    }
+}
+
+.quick-amounts {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+    margin-bottom: 10px;
+}
+
+.quick-amt-btn {
+    padding: 10px;
+    border-radius: 8px;
+    border: 1px solid #ddd;
+    background: $white;
+    font-weight: 500;
+    &:hover {
+        background: $primary;
+        color: $white;
+    }
+}
+
+.numpad-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+}
+
+.numpad-btn {
+    padding: 16px;
+    font-size: 18px;
+    border-radius: 10px;
+    border: none;
+    background: #f1f3f5;
+    font-weight: 600;
+}
+
+.numpad-btn:hover {
+    background: $primary;
+    color: $white;
+}
+
+/* Success Screen */
+.payment-success {
+    text-align: center;
+    padding: 20px;
+}
+
+.checkmark-circle {
+    width: 70px;
+    height: 70px;
+    background: #198754;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 15px;
+    color: $white;
+    font-size: 28px;
+}
+
+.success-actions {
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+}
+
+.touch-input {
+    height: 48px;
+    border-radius: 10px;
+}
+
+.pos-toast-message {
+    .touch-btn {
+        padding: 2px 6px !important;
+    }
+}
+#discount-percent-pills {
+    .touch-pill {
+        display: inline;
+    }
+}
+.menu-category-tab {
+    .nav-link:hover {
+        background: $primary !important;
+        h6 {
+            color: $white;
+        }
+        p {
+            color: $white !important;
+        }
+    }
+}
