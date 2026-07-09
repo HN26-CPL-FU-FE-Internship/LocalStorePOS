@@ -39,7 +39,6 @@
             img {
                 width: 120px;
             }
-
         }
 
         .logo-small,
@@ -92,8 +91,8 @@
             list-style: none;
         }
 
-        >ul {
-            >li {
+        > ul {
+            > li {
                 overflow: hidden;
                 margin-top: 6px;
 
@@ -113,9 +112,9 @@
                     }
                 }
 
-                >ul {
-                    >li {
-                        >a {
+                > ul {
+                    > li {
+                        > a {
                             border-left: 2px solid transparent;
 
                             .count {
@@ -141,7 +140,7 @@
                     }
                 }
 
-                >a {
+                > a {
                     display: -webkit-box;
                     border-radius: 5px;
                     display: -ms-flexbox;
@@ -303,7 +302,7 @@
                     }
                 }
 
-                &>li {
+                & > li {
                     &.active a {
                         background: $menu-active-bg;
                         border-radius: 5px;
@@ -334,7 +333,6 @@
 
                             span {
                                 color: $primary;
-
                             }
                         }
                     }
@@ -371,7 +369,7 @@
                     }
                 }
 
-                &.submenu> {
+                &.submenu > {
                     ul {
                         position: relative;
                         padding-top: 4px;
@@ -411,7 +409,7 @@
                                 }
 
                                 &::before {
-                                    content: "";
+                                    content: '';
                                     width: 32px;
                                     height: 9px;
                                     border-radius: 5px;
@@ -421,7 +419,7 @@
                                     top: 50%;
                                     left: 5px;
                                     transform: translateY(-50%) scale(0.25);
-                                    transition: all .25s ease-in-out;
+                                    transition: all 0.25s ease-in-out;
                                 }
                             }
                         }
@@ -498,7 +496,6 @@
                     }
                 }
             }
-
         }
 
         .menu-arrow {
@@ -527,7 +524,7 @@
                 height: 6px;
                 width: 6px;
                 border-top: 0;
-                content: "";
+                content: '';
                 border-left: 0;
                 border-right: 1.4px solid $menu-item-color;
                 border-bottom: 1.4px solid $menu-item-color;
@@ -545,7 +542,7 @@
         &.subdrop {
             .menu-arrow {
                 transform: translateY(-50%) rotate(90deg);
-                background: #FFEDDC;
+                background: #ffeddc;
             }
         }
     }
@@ -579,7 +576,7 @@
 
         .sidebar {
             .sidebar-menu {
-                .clinicdropdown>a {
+                .clinicdropdown > a {
                     padding: 5px;
                 }
             }
@@ -595,7 +592,7 @@
 
             .sidebar {
                 .sidebar-menu {
-                    .clinicdropdown>a {
+                    .clinicdropdown > a {
                         padding: 10px 15px;
                     }
                 }
@@ -690,7 +687,6 @@
                 ul {
                     li {
                         a {
-
                             span,
                             .count {
                                 display: none;
@@ -780,8 +776,8 @@
 
             .sidebar-menu {
                 ul {
-                    >li {
-                        >a {
+                    > li {
+                        > a {
                             span {
                                 display: inline-block;
                             }
@@ -855,7 +851,7 @@
         }
 
         .sidebar-menu {
-            >ul {
+            > ul {
                 li {
                     position: relative;
 
@@ -888,14 +884,14 @@
 
     &.expand-menu {
         .sidebar {
-            .sidebar-menu>ul>li.submenu-open ul li a {
+            .sidebar-menu > ul > li.submenu-open ul li a {
                 justify-content: left;
                 -webkit-justify-content: left;
                 -ms-flex-pack: left;
                 padding-left: 18px;
             }
 
-            .sidebar-menu>ul>li ul>li.active a {
+            .sidebar-menu > ul > li ul > li.active a {
                 justify-content: start;
             }
 
@@ -904,7 +900,7 @@
             }
 
             .sidebar-menu {
-                >ul {
+                > ul {
                     li {
                         &.menu-title {
                             &::before {
@@ -923,7 +919,6 @@
                 }
             }
         }
-
     }
 }
 
@@ -941,7 +936,7 @@
     .slide-nav {
         .sidebar {
             .sidebar-menu {
-                >ul {
+                > ul {
                     li {
                         a {
                             justify-content: start;
@@ -951,7 +946,7 @@
             }
         }
 
-        .active.subdrop~ul {
+        .active.subdrop ~ ul {
             display: block !important;
         }
     }
@@ -973,18 +968,18 @@
 }
 
 .mini-sidebar {
-    .active.subdrop~ul {
+    .active.subdrop ~ ul {
         display: none !important;
     }
 }
 
 .mini-sidebar.expand-menu {
-    .active.subdrop~ul {
+    .active.subdrop ~ ul {
         display: block !important;
     }
 }
 
-.active.subdrop~ul {
+.active.subdrop ~ ul {
     display: block !important;
 }
 
@@ -1087,7 +1082,6 @@
                     color: $gray-900;
                 }
             }
-
         }
 
         .sidebar-left {
@@ -1119,7 +1113,7 @@
 
             .sidebar-profile {
                 .dropdown {
-                    &>a {
+                    & > a {
                         width: 34px;
                         height: 34px;
                         border: 1px solid transparent;
@@ -1265,7 +1259,7 @@
                     }
 
                     &.submenu {
-                        &>a {
+                        & > a {
                             &:hover {
                                 background: $dark-transparent;
                                 color: $gray-500 !important;
@@ -1277,8 +1271,8 @@
                             margin-bottom: 10px;
                             margin-top: 5px;
 
-                            &>li {
-                                &>a {
+                            & > li {
+                                & > a {
                                     padding-left: 15px;
 
                                     &:hover,
@@ -1289,9 +1283,9 @@
                             }
                         }
 
-                        &>ul {
-                            &>li {
-                                &>a {
+                        & > ul {
+                            & > li {
+                                & > a {
                                     &.active {
                                         background-color: transparent;
                                     }
@@ -1303,9 +1297,9 @@
             }
 
             .tab-pane {
-                &>ul {
-                    &>li {
-                        >a {
+                & > ul {
+                    & > li {
+                        > a {
                             &:hover {
                                 background: $white;
                                 border-color: $border-color;
@@ -1319,13 +1313,12 @@
                         }
                     }
                 }
-
             }
 
             .menu-arrow {
                 -webkit-transition: -webkit-transform 0.15s;
                 -o-transition: -o-transform 0.15s;
-                transition: transform .15s;
+                transition: transform 0.15s;
                 display: inline-block;
                 font-family: 'Font Awesome 5 Free';
                 text-rendering: auto;
@@ -1342,7 +1335,7 @@
                 @include transform(translate(0, 0));
 
                 &:before {
-                    content: "\f105";
+                    content: '\f105';
                 }
             }
         }
