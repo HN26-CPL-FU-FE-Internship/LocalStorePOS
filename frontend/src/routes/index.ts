@@ -1,5 +1,7 @@
 import configs from '@/configs';
+import AppLayout from '@/layouts/AppLayout';
 import AuthenticationLayout from '@/layouts/AuthenticationLayout';
+import DashboardIndex from '@/pages/Dashboard';
 import EmailVerify from '@/pages/EmailVerify';
 import ForgotPassword from '@/pages/ForgotPassword';
 import Login from '@/pages/Login';
@@ -14,6 +16,9 @@ export const publicRoutes = [
     { path: configs.routes.forgotPassword, component: ForgotPassword, layout: AuthenticationLayout },
     { path: configs.routes.resetPassword, component: ResetPassword, layout: AuthenticationLayout },
     { path: configs.routes.emailVerify, component: EmailVerify, layout: AuthenticationLayout },
+    { path: configs.routes.dashboard, component: DashboardIndex, layout: AppLayout },
 ];
 
-export const privateRoutes = [];
+export const privateRoutes = [
+
+];
