@@ -1,7 +1,7 @@
 export interface ChartPlaceholderProps {
-  id: string;
-  height?: number;
-  className?: string;
+    id: string;
+    height?: number;
+    className?: string;
 }
 
 /**
@@ -11,14 +11,14 @@ export interface ChartPlaceholderProps {
  * `react-apexcharts` (or your chart lib of choice) against `id` to restore the
  * real chart. See the "Vấn đề chưa xử lý" list for details.
  */
-const ChartPlaceholder = ({ id, height = 300, className = "" }: ChartPlaceholderProps) => (
-  <div
-    id={id}
-    className={`d-flex align-items-center justify-content-center text-muted border rounded bg-light-subtle ${className}`}
-    style={{ minHeight: height }}
-  >
-    Chart placeholder (#{id}) — hook up ApexCharts here
-  </div>
+const ChartPlaceholder = ({ id, height = 300, className = '' }: ChartPlaceholderProps) => (
+    <div
+        id={id}
+        className={`d-flex align-items-center justify-content-center text-muted border rounded bg-light-subtle ${className}`}
+        style={{ minHeight: height }}
+    >
+        Chart placeholder (#{id}) — hook up ApexCharts here
+    </div>
 );
 
 export default ChartPlaceholder;

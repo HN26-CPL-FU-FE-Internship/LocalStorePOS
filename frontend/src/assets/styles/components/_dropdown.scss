@@ -4,6 +4,11 @@
 // dropdown.scss
 //
 
+@font-face {
+    font-family: 'lucide';
+    src: url('../../fonts/lucide.woff2');
+}
+
 .dropdown-menu {
     box-shadow: $box-shadow;
     animation-name: DropDownSlideUp;

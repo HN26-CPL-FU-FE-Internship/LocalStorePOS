@@ -30,7 +30,7 @@ const Sidebar = ({ onClose }: SidebarProps) => {
         <div className="two-col-sidebar" id="two-col-sidebar">
             <div className="sidebar sidebar-twocol">
                 <div className="twocol-mini">
-                    <Link to="/" className="logo-small">
+                    <Link to="/dashboard" className="logo-small">
                         <img src="/restaurant-pos/src/assets/img/logo-small.svg" alt="Logo" />
                     </Link>
 

@@ -330,7 +330,7 @@
         bottom: 0;
         width: 48px;
         height: 48px;
-        background: url('../img/bg/count-bg-01.png');
+        background: url('../../img/bg/count-bg-01.png');
         z-index: -1;
         border-radius: 50%;
     }
@@ -339,7 +339,7 @@
             border-color: $primary;
         }
         &::after {
-            background: url('../img/bg/count-bg-02.png');
+            background: url('../../img/bg/count-bg-02.png');
         }
     }
     &.bg-purple {
@@ -352,7 +352,7 @@
             border-color: $orange;
         }
         &::after {
-            background: url('../img/bg/count-bg-03.png');
+            background: url('../../img/bg/count-bg-03.png');
         }
     }
     &.bg-success {
@@ -360,7 +360,7 @@
             border-color: $success;
         }
         &::after {
-            background: url('../img/bg/count-bg-04.png');
+            background: url('../../img/bg/count-bg-04.png');
         }
     }
 }
