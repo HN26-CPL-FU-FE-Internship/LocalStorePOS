@@ -33,8 +33,8 @@ public class Store extends BaseEntity {
     @Column(name = "city", length = 100)
     private String city;
 
-    @Column(name = "status", length = 100)
-    private String status;
+    @Column(name = "state", length = 100)
+    private String state;
 
     @Column(name = "country", length = 100)
     private String country;
@@ -56,4 +56,3 @@ public class Store extends BaseEntity {
     @Column(name = "timezone", nullable = false, length = 60)
     private String timezone = "UTC";
 }
-    
