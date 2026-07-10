@@ -5,6 +5,7 @@ import { headerQuickLinks } from '@/data/navigationData';
 import logo from '@/assets/img/logo.svg';
 import smallLogo from '@/assets/img/logo-small.svg';
 import whiteLogo from '@/assets/img/logo-white.svg';
+import { Link } from 'react-router-dom';
 
 export interface TopHeaderProps {
     logoHref?: string;
@@ -54,10 +55,10 @@ const TopHeader = ({ logoHref = '#', onOpenSearch, onToggleTheme, onOpenMobileSi
                     {/* Quick links */}
                     <div className="header-links d-lg-flex d-none">
                         {headerQuickLinks.map((link) => (
-                            <a key={link.id} href={link.href} className="d-inline-flex align-items-center">
+                            <Link key={link.id} to={link.href} className="d-inline-flex align-items-center">
                                 <Icon name={link.icon} className="me-1" />
                                 {link.label}
-                            </a>
+                            </Link>
                         ))}
                     </div>
                 </div>

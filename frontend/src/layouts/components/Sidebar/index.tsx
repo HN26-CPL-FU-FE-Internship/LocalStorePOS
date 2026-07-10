@@ -8,7 +8,8 @@ import ProfileDropdown from './ProfileDropdown';
 import StoreSwitcherDropdown from './StoreSwitcherDropdown';
 import { sidebarTabs, storeOptions, currentUser, profileMenuItems, logoutHref } from '@/data/navigationData';
 import { notificationGroups } from '@/data/dashboardData';
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
+import configs from '@/configs';
 
 export interface SidebarProps {
     onClose: () => void;
@@ -21,21 +22,24 @@ export interface SidebarProps {
  * separated regions driven by the same "active tab" state.
  */
 const Sidebar = ({ onClose }: SidebarProps) => {
-    const [activeTabId, setActiveTabId] = useState(sidebarTabs[0].id);
     const [activeStoreId, setActiveStoreId] = useState(storeOptions[0].id);
 
-    const activeTab = sidebarTabs.find((tab) => tab.id === activeTabId) ?? sidebarTabs[0];
+    const { pathname } = useLocation();
+
+    const [activeTab, setActiveTab] = useState(
+        () => sidebarTabs.find((tab) => tab.endpoints.includes(pathname)) ?? sidebarTabs[0],
+    );
 
     return (
         <div className="two-col-sidebar" id="two-col-sidebar">
             <div className="sidebar sidebar-twocol">
                 <div className="twocol-mini">
-                    <Link to="/dashboard" className="logo-small">
+                    <Link to={configs.routes.dashboard} className="logo-small">
                         <img src="/restaurant-pos/src/assets/img/logo-small.svg" alt="Logo" />
                     </Link>
 
                     <div className="sidebar-left">
-                        <IconRail tabs={sidebarTabs} activeTabId={activeTabId} onSelectTab={setActiveTabId} />
+                        <IconRail tabs={sidebarTabs} activeTabId={activeTab.id} onSelectTab={setActiveTab} />
 
                         <div className="sidebar-profile ">
                             <NotificationsDropdown groups={notificationGroups} unreadCount={4} />

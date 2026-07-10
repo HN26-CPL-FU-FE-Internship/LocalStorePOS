@@ -3,6 +3,7 @@ import Badge from 'react-bootstrap/Badge';
 import Button from 'react-bootstrap/Button';
 import Icon from '@/components/common/Icon';
 import type { ProfileMenuItem, UserProfile } from '@/types';
+import { Link } from 'react-router-dom';
 
 export interface ProfileDropdownProps {
     user: UserProfile;
@@ -28,7 +29,7 @@ const ProfileDropdown = ({ user, menuItems, logoutHref }: ProfileDropdownProps) 
                         </div>
                     </div>
                     {user.plan && (
-                        <Badge bg="success" className="badge-soft-success">
+                        <Badge bg="" className="badge-soft-success">
                             {user.plan}
                         </Badge>
                     )}
@@ -36,7 +37,7 @@ const ProfileDropdown = ({ user, menuItems, logoutHref }: ProfileDropdownProps) 
             </div>
             <div className="p-3">
                 {menuItems.map((item) => (
-                    <Dropdown.Item key={item.id} href={item.href} className="d-flex align-items-center">
+                    <Dropdown.Item as={Link} key={item.id} to={item.href} className="d-flex align-items-center">
                         <Icon name={item.icon} className="me-2 fs-16" />
                         <span>{item.label}</span>
                     </Dropdown.Item>

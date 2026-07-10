@@ -1,6 +1,6 @@
-import SectionCard from '../../common/SectionCard';
-import Icon from '../../common/Icon';
-import type { ActivityLogGroup } from '../../../types';
+import SectionCard from '@/components/common/SectionCard';
+import Icon from '@/components/common/Icon';
+import type { ActivityLogGroup } from '@/types';
 
 export interface NotificationsLogCardProps {
     groups: ActivityLogGroup[];
