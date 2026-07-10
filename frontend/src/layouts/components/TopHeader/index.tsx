@@ -1,11 +1,10 @@
 import Button from 'react-bootstrap/Button';
 import Icon from '@/components/common/Icon';
-import { headerQuickLinks } from '@/data/navigationData';
 
 import logo from '@/assets/img/logo.svg';
 import smallLogo from '@/assets/img/logo-small.svg';
 import whiteLogo from '@/assets/img/logo-white.svg';
-import { Link } from 'react-router-dom';
+import QuickLinkHeader from '../QuickLinkHeader';
 
 export interface TopHeaderProps {
     logoHref?: string;
@@ -54,12 +53,7 @@ const TopHeader = ({ logoHref = '#', onOpenSearch, onToggleTheme, onOpenMobileSi
 
                     {/* Quick links */}
                     <div className="header-links d-lg-flex d-none">
-                        {headerQuickLinks.map((link) => (
-                            <Link key={link.id} to={link.href} className="d-inline-flex align-items-center">
-                                <Icon name={link.icon} className="me-1" />
-                                {link.label}
-                            </Link>
-                        ))}
+                        <QuickLinkHeader />
                     </div>
                 </div>
 

@@ -1,6 +1,7 @@
 import configs from '@/configs';
 import AppLayout from '@/layouts/AppLayout';
 import AuthenticationLayout from '@/layouts/AuthenticationLayout';
+import POSLayout from '@/layouts/POSLayout';
 import DashboardIndex from '@/pages/Dashboard';
 import EmailVerify from '@/pages/EmailVerify';
 import ForgotPassword from '@/pages/ForgotPassword';
@@ -21,7 +22,7 @@ export const publicRoutes = [
     { path: configs.routes.resetPassword, component: ResetPassword, layout: AuthenticationLayout },
     { path: configs.routes.emailVerify, component: EmailVerify, layout: AuthenticationLayout },
     { path: configs.routes.dashboard, component: DashboardIndex, layout: AppLayout },
-    { path: configs.routes.pos, component: POS, layout: AppLayout },
+    { path: configs.routes.pos, component: POS, layout: POSLayout },
     { path: configs.routes.orders, component: Orders, layout: AppLayout },
     { path: configs.routes.kitchen, component: Kitchen, layout: AppLayout },
     { path: configs.routes.reservation, component: Reservation, layout: AppLayout },

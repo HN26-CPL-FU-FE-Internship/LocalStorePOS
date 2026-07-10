@@ -7,6 +7,7 @@ import type { NotificationGroup } from '@/types';
 export interface NotificationsDropdownProps {
     groups: NotificationGroup[];
     unreadCount?: number;
+    className?: string;
 }
 
 const NotificationList = ({ groups }: { groups: NotificationGroup[] }) => (
@@ -56,8 +57,8 @@ const NotificationList = ({ groups }: { groups: NotificationGroup[] }) => (
     </>
 );
 
-const NotificationsDropdown = ({ groups, unreadCount = 0 }: NotificationsDropdownProps) => (
-    <Dropdown drop="end" autoClose="outside" className="dropdown">
+const NotificationsDropdown = ({ groups, unreadCount = 0, className = '' }: NotificationsDropdownProps) => (
+    <Dropdown drop="end" autoClose="outside" className={`dropdown ${className}`}>
         <Dropdown.Toggle as="a" href="#" bsPrefix="notification-toggle">
             <Icon name="bell" />
             {unreadCount > 0 && <span className="position-absolute notification-badge bg-danger" />}
