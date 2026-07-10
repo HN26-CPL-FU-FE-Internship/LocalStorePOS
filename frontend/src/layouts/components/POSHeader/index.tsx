@@ -12,11 +12,19 @@ import NotificationsDropdown from '../Sidebar/NotificationsDropdown';
 import { notificationGroups } from '@/data/dashboardData';
 import ProfileDropdown from '../Sidebar/ProfileDropdown';
 import { currentUser, logoutHref, profileMenuItems } from '@/data/navigationData';
+import useContextData from '@/hooks/useContextData';
+import type { ThemeContextType } from '@/provider/ThemeProvider/ThemeContext';
+import ThemeContext from '@/provider/ThemeProvider/ThemeContext';
+import { useState } from 'react';
+import handleChangeTheme from '@/utils/handleChangeTheme';
+import type { ThemeType } from '@/types';
 
 const cx = bindCx(styles);
 
 const POSHeader = () => {
     const { routes } = configs;
+    const [iconName, setIconName] = useState<ThemeType>('moon');
+    const { toggleTheme } = useContextData<ThemeContextType>(ThemeContext);
 
     return (
         <header className="header">
@@ -52,19 +60,9 @@ const POSHeader = () => {
                                         id={cx('light-mode-toggle')}
                                         aria-label="light/dark mode"
                                         title="Dark/Light Mode"
-                                        onClick={() => {}}
+                                        onClick={() => handleChangeTheme(toggleTheme, setIconName)}
                                     >
-                                        <Icon name="moon" className="fs-16" />
-                                    </Button>
-                                    <Button
-                                        variant="dark"
-                                        className={cx('topbar-link btn-icon light-dark-mode')}
-                                        id={cx('dark-mode-toggle')}
-                                        aria-label="light/dark mode"
-                                        title="Dark/Light Mode"
-                                        onClick={() => {}}
-                                    >
-                                        <Icon name="sun" className="fs-16" />
+                                        <Icon name={iconName} className="fs-16" />
                                     </Button>
                                 </div>
                             </li>

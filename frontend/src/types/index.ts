@@ -201,3 +201,5 @@ export interface ActivityLogGroup {
     heading: string;
     items: ActivityLogItem[];
 }
+
+export type { ThemeType } from './theme';

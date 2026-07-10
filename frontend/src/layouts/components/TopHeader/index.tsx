@@ -5,6 +5,12 @@ import logo from '@/assets/img/logo.svg';
 import smallLogo from '@/assets/img/logo-small.svg';
 import whiteLogo from '@/assets/img/logo-white.svg';
 import QuickLinkHeader from '../QuickLinkHeader';
+import type { ThemeContextType } from '@/provider/ThemeProvider/ThemeContext';
+import ThemeContext from '@/provider/ThemeProvider/ThemeContext';
+import useContextData from '@/hooks/useContextData';
+import { useState } from 'react';
+import handleChangeTheme from '@/utils/handleChangeTheme';
+import type { ThemeType } from '@/types';
 
 export interface TopHeaderProps {
     logoHref?: string;
@@ -19,7 +25,10 @@ export interface TopHeaderProps {
  * because the original markup isn't a typical collapsing navbar — it's a
  * fixed topbar with independent icon-button clusters.
  */
-const TopHeader = ({ logoHref = '#', onOpenSearch, onToggleTheme, onOpenMobileSidebar }: TopHeaderProps) => {
+const TopHeader = ({ logoHref = '#', onOpenSearch, onOpenMobileSidebar }: TopHeaderProps) => {
+    const { toggleTheme } = useContextData<ThemeContextType>(ThemeContext);
+    const [iconName, setIconName] = useState<ThemeType>('moon');
+
     return (
         <header className="navbar-header">
             <div className="topbar-menu">
@@ -98,9 +107,9 @@ const TopHeader = ({ logoHref = '#', onOpenSearch, onToggleTheme, onOpenMobileSi
                             className="topbar-link btn-icon light-dark-mode"
                             aria-label="light/dark mode"
                             title="Dark/Light Mode"
-                            onClick={onToggleTheme}
+                            onClick={() => handleChangeTheme(toggleTheme, setIconName)}
                         >
-                            <Icon name="moon" className="fs-16" />
+                            <Icon name={iconName} className="fs-16" />
                         </Button>
                     </div>
                 </div>
