@@ -27,3 +27,6 @@ spring:
     level:
       org.flywaydb: INFO
       org.hibernate.SQL: DEBUG
+
+jwt:
+  signer-key: "UoMH756YIqZAYeR8AuczJ0RrB0wO/mlwQiGxa+NahqXfUd6+OYxy0CkI4QnCGLWM"
