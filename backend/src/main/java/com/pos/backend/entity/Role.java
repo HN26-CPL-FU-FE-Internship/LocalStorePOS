@@ -1,6 +1,5 @@
 package com.pos.backend.entity;
 
-
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Table;
@@ -21,9 +20,9 @@ import lombok.experimental.SuperBuilder;
 public class Role extends BaseEntity {
     @Column(name = "name", nullable = false, unique = true, length = 50)
     private String name;
-    
+
     @Builder.Default
     @Column(name = "is_system_role", nullable = false)
-    private int isSystemRole = 0;
+    private boolean isSystemRole = false;
 
 }
