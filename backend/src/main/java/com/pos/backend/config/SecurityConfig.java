@@ -29,7 +29,7 @@ import lombok.experimental.FieldDefaults;
 @FieldDefaults(level = AccessLevel.PRIVATE)
 public class SecurityConfig {
 
-    final String[] publicEndPoints = { "/auth/login", "/auth/register", "/auth/forgot-password" };
+    final String[] publicEndPoints = { "/api/auth/**" };
 
     @Value("${jwt.signer-key}")
     String signerKey;
