@@ -1,6 +1,5 @@
 package com.pos.backend.service.Authentication;
 
-import java.text.ParseException;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.Date;
@@ -15,15 +14,19 @@ import com.nimbusds.jose.JWSAlgorithm;
 import com.nimbusds.jose.JWSHeader;
 import com.nimbusds.jose.JWSSigner;
 import com.nimbusds.jose.crypto.MACSigner;
-import com.nimbusds.jose.crypto.MACVerifier;
 import com.nimbusds.jwt.JWTClaimsSet;
 import com.nimbusds.jwt.SignedJWT;
 import com.pos.backend.constant.ErrorCode;
 import com.pos.backend.dto.request.Authentication.LoginRequest;
 import com.pos.backend.dto.response.Authentication.LoginResponse;
 import com.pos.backend.entity.User;
+import com.pos.backend.entity.UserSession;
 import com.pos.backend.exception.AppException;
 import com.pos.backend.repository.UserRepository;
+import com.pos.backend.repository.UserSessionRepository;
+import com.pos.backend.service.Common.UserSessionService;
+import com.pos.backend.util.GenerateTokenUtil;
+import com.pos.backend.util.HashUtil;
 
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
@@ -34,6 +37,8 @@ import lombok.experimental.FieldDefaults;
 public class LoginService {
 
     final UserRepository userRepository;
+    final UserSessionRepository userSessionRepository;
+    final UserSessionService userSessionService;
     final PasswordEncoder passwordEncoder;
 
     @Value("${jwt.signer-key}")
@@ -56,8 +61,11 @@ public class LoginService {
             throw new AppException(ErrorCode.INVALID_CREDENTIALS);
         }
 
-        String accessToken = generateToken(user, accessTokenExpiration, "access");
-        String refreshToken = generateToken(user, refreshTokenExpiration, "refresh");
+        String accessToken = generateAccessToken(user, accessTokenExpiration);
+        String refreshToken = GenerateTokenUtil.generateRefreshToken();
+
+        UserSession session = buildUserSession(refreshToken, user);
+        userSessionRepository.save(session);
 
         return LoginResponse.builder()
                 .accessToken(accessToken)
@@ -67,45 +75,32 @@ public class LoginService {
 
     public LoginResponse refreshToken(String refreshToken) {
 
-        try {
-            SignedJWT signedJWT = SignedJWT.parse(refreshToken);
+        UserSession session = userSessionService.getSession(refreshToken);
 
-            MACVerifier verifier = new MACVerifier(signerKey.getBytes());
-
-            if (!signedJWT.verify(verifier)) {
-                throw new AppException(ErrorCode.UNAUTHENTICATED);
-            }
-
-            JWTClaimsSet claims = signedJWT.getJWTClaimsSet();
-
-            if (claims.getExpirationTime().before(new Date())) {
-                throw new AppException(ErrorCode.UNAUTHENTICATED);
-            }
-
-            String tokenType = claims.getStringClaim("token_type");
-            if (!"refresh".equals(tokenType)) {
-                throw new AppException(ErrorCode.UNAUTHENTICATED);
-            }
-
-            String email = claims.getSubject();
-
-            User user = userRepository.findByEmail(email)
-                    .orElseThrow(() -> new AppException(ErrorCode.UNAUTHENTICATED));
-
-            String newAccessToken = generateToken(user, accessTokenExpiration, "access");
-            String newRefreshToken = generateToken(user, refreshTokenExpiration, "refresh");
-
-            return LoginResponse.builder()
-                    .accessToken(newAccessToken)
-                    .refreshToken(newRefreshToken)
-                    .build();
-
-        } catch (ParseException | JOSEException e) {
-            throw new AppException(ErrorCode.UNAUTHENTICATED);
+        if (session.getRevoked()) {
+            throw new AppException(ErrorCode.INVALID_TOKEN);
         }
+
+        if (session.getExpiresAt().isBefore(Instant.now())) {
+            throw new AppException(ErrorCode.REFRESH_TOKEN_EXPIRED);
+        }
+
+        User user = session.getUser();
+
+        String newAccessToken = generateAccessToken(user, accessTokenExpiration);
+        String newRefreshToken = GenerateTokenUtil.generateRefreshToken();
+
+        session.setRefreshTokenHash(HashUtil.sha256(newRefreshToken));
+        session.setExpiresAt(Instant.now().plus(refreshTokenExpiration, ChronoUnit.MINUTES));
+
+        userSessionRepository.save(session);
+        return LoginResponse.builder()
+                .accessToken(newAccessToken)
+                .refreshToken(newRefreshToken)
+                .build();
     }
 
-    private String generateToken(User user, long expirationMinutes, String tokenType) {
+    private String generateAccessToken(User user, long expirationMinutes) {
 
         JWSHeader header = new JWSHeader(JWSAlgorithm.HS512);
 
@@ -114,7 +109,6 @@ public class LoginService {
                 .issuer("restaurant-pos.com")
                 .issueTime(new Date())
                 .expirationTime(Date.from(Instant.now().plus(expirationMinutes, ChronoUnit.MINUTES)))
-                .claim("token_type", tokenType)
                 .jwtID(UUID.randomUUID().toString())
                 .build();
 
@@ -127,5 +121,15 @@ public class LoginService {
         } catch (JOSEException e) {
             throw new RuntimeException("Cannot create token", e);
         }
+    }
+
+    private UserSession buildUserSession(String refreshToken, User user) {
+        return UserSession.builder()
+                .user(user)
+                .refreshTokenHash(HashUtil.sha256(refreshToken))
+                .expiresAt(Instant.now().plus(
+                        refreshTokenExpiration, ChronoUnit.MINUTES))
+                .revoked(false)
+                .build();
     }
 }

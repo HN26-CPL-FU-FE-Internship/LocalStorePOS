@@ -1,5 +1,6 @@
 package com.pos.backend.controller.Authentication;
 
+import com.pos.backend.service.Authentication.LogoutService;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -26,6 +27,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 public class AuthenticationController {
 
+    LogoutService logoutService;
     RegisterService registerService;
     LoginService loginService;
 
@@ -58,4 +60,10 @@ public class AuthenticationController {
                 .result(response)
                 .build();
     }
+
+    @PostMapping("/logout")
+    public void logout(@RequestBody @Valid RefreshTokenRequest request) {
+        logoutService.logout(request.getRefreshToken());
+    }
+
 }

@@ -1,5 +1,7 @@
 package com.pos.backend.config;
 
+import java.util.List;
+
 import javax.crypto.spec.SecretKeySpec;
 
 import org.springframework.beans.factory.annotation.Value;
@@ -17,6 +19,9 @@ import org.springframework.security.oauth2.jwt.NimbusJwtDecoder;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationConverter;
 import org.springframework.security.oauth2.server.resource.authentication.JwtGrantedAuthoritiesConverter;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.web.cors.CorsConfiguration;
+import org.springframework.web.cors.CorsConfigurationSource;
+import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
@@ -40,8 +45,8 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity httpSecurity) throws Exception {
 
-        httpSecurity.authorizeHttpRequests(request -> request.requestMatchers(HttpMethod.POST,
-                publicEndPoints).permitAll()
+        httpSecurity.authorizeHttpRequests(request -> request
+                .requestMatchers(HttpMethod.POST, publicEndPoints).permitAll()
                 .anyRequest().authenticated());
 
         httpSecurity.oauth2ResourceServer(
@@ -52,9 +57,32 @@ public class SecurityConfig {
                 .authenticationEntryPoint(jwtAuthenticationEntryPoint)
                 .accessDeniedHandler(jwtAccessDeniedHandler));
 
+        httpSecurity.cors(cors -> cors.configurationSource(corsConfigurationSource()));
         httpSecurity.csrf(t -> t.disable());
 
         return httpSecurity.build();
+    }
+
+    @Bean
+    CorsConfigurationSource corsConfigurationSource() {
+
+        CorsConfiguration configuration = new CorsConfiguration();
+
+        configuration.setAllowedOrigins(List.of(
+                "http://localhost:5173",
+                "http://localhost:3000"));
+        configuration.setAllowedMethods(List.of(
+                "GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
+        configuration.setAllowedHeaders(List.of(
+                "Authorization", "Content-Type", "Accept", "Origin", "X-Requested-With"));
+        configuration.setAllowCredentials(true);
+        configuration.setMaxAge(3600L);
+
+        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+
+        source.registerCorsConfiguration("/**", configuration);
+
+        return source;
     }
 
     @Bean

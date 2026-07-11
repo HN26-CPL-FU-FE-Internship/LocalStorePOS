@@ -5,11 +5,11 @@ import java.util.List;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
+import com.pos.backend.constant.enums.CommonStatus;
 import com.pos.backend.entity.PermissionModule;
 import com.pos.backend.entity.Role;
 import com.pos.backend.entity.RolePermission;
 import com.pos.backend.entity.User;
-import com.pos.backend.entity.enums.CommonStatus;
 import com.pos.backend.repository.PermissionModuleRepository;
 import com.pos.backend.repository.RolePermissionRepository;
 import com.pos.backend.repository.RoleRepository;

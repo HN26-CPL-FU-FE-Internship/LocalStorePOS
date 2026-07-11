@@ -4,11 +4,11 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import com.pos.backend.constant.ErrorCode;
+import com.pos.backend.constant.enums.CommonStatus;
 import com.pos.backend.dto.request.User.UserCreationRequest;
 import com.pos.backend.dto.response.User.UserCreationResponse;
 import com.pos.backend.entity.Role;
 import com.pos.backend.entity.User;
-import com.pos.backend.entity.enums.CommonStatus;
 import com.pos.backend.exception.AppException;
 import com.pos.backend.mapper.UserMapper;
 import com.pos.backend.repository.RoleRepository;
