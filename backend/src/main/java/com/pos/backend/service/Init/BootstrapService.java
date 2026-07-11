@@ -5,15 +5,11 @@ import java.util.List;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
-import com.pos.backend.constant.ErrorCode;
 import com.pos.backend.entity.PermissionModule;
 import com.pos.backend.entity.Role;
 import com.pos.backend.entity.RolePermission;
 import com.pos.backend.entity.User;
 import com.pos.backend.entity.enums.CommonStatus;
-import com.pos.backend.entity.enums.DefaultPermissionModule;
-import com.pos.backend.entity.enums.DefaultRole;
-import com.pos.backend.exception.AppException;
 import com.pos.backend.repository.PermissionModuleRepository;
 import com.pos.backend.repository.RolePermissionRepository;
 import com.pos.backend.repository.RoleRepository;
@@ -43,28 +39,28 @@ public class BootstrapService {
         grantAllPermissionsToOwner();
     }
 
-    private void initRoles() {
+    // private void initRoles() {
 
-        createRoleIfNotExists(DefaultRole.ADMIN.name(), true);
-        createRoleIfNotExists(DefaultRole.SUPERVISOR.name(), false);
-        createRoleIfNotExists(DefaultRole.ACCOUNTANT.name(), false);
-        createRoleIfNotExists(DefaultRole.CASHIER.name(), false);
-        createRoleIfNotExists(DefaultRole.CHEF.name(), false);
-        createRoleIfNotExists(DefaultRole.DELIVERY.name(), false);
-        createRoleIfNotExists(DefaultRole.WAITER.name(), false);
-    }
+    // createRoleIfNotExists(DefaultRole.ADMIN.name(), true);
+    // createRoleIfNotExists(DefaultRole.SUPERVISOR.name(), false);
+    // createRoleIfNotExists(DefaultRole.ACCOUNTANT.name(), false);
+    // createRoleIfNotExists(DefaultRole.CASHIER.name(), false);
+    // createRoleIfNotExists(DefaultRole.CHEF.name(), false);
+    // createRoleIfNotExists(DefaultRole.DELIVERY.name(), false);
+    // createRoleIfNotExists(DefaultRole.WAITER.name(), false);
+    // }
 
-    private void initPermissionModules() {
-        createPermissionModuleIfNotExists(DefaultPermissionModule.CATEGORIES.name());
-        createPermissionModuleIfNotExists(DefaultPermissionModule.CUSTOMERS.name());
-        createPermissionModuleIfNotExists(DefaultPermissionModule.DASHBOARD.name());
-        createPermissionModuleIfNotExists(DefaultPermissionModule.POS.name());
-        createPermissionModuleIfNotExists(DefaultPermissionModule.PRODUCTS.name());
-        createPermissionModuleIfNotExists(DefaultPermissionModule.REPORTS.name());
-        createPermissionModuleIfNotExists(DefaultPermissionModule.SETTINGS.name());
-        createPermissionModuleIfNotExists(DefaultPermissionModule.REFUND.name());
-        createPermissionModuleIfNotExists(DefaultPermissionModule.RESUME_SALE.name());
-    }
+    // private void initPermissionModules() {
+    // createPermissionModuleIfNotExists(DefaultPermissionModule.CATEGORIES.name());
+    // createPermissionModuleIfNotExists(DefaultPermissionModule.CUSTOMERS.name());
+    // createPermissionModuleIfNotExists(DefaultPermissionModule.DASHBOARD.name());
+    // createPermissionModuleIfNotExists(DefaultPermissionModule.POS.name());
+    // createPermissionModuleIfNotExists(DefaultPermissionModule.PRODUCTS.name());
+    // createPermissionModuleIfNotExists(DefaultPermissionModule.REPORTS.name());
+    // createPermissionModuleIfNotExists(DefaultPermissionModule.SETTINGS.name());
+    // createPermissionModuleIfNotExists(DefaultPermissionModule.REFUND.name());
+    // createPermissionModuleIfNotExists(DefaultPermissionModule.RESUME_SALE.name());
+    // }
 
     private void initOwner() {
 
@@ -107,18 +103,19 @@ public class BootstrapService {
         }
     }
 
-    private Role createRoleIfNotExists(String name, boolean isSystemRole) {
-        return roleRepository.findByName(name).orElseGet(() -> roleRepository.save(Role
-                .builder()
-                .name(name)
-                .isSystemRole(isSystemRole)
-                .build()));
-    }
+    // private Role createRoleIfNotExists(String name, boolean isSystemRole) {
+    // return roleRepository.findByName(name).orElseGet(() ->
+    // roleRepository.save(Role
+    // .builder()
+    // .name(name)
+    // .isSystemRole(isSystemRole)
+    // .build()));
+    // }
 
-    private PermissionModule createPermissionModuleIfNotExists(String name) {
-        return permissionModuleRepository.findByName(name)
-                .orElseGet(() -> permissionModuleRepository.save(PermissionModule.builder()
-                        .name(name)
-                        .build()));
-    }
+    // private PermissionModule createPermissionModuleIfNotExists(String name) {
+    // return permissionModuleRepository.findByName(name)
+    // .orElseGet(() -> permissionModuleRepository.save(PermissionModule.builder()
+    // .name(name)
+    // .build()));
+    // }
 }
