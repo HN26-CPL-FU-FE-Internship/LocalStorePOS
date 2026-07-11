@@ -31,6 +31,9 @@ public class SecurityConfig {
 
     final String[] publicEndPoints = { "/api/auth/**" };
 
+    final JwtAuthenticationEntryPoint jwtAuthenticationEntryPoint;
+    final JwtAccessDeniedHandler jwtAccessDeniedHandler;
+
     @Value("${jwt.signer-key}")
     String signerKey;
 
@@ -43,11 +46,11 @@ public class SecurityConfig {
 
         httpSecurity.oauth2ResourceServer(
                 oauth2 -> oauth2.jwt(jwtConfigure -> jwtConfigure.decoder(
-                        jwtDecoder()).jwtAuthenticationConverter(null)));
+                        jwtDecoder()).jwtAuthenticationConverter(jwtAuthenticationConverter())));
 
         httpSecurity.exceptionHandling(exceptionHandling -> exceptionHandling
-                .authenticationEntryPoint(null)
-                .accessDeniedHandler(null));
+                .authenticationEntryPoint(jwtAuthenticationEntryPoint)
+                .accessDeniedHandler(jwtAccessDeniedHandler));
 
         httpSecurity.csrf(t -> t.disable());
 
@@ -57,7 +60,8 @@ public class SecurityConfig {
     @Bean
     JwtDecoder jwtDecoder() {
 
-        SecretKeySpec secretKeySpec = new SecretKeySpec(signerKey.getBytes(), "HS512");
+        SecretKeySpec secretKeySpec = new SecretKeySpec(signerKey.getBytes(),
+                "HS512");
 
         return NimbusJwtDecoder
                 .withSecretKey(secretKeySpec)
@@ -83,5 +87,4 @@ public class SecurityConfig {
     PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder(10);
     }
-
 }

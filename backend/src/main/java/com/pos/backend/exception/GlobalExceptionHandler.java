@@ -1,7 +1,10 @@
 package com.pos.backend.exception;
 
+import java.util.stream.Collectors;
+
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.AccessDeniedException;
+import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
@@ -41,6 +44,9 @@ public class GlobalExceptionHandler {
         ApiResponse<?> response = ApiResponse.builder()
                 .code(ErrorCode.VALID_FAILED.getCode())
                 .message(ErrorCode.VALID_FAILED.getMessage())
+                .errors(exception.getBindingResult().getFieldErrors().stream()
+                        .collect(Collectors.toMap(FieldError::getField, FieldError::getDefaultMessage,
+                                (oldValue, newValue) -> oldValue)))
                 .build();
 
         return ResponseEntity.status(ErrorCode.VALID_FAILED.getStatus()).body(response);

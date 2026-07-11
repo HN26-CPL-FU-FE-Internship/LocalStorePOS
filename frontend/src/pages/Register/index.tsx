@@ -35,13 +35,6 @@ function Register() {
 
             <div className="mb-3">
                 <label className="form-label">
-                    Username<span className="text-danger"> *</span>
-                </label>
-                <input type="text" className="form-control" required />
-            </div>
-
-            <div className="mb-3">
-                <label className="form-label">
                     Email<span className="text-danger"> *</span>
                 </label>
                 <input type="email" className="form-control" placeholder="name@example.com" required />

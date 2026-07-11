@@ -18,7 +18,9 @@ public enum ErrorCode {
         EMAIL_ALREADY_EXISTS(1004, HttpStatus.BAD_REQUEST, "Email already exists"),
 
         PHONE_NUMBER_ALREADY_EXISTS(1005, HttpStatus.BAD_REQUEST, "Phone number already exists"),
-        ;
+        ROLE_NOT_FOUND(1006, HttpStatus.NOT_FOUND, "Role is not existed"),
+        ROLE_NOT_ASSIGNABLE(1007, HttpStatus.FORBIDDEN, "This system cannot be assigned a role"),
+        INVALID_CREDENTIALS(1008, HttpStatus.UNAUTHORIZED, "Invalid email or password."),;
 
         int code;
         HttpStatus status;
