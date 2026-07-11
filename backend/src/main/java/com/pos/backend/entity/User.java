@@ -2,7 +2,7 @@ package com.pos.backend.entity;
 
 import java.time.LocalDateTime;
 
-import com.pos.backend.entity.enums.CommonStatus;
+import com.pos.backend.constant.enums.CommonStatus;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -49,7 +49,6 @@ public class User extends BaseEntity {
 
     @Column(name = "avatar_path")
     private String avatarPath;
-
 
     @Builder.Default
     @Enumerated(EnumType.STRING)

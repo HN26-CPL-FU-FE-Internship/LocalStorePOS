@@ -5,8 +5,8 @@ import java.time.LocalDate;
 import java.util.HashSet;
 import java.util.Set;
 
-import com.pos.backend.entity.enums.CouponStatus;
-import com.pos.backend.entity.enums.DiscountType;
+import com.pos.backend.constant.enums.CouponStatus;
+import com.pos.backend.constant.enums.DiscountType;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -57,9 +57,6 @@ public class Coupon extends BaseEntity {
     /** coupon_categories: 1 coupon co the ap dung cho nhieu category */
     @Builder.Default
     @ManyToMany(fetch = FetchType.LAZY)
-    @JoinTable(
-            name = "coupon_categories",
-            joinColumns = @JoinColumn(name = "coupon_id"),
-            inverseJoinColumns = @JoinColumn(name = "category_id"))
+    @JoinTable(name = "coupon_categories", joinColumns = @JoinColumn(name = "coupon_id"), inverseJoinColumns = @JoinColumn(name = "category_id"))
     private Set<Category> categories = new HashSet<>();
 }

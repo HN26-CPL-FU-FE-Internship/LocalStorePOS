@@ -1,6 +1,6 @@
 package com.pos.backend.entity;
 
-import com.pos.backend.entity.enums.TableStatus;
+import com.pos.backend.constant.enums.TableStatus;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;

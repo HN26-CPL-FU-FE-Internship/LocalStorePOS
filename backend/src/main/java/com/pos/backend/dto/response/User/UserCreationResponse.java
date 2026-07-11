@@ -2,7 +2,7 @@ package com.pos.backend.dto.response.User;
 
 import java.time.LocalDateTime;
 
-import com.pos.backend.entity.enums.CommonStatus;
+import com.pos.backend.constant.enums.CommonStatus;
 
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;

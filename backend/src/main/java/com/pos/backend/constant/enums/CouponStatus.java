@@ -1,4 +1,4 @@
-package com.pos.backend.entity.enums;
+package com.pos.backend.constant.enums;
 
 public enum CouponStatus {
     active,

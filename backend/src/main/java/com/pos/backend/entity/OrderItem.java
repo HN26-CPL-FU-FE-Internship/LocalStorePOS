@@ -2,7 +2,7 @@ package com.pos.backend.entity;
 
 import java.math.BigDecimal;
 
-import com.pos.backend.entity.enums.OrderItemStatus;
+import com.pos.backend.constant.enums.OrderItemStatus;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;

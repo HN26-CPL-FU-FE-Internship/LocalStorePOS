@@ -2,8 +2,8 @@ package com.pos.backend.entity;
 
 import java.time.LocalDate;
 
-import com.pos.backend.entity.enums.CommonStatus;
-import com.pos.backend.entity.enums.Gender;
+import com.pos.backend.constant.enums.CommonStatus;
+import com.pos.backend.constant.enums.Gender;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;

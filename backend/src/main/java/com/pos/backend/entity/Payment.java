@@ -3,7 +3,7 @@ package com.pos.backend.entity;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
-import com.pos.backend.entity.enums.PaymentStatus;
+import com.pos.backend.constant.enums.PaymentStatus;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;

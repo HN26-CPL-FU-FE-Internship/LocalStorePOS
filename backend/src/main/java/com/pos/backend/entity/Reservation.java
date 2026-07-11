@@ -2,7 +2,7 @@ package com.pos.backend.entity;
 
 import java.time.LocalDateTime;
 
-import com.pos.backend.entity.enums.ReservationStatus;
+import com.pos.backend.constant.enums.ReservationStatus;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;

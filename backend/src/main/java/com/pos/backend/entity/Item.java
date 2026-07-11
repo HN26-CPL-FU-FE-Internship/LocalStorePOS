@@ -2,8 +2,8 @@ package com.pos.backend.entity;
 
 import java.math.BigDecimal;
 
-import com.pos.backend.entity.enums.ItemStatus;
-import com.pos.backend.entity.enums.FoodType;
+import com.pos.backend.constant.enums.FoodType;
+import com.pos.backend.constant.enums.ItemStatus;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;

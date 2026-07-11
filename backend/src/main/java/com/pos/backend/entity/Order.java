@@ -3,10 +3,10 @@ package com.pos.backend.entity;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
-import com.pos.backend.entity.enums.KitchenStatus;
-import com.pos.backend.entity.enums.OrderPaymentStatus;
-import com.pos.backend.entity.enums.OrderStatus;
-import com.pos.backend.entity.enums.OrderType;
+import com.pos.backend.constant.enums.KitchenStatus;
+import com.pos.backend.constant.enums.OrderPaymentStatus;
+import com.pos.backend.constant.enums.OrderStatus;
+import com.pos.backend.constant.enums.OrderType;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;

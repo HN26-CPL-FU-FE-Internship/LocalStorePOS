@@ -1,6 +1,6 @@
 package com.pos.backend.entity;
 
-import com.pos.backend.entity.enums.CommonStatus;
+import com.pos.backend.constant.enums.CommonStatus;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -24,7 +24,7 @@ import lombok.experimental.SuperBuilder;
 public class Category extends BaseEntity {
     @Column(name = "name", nullable = false, length = 100)
     private String name;
-    
+
     @Column(name = "image_path", length = 255)
     private String imagePath;
 
