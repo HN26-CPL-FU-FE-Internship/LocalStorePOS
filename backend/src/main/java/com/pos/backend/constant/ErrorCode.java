@@ -23,6 +23,7 @@ public enum ErrorCode {
         INVALID_CREDENTIALS(1008, HttpStatus.UNAUTHORIZED, "Invalid email or password."),
         INVALID_TOKEN(1009, HttpStatus.UNAUTHORIZED, "Invalid token"),
         REFRESH_TOKEN_EXPIRED(1010, HttpStatus.UNAUTHORIZED, "Refresh token is expired"),
+        CAN_NOT_CREATE_TOKEN(1011, HttpStatus.BAD_REQUEST, "Can not create token"),
         ;
 
         int code;

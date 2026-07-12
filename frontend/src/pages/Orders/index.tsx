@@ -1,5 +1,11 @@
+import PageHeader from '@/components/dashboard/PageHeader';
+
 const Orders = () => {
-    return <div>Orders</div>;
+    return (
+        <>
+            <PageHeader title="Orders" />
+        </>
+    );
 };
 
 export default Orders;

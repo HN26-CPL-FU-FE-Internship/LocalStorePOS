@@ -1,25 +1,46 @@
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
+import { zodResolver } from '@hookform/resolvers/zod';
 import { EyeOff, Eye } from 'lucide-react';
 
-import google from '@/assets/img/icons/google.svg';
-import facebook from '@/assets/img/icons/fb.svg';
 import configs from '@/configs';
 
-import { useState, type ChangeEvent, type MouseEvent } from 'react';
+import { useState } from 'react';
 import { toggleHidePassword } from '@/utils';
+import { tokenUtils } from '@/utils/token';
+import { useLogin } from '@/hooks/auth';
+import { loginSchema, type LoginForm } from './login.schema';
+import { useForm } from 'react-hook-form';
 
 function Login() {
+    const navigate = useNavigate();
+
     const [isHide, setIsHide] = useState(true);
     const [inputType, setInputType] = useState('password');
 
-    const [email, setEmail] = useState('');
-    const [password, setPassword] = useState('');
+    const {
+        register,
+        handleSubmit,
+        formState: { errors },
+    } = useForm<LoginForm>({
+        resolver: zodResolver(loginSchema),
+    });
+
+    const [error, setError] = useState('');
 
     const { routes } = configs;
 
-    const handleSubmit = (e: MouseEvent<HTMLButtonElement>) => {
-        e.preventDefault();
-        // Làm backend xong gọi api là ngon luôn
+    const loginMutation = useLogin();
+
+    const onSubmit = (data: LoginForm) => {
+        loginMutation.mutate(data, {
+            onSuccess: (response) => {
+                tokenUtils.saveTokens(response.data.result);
+                navigate(routes.dashboard);
+            },
+            onError: () => {
+                setError('Invalid email or password!');
+            },
+        });
     };
 
     const handleClickEye = () => {
@@ -34,6 +55,12 @@ function Login() {
                     <p className="mb-0">Please enter your credentials to sign in!</p>
                 </div>
 
+                {error && (
+                    <div className="alert alert-danger py-2" role="alert">
+                        {error}
+                    </div>
+                )}
+
                 <div className="mb-3">
                     <label className="form-label">
                         Email<span className="text-danger"> *</span>
@@ -41,11 +68,11 @@ function Login() {
                     <input
                         type="email"
                         className="form-control"
-                        value={email}
-                        onChange={(e: ChangeEvent<HTMLInputElement>) => setEmail(e.target.value)}
                         placeholder="name@example.com"
+                        {...register('email')}
                         required
                     />
+                    {errors.email && <div className="text-danger mt-1">{errors.email.message}</div>}
                 </div>
 
                 <div className="mb-3">
@@ -56,8 +83,7 @@ function Login() {
                         <input
                             type={inputType}
                             className="form-control pass-input"
-                            value={password}
-                            onChange={(e: ChangeEvent<HTMLInputElement>) => setPassword(e.target.value)}
+                            {...register('password')}
                             required
                         />
                         <span className="input-group-text toggle-password">
@@ -68,6 +94,7 @@ function Login() {
                             )}
                         </span>
                     </div>
+                    {errors.password && <div className="text-danger mt-1">{errors.password.message}</div>}
                 </div>
 
                 <div className="d-flex align-items-center justify-content-between mb-4">
@@ -88,39 +115,19 @@ function Login() {
 
                 <div className="mb-4">
                     <button
-                        onClick={(e: MouseEvent<HTMLButtonElement>) => handleSubmit(e)}
                         className="btn btn-primary w-100"
+                        disabled={loginMutation.isPending}
+                        onClick={handleSubmit(onSubmit)}
                     >
-                        Sign In
+                        {loginMutation.isPending ? (
+                            <>
+                                <span className="spinner-border spinner-border-sm me-2" role="status" />
+                                Signing In...
+                            </>
+                        ) : (
+                            'Sign In'
+                        )}
                     </button>
-                </div>
-
-                <div className="login-or position-relative mb-4 text-center">
-                    <span className="position-relative bg-white px-2 z-2">or continue with</span>
-                </div>
-
-                <div className="d-flex align-items-center justify-content-center flex-wrap">
-                    <div className="text-center me-2 flex-fill">
-                        <Link to="#" className="btn btn-white d-flex align-items-center justify-content-center shadow">
-                            <img className="img-fluid me-2" src={google} alt="google" />
-                            Google
-                        </Link>
-                    </div>
-                    <div className="text-center me-2 flex-fill">
-                        <Link to="#" className="btn btn-white d-flex align-items-center justify-content-center shadow">
-                            <img className="img-fluid me-2" src={facebook} alt="facebook" />
-                            Facebook
-                        </Link>
-                    </div>
-                </div>
-
-                <div className="text-center mt-4">
-                    <p className="fw-normal mb-0">
-                        Don't have an account?
-                        <Link to={routes.register} className="link-primary">
-                            &nbsp;Sign Up
-                        </Link>
-                    </p>
                 </div>
             </div>
         </div>
