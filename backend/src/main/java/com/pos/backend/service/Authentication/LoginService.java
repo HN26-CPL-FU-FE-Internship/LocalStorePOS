@@ -84,6 +84,8 @@ public class LoginService {
         session.setExpiresAt(Instant.now().plus(refreshTokenExpiration, ChronoUnit.MINUTES));
 
         userSessionRepository.save(session);
+        userSessionRepository.cleanup(Instant.now());
+
         return LoginResponse.builder()
                 .accessToken(newAccessToken)
                 .refreshToken(newRefreshToken)
