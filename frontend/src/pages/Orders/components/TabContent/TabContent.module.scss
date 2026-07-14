@@ -1,0 +1,13 @@
+.dropstart {
+    button {
+        padding: 5px 12px;
+        height: 33px;
+        width: 33px;
+        font-size: 14px;
+        border-radius: 50%;
+
+        background-color: var(--white);
+        border: 1px solid var(--border-color);
+        color: var(--gray-900);
+    }
+}
