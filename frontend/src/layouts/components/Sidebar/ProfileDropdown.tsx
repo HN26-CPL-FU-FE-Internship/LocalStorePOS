@@ -27,7 +27,7 @@ const ProfileDropdown = ({ user, menuItems }: ProfileDropdownProps) => {
                 navigate(configs.routes.login, {
                     replace: true,
                 });
-            },
+            }
         });
     };
 
