@@ -22,7 +22,7 @@ const ProfileDropdown = ({ user, menuItems }: ProfileDropdownProps) => {
         const refreshToken = tokenUtils.getRefreshToken();
 
         logoutMutation.mutate(refreshToken!, {
-            onSuccess: () => {
+            onSettled: () => {
                 tokenUtils.clearTokens();
                 navigate(configs.routes.login, {
                     replace: true,
