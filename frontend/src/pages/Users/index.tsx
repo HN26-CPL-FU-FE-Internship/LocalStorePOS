@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import {
     Table,
     Card,
@@ -11,8 +11,10 @@ import {
     InputGroup,
 } from 'react-bootstrap';
 import Icon from '@/components/common/Icon';
-import Pagination from '@/components/common/Pagination';
 import { getUsers } from '@/api/user.api';
+import * as XLSX from 'xlsx';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
 
 /* ------------------------------------------------------------------ */
 /*  Types                                                             */
@@ -54,19 +56,6 @@ const userRoles = [
     'System Operator',
 ] as const;
 
-// const initialUsers: UserEntry[] = [
-//     { id: 'u1', firstName: 'John', lastName: 'Smith', fullName: 'John Smith', role: 'Admin / Owner', phone: '+1 23456 78901', email: 'john@example.com', status: 'Active', avatarKey: 'user-01' },
-//     { id: 'u2', firstName: 'Emily', lastName: 'Johnson', fullName: 'Emily Johnson', role: 'Supervisor', phone: '+1 34567 89012', email: 'emily@example.com', status: 'Active', avatarKey: 'user-02' },
-//     { id: 'u3', firstName: 'David', lastName: 'Williams', fullName: 'David Williams', role: 'Cashier', phone: '+1 45678 90123', email: 'david@example.com', status: 'Active', avatarKey: 'user-03' },
-//     { id: 'u4', firstName: 'Ashley', lastName: 'Brown', fullName: 'Ashley Brown', role: 'Chef', phone: '+1 56789 01234', email: 'ashley@example.com', status: 'Active', avatarKey: 'user-04' },
-//     { id: 'u5', firstName: 'Michael', lastName: 'Davis', fullName: 'Michael Davis', role: 'Waiter', phone: '+1 67890 12345', email: 'michael@example.com', status: 'Active', avatarKey: 'user-05' },
-//     { id: 'u6', firstName: 'Brittany', lastName: 'Miller', fullName: 'Brittany Miller', role: 'Delivery', phone: '+1 78901 23456', email: 'brittany@example.com', status: 'Active', avatarKey: 'user-06' },
-//     { id: 'u7', firstName: 'Christopher', lastName: 'Wilson', fullName: 'Christopher Wilson', role: 'Accountant', phone: '+1 89012 34567', email: 'chris@example.com', status: 'Active', avatarKey: 'user-07' },
-//     { id: 'u8', firstName: 'Jessica', lastName: 'Moore', fullName: 'Jessica Moore', role: 'System Operator', phone: '+1 90123 45678', email: 'jessica@example.com', status: 'Active', avatarKey: 'user-08' },
-//     { id: 'u9', firstName: 'Matthew', lastName: 'Taylor', fullName: 'Matthew Taylor', role: 'Chef', phone: '+1 01234 56789', email: 'matthew@example.com', status: 'Active', avatarKey: 'user-09' },
-//     { id: 'u10', firstName: 'Sarah', lastName: 'Anderson', fullName: 'Sarah Anderson', role: 'Chef', phone: '+1 12345 67890', email: 'sarah@example.com', status: 'Active', avatarKey: 'user-10' },
-// ];
-
 const defaultPermissionModules: PermissionModule[] = [
     { module: 'Dashboard', view: false, add: false, edit: false, delete_: false, export_: false, approvedVoid: false },
     { module: 'POS', view: false, add: false, edit: false, delete_: false, export_: false, approvedVoid: false },
@@ -97,6 +86,17 @@ const defaultColumns: ColumnOption[] = [
 ];
 
 /* ------------------------------------------------------------------ */
+/*  Filter state shape                                                */
+/* ------------------------------------------------------------------ */
+interface AppliedFilters {
+    userIds: string[];
+    roles: string[];
+    status: string; // '' | 'Active' | 'Inactive'
+}
+
+const emptyAppliedFilters: AppliedFilters = { userIds: [], roles: [], status: '' };
+
+/* ------------------------------------------------------------------ */
 /*  Component                                                         */
 /* ------------------------------------------------------------------ */
 const UsersPage = () => {
@@ -110,8 +110,7 @@ const UsersPage = () => {
     const [showDelete, setShowDelete] = useState(false);
     const [showPermission, setShowPermission] = useState(false);
     const [showFilter, setShowFilter] = useState(false);
-    const [sortBy, setSortBy] = useState("createdAt");
-    const [sortDir, setSortDir] = useState("asc");
+    const [sort, setSort] = useState("Newest");
     // Current user being edited / deleted / permissioned
     const [currentUser, setCurrentUser] = useState<UserEntry | null>(null);
     const [permissions, setPermissions] = useState<PermissionModule[]>(defaultPermissionModules);
@@ -126,6 +125,28 @@ const UsersPage = () => {
         role: string;
         status: string;
     }>(emptyForm);
+
+    /* ---------- live search state ---------- */
+    const [searchInput, setSearchInput] = useState('');
+    const [searchTerm, setSearchTerm] = useState('');
+
+    useEffect(() => {
+        const timer = setTimeout(() => {
+            setSearchTerm(searchInput.trim().toLowerCase());
+        }, 300);
+        return () => clearTimeout(timer);
+    }, [searchInput]);
+
+    /* ---------- filter state ---------- */
+    // draft state edited inside the offcanvas
+    const [draftUserIds, setDraftUserIds] = useState<string[]>([]);
+    const [draftRoles, setDraftRoles] = useState<string[]>([]);
+    const [draftStatus, setDraftStatus] = useState('');
+    // filters actually applied to the table
+    const [appliedFilters, setAppliedFilters] = useState<AppliedFilters>(emptyAppliedFilters);
+    const [filterNameSearch, setFilterNameSearch] = useState('');
+    const [filterRoleSearch, setFilterRoleSearch] = useState('');
+
     /* ---------- helpers ---------- */
     const toggleColumn = (key: string) =>
         setColumns((prev) => prev.map((c) => (c.key === key ? { ...c, visible: !c.visible } : c)));
@@ -210,19 +231,132 @@ const UsersPage = () => {
         );
     };
     const loadUsers = async () => {
-        const result = await getUsers({
-            page: 1,
-            size: 10,
-            sortBy: sortBy,
-            sortDir: sortDir
-        });
-        setUsers(result.items);
+        const result = await getUsers();
+        setUsers(result);
     };
     useEffect(() => {
         // eslint-disable-next-line react-hooks/set-state-in-effect
         loadUsers();
-        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
+
+    /* ---------- filter offcanvas helpers ---------- */
+    const openFilter = () => {
+        // sync draft with currently applied filters whenever the panel opens
+        setDraftUserIds(appliedFilters.userIds);
+        setDraftRoles(appliedFilters.roles);
+        setDraftStatus(appliedFilters.status);
+        setShowFilter(true);
+    };
+
+    const toggleDraftUserId = (id: string) => {
+        setDraftUserIds((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
+    };
+
+    const toggleDraftRole = (role: string) => {
+        setDraftRoles((prev) => (prev.includes(role) ? prev.filter((x) => x !== role) : [...prev, role]));
+    };
+
+    const handleApplyFilter = () => {
+        setAppliedFilters({ userIds: draftUserIds, roles: draftRoles, status: draftStatus });
+        setShowFilter(false);
+    };
+
+    const handleResetFilter = () => {
+        setDraftUserIds([]);
+        setDraftRoles([]);
+        setDraftStatus('');
+        setFilterNameSearch('');
+        setFilterRoleSearch('');
+        setAppliedFilters(emptyAppliedFilters);
+    };
+
+    const filteredNameOptions = useMemo(
+        () =>
+            users.filter((u) =>
+                u.fullName.toLowerCase().includes(filterNameSearch.trim().toLowerCase()),
+            ),
+        [users, filterNameSearch],
+    );
+
+    const filteredRoleOptions = useMemo(
+        () =>
+            userRoles.filter((r) =>
+                r.toLowerCase().includes(filterRoleSearch.trim().toLowerCase()),
+            ),
+        [filterRoleSearch],
+    );
+
+    /* ---------- combined filtering + live search ---------- */
+    const filteredUsers = useMemo(() => {
+        let result = users;
+
+        // modal filters
+        if (appliedFilters.userIds.length) {
+            result = result.filter((u) => appliedFilters.userIds.includes(u.id));
+        }
+        if (appliedFilters.roles.length) {
+            result = result.filter((u) => appliedFilters.roles.includes(u.role));
+        }
+        if (appliedFilters.status) {
+            result = result.filter((u) => u.status === appliedFilters.status);
+        }
+
+        // live search across every displayed field, multi-term (space separated), AND across terms
+        if (searchTerm) {
+            const terms = searchTerm.split(/\s+/).filter(Boolean);
+            result = result.filter((u) => {
+                const haystack = [u.fullName, u.role, u.phone, u.status, u.email]
+                    .join(' ')
+                    .toLowerCase();
+                return terms.every((term) => haystack.includes(term));
+            });
+        }
+
+        return result;
+    }, [users, appliedFilters, searchTerm]);
+
+    /* ---------- export helpers ---------- */
+    const exportRows = (list: UserEntry[]) =>
+        list.map((u) => ({
+            id: u.id,
+            firstName: u.firstName,
+            lastName: u.lastName,
+            fullName: u.fullName,
+            role: u.role,
+            phone: u.phone,
+            email: u.email,
+            status: u.status,
+        }));
+
+    const handleExportExcel = () => {
+        const rows = exportRows(filteredUsers);
+        const worksheet = XLSX.utils.json_to_sheet(rows, {
+            header: ['id', 'firstName', 'lastName', 'fullName', 'role', 'phone', 'email', 'status'],
+        });
+        XLSX.utils.sheet_add_aoa(
+            worksheet,
+            [['ID', 'First Name', 'Last Name', 'Full Name', 'Role', 'Phone', 'Email', 'Status']],
+            { origin: 'A1' },
+        );
+        const workbook = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(workbook, worksheet, 'Users');
+        XLSX.writeFile(workbook, `users_${Date.now()}.xlsx`);
+    };
+
+    const handleExportPDF = () => {
+        const rows = exportRows(filteredUsers);
+        const doc = new jsPDF();
+        doc.text('Users', 14, 12);
+        autoTable(doc, {
+            startY: 18,
+            head: [['ID', 'First Name', 'Last Name', 'Full Name', 'Role', 'Phone', 'Email', 'Status']],
+            body: rows.map((r) => [r.id, r.firstName, r.lastName, r.fullName, r.role, r.phone, r.email, r.status]),
+            styles: { fontSize: 8 },
+            headStyles: { fillColor: [33, 37, 41] },
+        });
+        doc.save(`users_${Date.now()}.pdf`);
+    };
+
     /* ---------- render ---------- */
     return (
         <>
@@ -236,6 +370,7 @@ const UsersPage = () => {
                             size="sm"
                             className="btn-icon rounded-circle ms-2"
                             aria-label="refresh"
+                            onClick={loadUsers}
                         >
                             <Icon name="refresh-ccw" />
                         </Button>
@@ -252,10 +387,10 @@ const UsersPage = () => {
                             Export
                         </Dropdown.Toggle>
                         <Dropdown.Menu align="end" className="p-3">
-                            <Dropdown.Item className="rounded" href="#">
+                            <Dropdown.Item className="rounded" onClick={handleExportPDF}>
                                 Export as PDF
                             </Dropdown.Item>
-                            <Dropdown.Item className="rounded" href="#">
+                            <Dropdown.Item className="rounded" onClick={handleExportExcel}>
                                 Export as Excel
                             </Dropdown.Item>
                         </Dropdown.Menu>
@@ -281,7 +416,14 @@ const UsersPage = () => {
                     <div className="d-flex align-items-center flex-wrap gap-3 justify-content-between mb-4">
                         <div className="search-input">
                             <div className="datatable-search position-relative">
-                                <input className="form-control form-control-sm" placeholder="Search" aria-controls="DataTables_Table_0" type="text" />
+                                <input
+                                    className="form-control form-control-sm"
+                                    placeholder="Search"
+                                    aria-controls="DataTables_Table_0"
+                                    type="text"
+                                    value={searchInput}
+                                    onChange={(e) => setSearchInput(e.target.value)}
+                                />
                                 <Icon name="search" className='position-absolute top-50 end-0 translate-middle-y me-3 text-secondary' />
                             </div>
                         </div>
@@ -290,11 +432,20 @@ const UsersPage = () => {
                             {/* Filter */}
                             <Button
                                 variant="white"
-                                className="d-inline-flex align-items-center"
-                                onClick={() => setShowFilter(true)}
+                                className="d-inline-flex align-items-center position-relative"
+                                onClick={openFilter}
                             >
                                 <Icon name="funnel" className="me-2" />
                                 Filter
+                                {(appliedFilters.userIds.length > 0 ||
+                                    appliedFilters.roles.length > 0 ||
+                                    appliedFilters.status) && (
+                                        <Badge bg="primary" pill className="ms-2">
+                                            {appliedFilters.userIds.length +
+                                                appliedFilters.roles.length +
+                                                (appliedFilters.status ? 1 : 0)}
+                                        </Badge>
+                                    )}
                             </Button>
 
                             {/* Columns */}
@@ -327,13 +478,14 @@ const UsersPage = () => {
                                     variant="white"
                                     className="d-inline-flex align-items-center"
                                 >
-                                    Sort by : Newest
+                                    Sort by : {sort}
                                 </Dropdown.Toggle>
                                 <Dropdown.Menu align="end" className="p-3">
-                                    <Dropdown.Item href="#">Newest</Dropdown.Item>
-                                    <Dropdown.Item href="#">Oldest</Dropdown.Item>
-                                    <Dropdown.Item href="#">Ascending</Dropdown.Item>
-                                    <Dropdown.Item href="#">Descending</Dropdown.Item>
+                                    {['Newest', 'Oldest', 'Ascending', 'Descending'].map((s) => (
+                                        <Dropdown.Item key={s} onClick={() => setSort(s)}>
+                                            {s}
+                                        </Dropdown.Item>
+                                    ))}
                                 </Dropdown.Menu>
                             </Dropdown>
                         </div>
@@ -352,7 +504,14 @@ const UsersPage = () => {
                                 </tr>
                             </thead>
                             <tbody>
-                                {users.map((user) => {
+                                {filteredUsers.length === 0 && (
+                                    <tr>
+                                        <td colSpan={columns.filter((c) => c.visible).length} className="text-center py-4">
+                                            No users found
+                                        </td>
+                                    </tr>
+                                )}
+                                {filteredUsers.map((user) => {
                                     const isAdmin = user.role === 'Admin / Owner';
                                     const avatarSrc = user.avatarKey;
 
@@ -439,7 +598,6 @@ const UsersPage = () => {
                             </tbody>
                         </Table>
                     </div>
-                    <Pagination totalItems={users.length} />
                 </Card.Body>
             </Card>
 
@@ -833,32 +991,37 @@ const UsersPage = () => {
                 <Offcanvas.Body className="d-flex flex-column pt-3">
                     <div>
                         <Form.Group className="mb-3">
-                            <Form.Label>
-                                Name<span className="text-danger"> *</span>
-                            </Form.Label>
+                            <Form.Label>Name</Form.Label>
                             <Dropdown autoClose="outside">
                                 <Dropdown.Toggle
                                     as={Button}
                                     variant="white"
                                     className="d-flex align-items-center justify-content-between w-100"
                                 >
-                                    Select
+                                    {draftUserIds.length > 0 ? `${draftUserIds.length} selected` : 'Select'}
                                 </Dropdown.Toggle>
                                 <Dropdown.Menu className="p-3 w-100">
                                     <h6 className="fs-14 fw-semibold mb-3">Name</h6>
                                     <InputGroup className="mb-3 position-relative">
-                                        <Form.Control type="text" placeholder="Search" />
+                                        <Form.Control
+                                            type="text"
+                                            placeholder="Search"
+                                            value={filterNameSearch}
+                                            onChange={(e) => setFilterNameSearch(e.target.value)}
+                                        />
                                         <InputGroup.Text>
                                             <Icon name="search" className="text-dark" />
                                         </InputGroup.Text>
                                     </InputGroup>
                                     <div className="vstack gap-2">
-                                        {users.map((u) => (
+                                        {filteredNameOptions.map((u) => (
                                             <Form.Check
                                                 key={u.id}
                                                 type="checkbox"
                                                 label={u.fullName}
                                                 id={`filter-name-${u.id}`}
+                                                checked={draftUserIds.includes(u.id)}
+                                                onChange={() => toggleDraftUserId(u.id)}
                                             />
                                         ))}
                                     </div>
@@ -867,32 +1030,37 @@ const UsersPage = () => {
                         </Form.Group>
 
                         <Form.Group className="mb-3">
-                            <Form.Label>
-                                Role<span className="text-danger"> *</span>
-                            </Form.Label>
+                            <Form.Label>Role</Form.Label>
                             <Dropdown autoClose="outside">
                                 <Dropdown.Toggle
                                     as={Button}
                                     variant="white"
                                     className="d-flex align-items-center justify-content-between w-100"
                                 >
-                                    Select
+                                    {draftRoles.length > 0 ? `${draftRoles.length} selected` : 'Select'}
                                 </Dropdown.Toggle>
                                 <Dropdown.Menu className="p-3 w-100">
                                     <h6 className="fs-14 fw-semibold mb-3">Role</h6>
                                     <InputGroup className="mb-3 position-relative">
-                                        <Form.Control type="text" placeholder="Search" />
+                                        <Form.Control
+                                            type="text"
+                                            placeholder="Search"
+                                            value={filterRoleSearch}
+                                            onChange={(e) => setFilterRoleSearch(e.target.value)}
+                                        />
                                         <InputGroup.Text>
                                             <Icon name="search" className="text-dark" />
                                         </InputGroup.Text>
                                     </InputGroup>
                                     <div className="vstack gap-2">
-                                        {userRoles.map((r) => (
+                                        {filteredRoleOptions.map((r) => (
                                             <Form.Check
                                                 key={r}
                                                 type="checkbox"
                                                 label={r}
                                                 id={`filter-role-${r}`}
+                                                checked={draftRoles.includes(r)}
+                                                onChange={() => toggleDraftRole(r)}
                                             />
                                         ))}
                                     </div>
@@ -901,22 +1069,23 @@ const UsersPage = () => {
                         </Form.Group>
 
                         <Form.Group className="mb-3">
-                            <Form.Label>
-                                Status<span className="text-danger"> *</span>
-                            </Form.Label>
-                            <Form.Select>
-                                <option>Select</option>
-                                <option>Active</option>
-                                <option>Inactive</option>
+                            <Form.Label>Status</Form.Label>
+                            <Form.Select
+                                value={draftStatus}
+                                onChange={(e) => setDraftStatus(e.target.value)}
+                            >
+                                <option value="">Select</option>
+                                <option value="Active">Active</option>
+                                <option value="Inactive">Inactive</option>
                             </Form.Select>
                         </Form.Group>
                     </div>
 
                     <div className="d-flex align-items-center gap-2 mt-auto border-0 pt-3">
-                        <Button variant="light" className="w-100" onClick={() => setShowFilter(false)}>
+                        <Button variant="light" className="w-100" onClick={handleResetFilter}>
                             Reset
                         </Button>
-                        <Button variant="primary" className="w-100" onClick={() => setShowFilter(false)}>
+                        <Button variant="primary" className="w-100" onClick={handleApplyFilter}>
                             Apply
                         </Button>
                     </div>

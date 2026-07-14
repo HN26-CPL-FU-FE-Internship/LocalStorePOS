@@ -16,16 +16,10 @@ export interface UserQuery {
     sortDir?: string;
 }
 
-export const getUsers = async (
-    params: UserQuery
-): Promise<PageResponse<UserEntry>> => {
+export const getUsers = async (): Promise<UserEntry[]> => {
 
-    const { data } = await api.get<PageResponse<UserEntry>>(
-        "/users",
-        {
-            params
-        }
+    const { data } = await api.get<UserEntry[]>(
+        "/users"
     );
-
     return data;
 };
