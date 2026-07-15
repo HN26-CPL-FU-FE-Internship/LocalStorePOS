@@ -12,14 +12,9 @@ import {
 } from 'react-bootstrap';
 import Icon from '@/components/common/Icon';
 import { getUsers } from '@/services/api/user.api';
-import * as XLSX from 'xlsx';
-import jsPDF from 'jspdf';
-import autoTable from 'jspdf-autotable';
 import { type PermissionModule, type UserEntry, type Status } from '@/types';
-/* ------------------------------------------------------------------ */
-/*  Types                                                             */
-/* ------------------------------------------------------------------ */
-
+import PageHeader from '@/components/common/PageHeader';
+import HeaderUsers from '@/components/headers/HeaderUsers';
 
 /* ------------------------------------------------------------------ */
 /*  Static demo data                                                  */
@@ -294,99 +289,12 @@ const UsersPage = () => {
         return result;
     }, [users, appliedFilters, searchTerm]);
 
-    /* ---------- export helpers ---------- */
-    const exportRows = (list: UserEntry[]) =>
-        list.map((u) => ({
-            id: u.id,
-            firstName: u.firstName,
-            lastName: u.lastName,
-            fullName: u.fullName,
-            role: u.role,
-            phone: u.phone,
-            email: u.email,
-            status: u.status,
-        }));
-
-    const handleExportExcel = () => {
-        const rows = exportRows(filteredUsers);
-        const worksheet = XLSX.utils.json_to_sheet(rows, {
-            header: ['id', 'firstName', 'lastName', 'fullName', 'role', 'phone', 'email', 'status'],
-        });
-        XLSX.utils.sheet_add_aoa(
-            worksheet,
-            [['ID', 'First Name', 'Last Name', 'Full Name', 'Role', 'Phone', 'Email', 'Status']],
-            { origin: 'A1' },
-        );
-        const workbook = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(workbook, worksheet, 'Users');
-        XLSX.writeFile(workbook, `users_${Date.now()}.xlsx`);
-    };
-
-    const handleExportPDF = () => {
-        const rows = exportRows(filteredUsers);
-        const doc = new jsPDF();
-        doc.text('Users', 14, 12);
-        autoTable(doc, {
-            startY: 18,
-            head: [['ID', 'First Name', 'Last Name', 'Full Name', 'Role', 'Phone', 'Email', 'Status']],
-            body: rows.map((r) => [r.id, r.firstName, r.lastName, r.fullName, r.role, r.phone, r.email, r.status]),
-            styles: { fontSize: 8 },
-            headStyles: { fillColor: [33, 37, 41] },
-        });
-        doc.save(`users_${Date.now()}.pdf`);
-    };
 
     /* ---------- render ---------- */
     return (
         <>
             {/* ---- Page Header ---- */}
-            <div className="d-flex align-items-sm-center flex-sm-row flex-column gap-3 mb-4">
-                <div className="flex-grow-1">
-                    <h3 className="mb-0">
-                        Users
-                        <Button
-                            variant="white"
-                            size="sm"
-                            className="btn-icon rounded-circle ms-2"
-                            aria-label="refresh"
-                            onClick={loadUsers}
-                        >
-                            <Icon name="refresh-ccw" />
-                        </Button>
-                    </h3>
-                </div>
-                <div className="gap-2 d-flex align-items-center flex-wrap">
-                    <Dropdown>
-                        <Dropdown.Toggle
-                            as={Button}
-                            variant="white"
-                            className="d-inline-flex align-items-center"
-                        >
-                            <Icon name="upload" className="me-1" />
-                            Export
-                        </Dropdown.Toggle>
-                        <Dropdown.Menu align="end" className="p-3">
-                            <Dropdown.Item className="rounded" onClick={handleExportPDF}>
-                                Export as PDF
-                            </Dropdown.Item>
-                            <Dropdown.Item className="rounded" onClick={handleExportExcel}>
-                                Export as Excel
-                            </Dropdown.Item>
-                        </Dropdown.Menu>
-                    </Dropdown>
-                    <Button
-                        variant="primary"
-                        className="d-inline-flex align-items-center"
-                        onClick={() => {
-                            resetForm();
-                            setShowAdd(true);
-                        }}
-                    >
-                        <Icon name="circle-plus" className="me-1" />
-                        Add New
-                    </Button>
-                </div>
-            </div>
+            <PageHeader title="User" onRefresh={loadUsers} action={HeaderUsers(filteredUsers, resetForm, setShowAdd)} />
 
             {/* ---- Card with table ---- */}
             <Card className="mb-0">

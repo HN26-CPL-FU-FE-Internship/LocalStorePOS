@@ -1,14 +1,13 @@
 import Button from 'react-bootstrap/Button';
 import Icon from '../Icon';
-import HeaderDashboard from '@/components/HeaderDashboard';
-import HeaderOrders from '@/components/HeaderOrders';
 
 export interface PageHeaderProps {
     title: string;
     onRefresh?: () => void;
+    action?: React.ReactNode;
 }
 
-const PageHeader = ({ title, onRefresh }: PageHeaderProps) => {
+const PageHeader = ({ title, onRefresh, action }: PageHeaderProps) => {
     return (
         <div className="d-flex align-items-center flex-wrap gap-3 mb-4">
             <div className="flex-grow-1">
@@ -25,10 +24,7 @@ const PageHeader = ({ title, onRefresh }: PageHeaderProps) => {
                     </Button>
                 </h3>
             </div>
-            <div className="gap-2 d-flex align-items-center flex-wrap">
-                {title === 'Dashboard' ? <HeaderDashboard /> : ''}
-                {title === 'Orders' ? <HeaderOrders /> : ''}
-            </div>
+            {action}
         </div>
     );
 };

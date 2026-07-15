@@ -1,5 +1,5 @@
-import DateRangeLabel from '../common/DateRangeLabel';
-import AddNewButton from '../common/AddNewButton';
+import DateRangeLabel from '@/components/common/DateRangeLabel';
+import AddNewButton from '@/components/common/AddNewButton';
 import { useNavigate } from 'react-router-dom';
 import configs from '@/configs';
 

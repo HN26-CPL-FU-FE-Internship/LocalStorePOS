@@ -2,11 +2,12 @@ import Icon from '@/components/common/Icon';
 import PageHeader from '@/components/common/PageHeader';
 import { Button, Card, Col, Nav, Row } from 'react-bootstrap';
 import TabContent from './components/TabContent';
+import HeaderOrders from '@/components/headers/HeaderOrders';
 
 const Orders = () => {
     return (
         <>
-            <PageHeader title="Orders" />
+            <PageHeader title="Orders" action={HeaderOrders()} />
 
             <Row className="orders-list-four">
                 <Col xxl={2} lg={4} md={4} sm={6}>

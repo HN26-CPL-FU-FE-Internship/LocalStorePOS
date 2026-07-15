@@ -26,6 +26,7 @@ import {
     availableTables,
     activityLog,
 } from '../../../data/dashboardData';
+import HeaderDashboard from '@/components/headers/HeaderDashboard';
 
 /**
  * Direct port of index.html's <div class="content pb-0"> body.
@@ -35,7 +36,7 @@ import {
 const DashboardPage = () => {
     return (
         <>
-            <PageHeader title="Dashboard" />
+            <PageHeader title="Dashboard" action={HeaderDashboard()} />
 
             <StatsRow stats={dashboardStats} />
 
