@@ -24,6 +24,9 @@ public enum ErrorCode {
         INVALID_TOKEN(1009, HttpStatus.UNAUTHORIZED, "Invalid token"),
         REFRESH_TOKEN_EXPIRED(1010, HttpStatus.UNAUTHORIZED, "Refresh token is expired"),
         CAN_NOT_CREATE_TOKEN(1011, HttpStatus.BAD_REQUEST, "Can not create token"),
+        USER_NOT_FOUND(1012, HttpStatus.NOT_FOUND, "User not found"),
+        INVALID_AVATAR_FILE(1013, HttpStatus.BAD_REQUEST, "Invalid avatar file"),
+        CAN_NOT_UPLOAD_FILE(1014, HttpStatus.INTERNAL_SERVER_ERROR, "Can not upload file"),
         ;
 
         int code;

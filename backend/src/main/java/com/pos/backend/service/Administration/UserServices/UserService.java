@@ -1,10 +1,21 @@
 package com.pos.backend.service.Administration.UserServices;
 
-import java.util.List;
+import org.springframework.web.multipart.MultipartFile;
 
-import com.pos.backend.dto.response.Administration.UserListItemResponse;
+import com.pos.backend.dto.request.User.UserCreationRequest;
+import com.pos.backend.dto.request.User.UserUpdateRequest;
+import com.pos.backend.dto.response.User.UserResponse;
 import com.pos.backend.service.Common.PageResponse;
 
 public interface UserService {
-    List<UserListItemResponse> getAllUsers();
+
+    PageResponse<UserResponse> getAllUsers(int page, int size, String sortBy, String sortDir);
+
+    UserResponse getUserById(Long id);
+
+    UserResponse createUser(UserCreationRequest request, MultipartFile avatarFile);
+
+    UserResponse updateUser(Long id, UserUpdateRequest request, MultipartFile avatarFile);
+
+    void deleteUser(Long id);
 }

@@ -4,6 +4,11 @@ server:
     context-path: /restaurant-pos
 
 spring:
+  servlet:
+    multipart:
+      max-file-size: 5MB
+      max-request-size: 10MB
+
   datasource:
     url: jdbc:mysql://localhost:3306/restaurant_pos_db?useSSL=false&serverTimezone=Asia/Ho_Chi_Minh&characterEncoding=UTF-8&allowPublicKeyRetrieval=true
     username: root
