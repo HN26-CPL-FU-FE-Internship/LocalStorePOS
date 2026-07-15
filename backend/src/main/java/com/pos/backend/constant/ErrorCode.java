@@ -27,6 +27,14 @@ public enum ErrorCode {
         USER_NOT_FOUND(1012, HttpStatus.NOT_FOUND, "User not found"),
         INVALID_AVATAR_FILE(1013, HttpStatus.BAD_REQUEST, "Invalid avatar file"),
         CAN_NOT_UPLOAD_FILE(1014, HttpStatus.INTERNAL_SERVER_ERROR, "Can not upload file"),
+        
+        
+        CATEGORY_NOT_FOUND(1015, HttpStatus.NOT_FOUND, "Category not found"),
+        CATEGORY_NAME_ALREADY_EXISTS(1016, HttpStatus.BAD_REQUEST, "Category name already exists"),
+        CATEGORY_HAS_ITEMS(1017, HttpStatus.BAD_REQUEST, "Cannot delete category that still has items"),
+        INVALID_IMAGE_FILE(1018, HttpStatus.BAD_REQUEST, "Invalid image file"),
+        IMAGE_TOO_LARGE(1019, HttpStatus.BAD_REQUEST, "Image must not exceed 5 MB"),
+        FILE_UPLOAD_FAILED(1020, HttpStatus.INTERNAL_SERVER_ERROR, "Failed to upload file"),
         ;
 
         int code;

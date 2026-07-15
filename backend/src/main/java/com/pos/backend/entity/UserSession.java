@@ -11,6 +11,7 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -28,18 +29,20 @@ public class UserSession extends BaseIdEntity {
     @JoinColumn(name = "user_id")
     private User user;
 
-    @Column(nullable = false, unique = true, length = 64)
+    @Column(name = "refresh_token_hash",nullable = false, unique = true, length = 64)
     private String refreshTokenHash;
 
+    @Builder.Default
     @Column(nullable = false)
-    private Boolean revoked;
+    private Boolean revoked = false;
 
-    @Column(nullable = false)
+    @Column(name = "expires_at",nullable = false)
     private Instant expiresAt;
 
     @CreationTimestamp
-    @Column(nullable = false, updatable = false)
+    @Column(name = "created_at",nullable = false, updatable = false)
     private Instant createdAt;
 
+    @Column(name = "last_used_at")
     private Instant lastUsedAt;
 }
