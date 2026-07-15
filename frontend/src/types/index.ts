@@ -203,3 +203,4 @@ export interface ActivityLogGroup {
 }
 
 export type { ThemeType } from './theme';
+export type { PermissionModule, UserEntry, Status } from './user';

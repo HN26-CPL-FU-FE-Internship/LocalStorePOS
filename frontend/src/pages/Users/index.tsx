@@ -11,36 +11,15 @@ import {
     InputGroup,
 } from 'react-bootstrap';
 import Icon from '@/components/common/Icon';
-import { getUsers } from '@/api/user.api';
+import { getUsers } from '@/services/api/user.api';
 import * as XLSX from 'xlsx';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
-
+import { type PermissionModule, type UserEntry, type Status } from '@/types';
 /* ------------------------------------------------------------------ */
 /*  Types                                                             */
 /* ------------------------------------------------------------------ */
-type Status = "Active" | "Inactive";
-export interface UserEntry {
-    id: string;
-    firstName: string;
-    lastName: string;
-    fullName: string;
-    role: string;
-    phone: string;
-    email: string;
-    status: Status
-    avatarKey: string; // key into userImages
-}
 
-export interface PermissionModule {
-    module: string;
-    view: boolean;
-    add: boolean;
-    edit: boolean;
-    delete_: boolean;
-    export_: boolean;
-    approvedVoid: boolean;
-}
 
 /* ------------------------------------------------------------------ */
 /*  Static demo data                                                  */
