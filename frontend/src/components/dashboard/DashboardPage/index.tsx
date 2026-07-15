@@ -1,6 +1,6 @@
 import Row from 'react-bootstrap/Row';
 import Col from 'react-bootstrap/Col';
-import PageHeader from '../PageHeader';
+import PageHeader from '../../common/PageHeader';
 import StatsRow from '../StatsRow';
 import RevenueCard from '../RevenueCard';
 import TopSellingCard from '../TopSellingCard';
@@ -35,7 +35,7 @@ import {
 const DashboardPage = () => {
     return (
         <>
-            <PageHeader title="Dashboard" dateRangeLabel="09 Jul 26 - 09 Jul 26" />
+            <PageHeader title="Dashboard" />
 
             <StatsRow stats={dashboardStats} />
 

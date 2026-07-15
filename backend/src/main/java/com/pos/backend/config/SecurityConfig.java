@@ -50,6 +50,7 @@ public class SecurityConfig {
 
                 httpSecurity.authorizeHttpRequests(request -> request
                                 .requestMatchers(HttpMethod.POST, publicEndPoints).permitAll()
+                                .requestMatchers("/uploads/**").permitAll()
                                 .anyRequest().authenticated());
 
                 httpSecurity.oauth2ResourceServer(
