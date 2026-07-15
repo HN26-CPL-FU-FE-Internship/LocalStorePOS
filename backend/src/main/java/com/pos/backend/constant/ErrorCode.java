@@ -24,6 +24,14 @@ public enum ErrorCode {
         INVALID_TOKEN(1009, HttpStatus.UNAUTHORIZED, "Invalid token"),
         REFRESH_TOKEN_EXPIRED(1010, HttpStatus.UNAUTHORIZED, "Refresh token is expired"),
         CAN_NOT_CREATE_TOKEN(1011, HttpStatus.BAD_REQUEST, "Can not create token"),
+        
+        
+        CATEGORY_NOT_FOUND(1012, HttpStatus.NOT_FOUND, "Category not found"),
+        CATEGORY_NAME_ALREADY_EXISTS(1013, HttpStatus.BAD_REQUEST, "Category name already exists"),
+        CATEGORY_HAS_ITEMS(1014, HttpStatus.BAD_REQUEST, "Cannot delete category that still has items"),
+        INVALID_IMAGE_FILE(1015, HttpStatus.BAD_REQUEST, "Invalid image file"),
+        IMAGE_TOO_LARGE(1016, HttpStatus.BAD_REQUEST, "Image must not exceed 5 MB"),
+        FILE_UPLOAD_FAILED(1017, HttpStatus.INTERNAL_SERVER_ERROR, "Failed to upload file"),
         ;
 
         int code;
