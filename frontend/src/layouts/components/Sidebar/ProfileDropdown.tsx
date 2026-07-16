@@ -4,7 +4,7 @@ import Button from 'react-bootstrap/Button';
 import Icon from '@/components/common/Icon';
 import type { ProfileMenuItem, UserProfile } from '@/types';
 import { Link, useNavigate } from 'react-router-dom';
-import { tokenUtils } from '@/utils/token';
+import { tokenUtils } from '@/utils';
 import configs from '@/configs';
 import { useLogout } from '@/hooks/auth';
 

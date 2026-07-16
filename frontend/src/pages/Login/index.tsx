@@ -5,8 +5,7 @@ import { EyeOff, Eye } from 'lucide-react';
 import configs from '@/configs';
 
 import { useState } from 'react';
-import { toggleHidePassword } from '@/utils';
-import { tokenUtils } from '@/utils/token';
+import { toggleHidePassword, tokenUtils } from '@/utils';
 import { useLogin } from '@/hooks/auth';
 import { loginSchema, type LoginForm } from './login.schema';
 import { useForm } from 'react-hook-form';
