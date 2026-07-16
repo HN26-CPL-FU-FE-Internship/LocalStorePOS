@@ -19,6 +19,7 @@ public enum ErrorCode {
 
         PHONE_NUMBER_ALREADY_EXISTS(1005, HttpStatus.BAD_REQUEST, "Phone number already exists"),
         ROLE_NOT_FOUND(1006, HttpStatus.NOT_FOUND, "Role is not existed"),
+        MODULE_NOT_FOUND(1015, HttpStatus.NOT_FOUND, "Permission module is not existed"),
         ROLE_NOT_ASSIGNABLE(1007, HttpStatus.FORBIDDEN, "This system cannot be assigned a role"),
         INVALID_CREDENTIALS(1008, HttpStatus.UNAUTHORIZED, "Invalid email or password."),
         INVALID_TOKEN(1009, HttpStatus.UNAUTHORIZED, "Invalid token"),

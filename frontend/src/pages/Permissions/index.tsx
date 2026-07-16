@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
     Table,
     Card,
@@ -6,6 +6,8 @@ import {
     Modal,
     Form,
     Nav,
+    Spinner,
+    Alert,
 } from 'react-bootstrap';
 import PageHeader from '@/components/common/PageHeader';
 import Icon from '@/components/common/Icon';
@@ -19,6 +21,12 @@ import type { PermissionModule } from '@/types';
 interface RoleEntry {
     id: number;
     name: string;
+}
+
+interface RolePermissionsResponse {
+    roleId: number;
+    roleName: string;
+    permissions: PermissionModule[];
 }
 
 /** Permission actions available per module */
@@ -42,22 +50,6 @@ const actionLabels: Record<PermissionAction, string> = {
     approvedVoid: 'Approved/Void',
 };
 
-/** Default modules shown in the permission table */
-const defaultModules: PermissionModule[] = [
-    { module: 'Dashboard', view: false, add: false, edit: false, delete_: false, export_: false, approvedVoid: false },
-    { module: 'POS', view: false, add: false, edit: false, delete_: false, export_: false, approvedVoid: false },
-    { module: 'Hold/Resume Sale', view: false, add: false, edit: false, delete_: false, export_: false, approvedVoid: false },
-    { module: 'Refund / Return', view: false, add: false, edit: false, delete_: false, export_: false, approvedVoid: false },
-    { module: 'Products', view: false, add: false, edit: false, delete_: false, export_: false, approvedVoid: false },
-    { module: 'Categories', view: false, add: false, edit: false, delete_: false, export_: false, approvedVoid: false },
-    { module: 'Customers', view: false, add: false, edit: false, delete_: false, export_: false, approvedVoid: false },
-    { module: 'Reports', view: false, add: false, edit: false, delete_: false, export_: false, approvedVoid: false },
-    { module: 'Settings', view: false, add: false, edit: false, delete_: false, export_: false, approvedVoid: false },
-];
-
-/** Deep-clone default modules so each role gets an independent copy */
-const cloneModules = () => defaultModules.map((m) => ({ ...m }));
-
 /* ------------------------------------------------------------------ */
 /*  Component                                                         */
 /* ------------------------------------------------------------------ */
@@ -67,42 +59,111 @@ const PermissionsPage = () => {
     const [activeRoleId, setActiveRoleId] = useState<number | null>(null);
     const [permissionsMap, setPermissionsMap] = useState<Record<number, PermissionModule[]>>({});
 
+    // Baseline snapshot of permissions as returned by the API
+    const [baselineMap, setBaselineMap] = useState<
+        Record<number, PermissionModule[]>
+    >({});
+
+    // Whether the active role's current permissions differ from baseline
+    const isDirty = useMemo(() => {
+        if (activeRoleId == null) return false;
+        const current = permissionsMap[activeRoleId] ?? [];
+        const baseline = baselineMap[activeRoleId] ?? [];
+        if (current.length !== baseline.length) return true;
+        return current.some((mod, i) =>
+            allActions.some((a) => Boolean(mod[a]) !== Boolean(baseline[i]?.[a])),
+        );
+    }, [activeRoleId, permissionsMap, baselineMap]);
+
+    // Loading & feedback
+    const [loadingRoles, setLoadingRoles] = useState(false);
+    const [loadingPerms, setLoadingPerms] = useState(false);
+    const [saving, setSaving] = useState(false);
+    const [feedback, setFeedback] = useState<{ type: 'success' | 'danger'; message: string } | null>(null);
+
     // Add Role modal
     const [showAddRole, setShowAddRole] = useState(false);
     const [newRoleName, setNewRoleName] = useState('');
+    const [addingRole, setAddingRole] = useState(false);
+
+    // Track whether permissions have been loaded for the active role
+    const loadedRolesRef = useRef<Set<number>>(new Set());
+    // const prevActiveRoleRef = useRef<number | null>(null);
+
+    /* ---------- helpers ---------- */
+    const showFeedback = (type: 'success' | 'danger', message: string) => {
+        setFeedback({ type, message });
+        setTimeout(() => setFeedback(null), 4000);
+    };
 
     /* ---------- fetch roles ---------- */
     const loadRoles = useCallback(async () => {
+        setLoadingRoles(true);
         try {
             const { data } = await api.get<ApiResponse<RoleEntry[]>>('/roles');
             const fetched = data.result;
             setRoles(fetched);
 
-            // Initialise permissions for each role if not already set
+            // Pre-populate empty permissions for any new role
             setPermissionsMap((prev) => {
                 const next = { ...prev };
                 for (const role of fetched) {
                     if (!next[role.id]) {
-                        next[role.id] = cloneModules();
+                        next[role.id] = [];
                     }
                 }
                 return next;
             });
+
+            // Auto-select first role if none selected
+            if (fetched.length > 0 && activeRoleId == null) {
+                setActiveRoleId(fetched[0].id);
+            }
         } catch {
-            console.error('Failed to load roles');
+            showFeedback('danger', 'Failed to load roles');
+        } finally {
+            setLoadingRoles(false);
         }
+    }, [activeRoleId]);
+
+    useEffect(() => {
+        // eslint-disable-next-line react-hooks/set-state-in-effect
+        loadRoles();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
+    /* ---------- fetch permissions when active role changes ---------- */
     useEffect(() => {
-        loadRoles();
-    }, [loadRoles]);
+        if (activeRoleId == null) return;
 
-    // Default to first role when roles first load
-    useEffect(() => {
-        if (roles.length > 0 && activeRoleId == null) {
-            setActiveRoleId(roles[0].id);
+        // Avoid re-fetching if we already have the data from the API
+        if (loadedRolesRef.current.has(activeRoleId)) {
+            return;
         }
-    }, [roles, activeRoleId]);
+
+        const fetchPermissions = async () => {
+            setLoadingPerms(true);
+            try {
+                const { data } = await api.get<ApiResponse<RolePermissionsResponse>>(
+                    `/roles/${activeRoleId}/permissions`,
+                );
+                const perms = data.result.permissions;
+                const permsClone = perms.map((m: PermissionModule) => ({ ...m }));
+                setPermissionsMap((prev) => ({ ...prev, [activeRoleId]: permsClone }));
+                setBaselineMap(prev => ({
+                    ...prev,
+                    [activeRoleId]: permsClone,
+                }));
+                loadedRolesRef.current.add(activeRoleId);
+            } catch {
+                showFeedback('danger', 'Failed to load permissions');
+            } finally {
+                setLoadingPerms(false);
+            }
+        };
+
+        fetchPermissions();
+    }, [activeRoleId]);
 
     /* ---------- active role ---------- */
     const activeRoleName = useMemo(
@@ -110,44 +171,103 @@ const PermissionsPage = () => {
         [roles, activeRoleId],
     );
 
-    const activePermissions = activeRoleId ? permissionsMap[activeRoleId] ?? cloneModules() : [];
+    const activePermissions = useMemo(
+        () => (activeRoleId ? permissionsMap[activeRoleId] ?? [] : []),
+        [activeRoleId, permissionsMap],
+    );
 
     /* ---------- toggle a single permission checkbox ---------- */
     const togglePermission = (moduleIdx: number, action: PermissionAction) => {
         if (activeRoleId == null) return;
         setPermissionsMap((prev) => {
-            const perms = [...(prev[activeRoleId] ?? cloneModules())];
-            perms[moduleIdx] = { ...perms[moduleIdx], [action]: !perms[moduleIdx][action] };
+            const perms = [...(prev[activeRoleId] ?? [])];
+            if (perms[moduleIdx]) {
+                perms[moduleIdx] = { ...perms[moduleIdx], [action]: !perms[moduleIdx][action] };
+            }
             return { ...prev, [activeRoleId]: perms };
         });
     };
 
-    /* ---------- revert all (uncheck all) for this role ---------- */
-    const handleRevertAll = () => {
+    /* ---------- revert to baseline (original API data) ---------- */
+    const handleRevertToBaseline = () => {
         if (activeRoleId == null) return;
+        const baseline = baselineMap[activeRoleId];
+        if (!baseline) return;
         setPermissionsMap((prev) => ({
             ...prev,
-            [activeRoleId]: cloneModules(),
+            [activeRoleId]: baseline.map((m) => ({ ...m })),
         }));
     };
 
     /* ---------- save changes ---------- */
-    const handleSave = () => {
-        // TODO: persist to backend when the API is available
-        console.log('Saving permissions for role', activeRoleName, activePermissions);
+    const handleSave = async () => {
+        if (activeRoleId == null || activePermissions.length === 0) return;
+        setSaving(true);
+        try {
+            const payload = { permissions: activePermissions };
+            await api.put(`/roles/${activeRoleId}/permissions`, payload);
+            // Update baseline to reflect the saved state
+            setBaselineMap(prev => ({
+                ...prev,
+                [activeRoleId]: activePermissions.map(m => ({ ...m })),
+            }));
+            loadedRolesRef.current.add(activeRoleId);
+            showFeedback('success', 'Permissions saved successfully');
+        } catch {
+            showFeedback('danger', 'Failed to save permissions');
+        } finally {
+            setSaving(false);
+        }
     };
 
     /* ---------- add role ---------- */
-    const handleAddRole = () => {
+    const handleAddRole = async () => {
         if (!newRoleName.trim()) return;
-        // Optimistically add a temporary role (API integration later)
-        const tempId = Date.now();
-        const newRole: RoleEntry = { id: tempId, name: newRoleName.trim() };
-        setRoles((prev) => [...prev, newRole]);
-        setPermissionsMap((prev) => ({ ...prev, [tempId]: cloneModules() }));
-        setActiveRoleId(tempId);
-        setNewRoleName('');
-        setShowAddRole(false);
+        setAddingRole(true);
+        try {
+            const { data } = await api.post<ApiResponse<RoleEntry>>('/roles', {
+                name: newRoleName.trim(),
+            });
+            const newRole = data.result;
+            setRoles((prev) => [...prev, newRole]);
+            // Permissions will be fetched automatically when this role is selected
+            setActiveRoleId(newRole.id);
+            setNewRoleName('');
+            setShowAddRole(false);
+            showFeedback('success', `Role "${newRole.name}" created`);
+        } catch {
+            showFeedback('danger', 'Failed to create role');
+        } finally {
+            setAddingRole(false);
+        }
+    };
+
+    /* ---------- delete role ---------- */
+    const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+    const [deletingRole, setDeletingRole] = useState(false);
+
+    const handleDeleteRole = async () => {
+        if (activeRoleId == null) return;
+        setDeletingRole(true);
+        try {
+            await api.delete(`/roles/${activeRoleId}`);
+            setRoles((prev) => prev.filter((r) => r.id !== activeRoleId));
+            setPermissionsMap((prev) => {
+                const next = { ...prev };
+                delete next[activeRoleId];
+                return next;
+            });
+            loadedRolesRef.current.delete(activeRoleId);
+            // Switch to first available role
+            const remaining = roles.filter((r) => r.id !== activeRoleId);
+            setActiveRoleId(remaining.length > 0 ? remaining[0].id : null);
+            setShowDeleteConfirm(false);
+            showFeedback('success', 'Role deleted successfully');
+        } catch {
+            showFeedback('danger', 'Failed to delete role');
+        } finally {
+            setDeletingRole(false);
+        }
     };
 
     /* ---------- render ---------- */
@@ -171,6 +291,18 @@ const PermissionsPage = () => {
                 }
             />
 
+            {/* ---- Feedback Alert ---- */}
+            {feedback && (
+                <Alert
+                    variant={feedback.type}
+                    dismissible
+                    onClose={() => setFeedback(null)}
+                    className="mb-3"
+                >
+                    {feedback.message}
+                </Alert>
+            )}
+
             {/* ---- Main Content ---- */}
             <div className="row justify-content-center">
                 {/* Left Column — Roles List */}
@@ -178,25 +310,53 @@ const PermissionsPage = () => {
                     <Card>
                         <Card.Body>
                             <h6 className="fs-20 fw-bold mb-4">Roles</h6>
-                            <div className="roles-sidebar d-flex align-items-start">
-                                <Nav
-                                    variant="pills"
-                                    className="flex-column me-3 w-100"
-                                    activeKey={activeRoleId ?? undefined}
-                                    onSelect={(k) => setActiveRoleId(k ? Number(k) : null)}
-                                >
-                                    {roles.map((role) => (
-                                        <Nav.Item key={role.id}>
-                                            <Nav.Link eventKey={role.id} className="text-start">
-                                                {role.name}
-                                            </Nav.Link>
-                                        </Nav.Item>
-                                    ))}
-                                    {roles.length === 0 && (
-                                        <p className="text-muted fs-13 mb-0">No roles available</p>
-                                    )}
-                                </Nav>
-                            </div>
+                            {loadingRoles ? (
+                                <div className="text-center py-4">
+                                    <Spinner animation="border" size="sm" className="me-2" />
+                                    Loading roles...
+                                </div>
+                            ) : (
+                                <div className="roles-sidebar d-flex align-items-start">
+                                    <Nav
+                                        variant="pills"
+                                        className="flex-column me-3 w-100"
+                                        activeKey={activeRoleId ?? undefined}
+                                        onSelect={(k) => {
+                                            const id = k ? Number(k) : null;
+                                            if (id !== activeRoleId) {
+                                                setActiveRoleId(id);
+                                            }
+                                        }}
+                                    >
+                                        {roles.map((role) => (
+                                            <Nav.Item key={role.id} className="d-flex align-items-center">
+                                                <Nav.Link eventKey={role.id} className="text-start flex-grow-1">
+                                                    {role.name}
+                                                </Nav.Link>
+                                                {activeRoleId === role.id && (
+                                                    <Icon
+                                                        name="trash-2"
+                                                        className="text-danger ms-auto me-2"
+                                                        style={{
+                                                            cursor: 'pointer',
+                                                            fontSize: '0.85rem',
+                                                            position: 'absolute',
+                                                            right: '0.5rem',
+                                                        }}
+                                                        action={(e: React.MouseEvent) => {
+                                                            e.stopPropagation();
+                                                            setShowDeleteConfirm(true);
+                                                        }}
+                                                    />
+                                                )}
+                                            </Nav.Item>
+                                        ))}
+                                        {roles.length === 0 && (
+                                            <p className="text-muted fs-13 mb-0">No roles available</p>
+                                        )}
+                                    </Nav>
+                                </div>
+                            )}
                         </Card.Body>
                     </Card>
                 </div>
@@ -215,12 +375,16 @@ const PermissionsPage = () => {
                                 <div className="d-flex align-items-center gap-2">
                                     <Form.Check
                                         type="checkbox"
-                                        id="select-all"
+                                        id="sync-indicator"
                                         label="Revert All"
-                                        checked={activePermissions.every((m) =>
-                                            allActions.every((a) => !m[a])
-                                        )}
-                                        onChange={handleRevertAll}
+                                        checked={!isDirty}
+                                        onChange={handleRevertToBaseline}
+                                        disabled={!isDirty}
+                                        title={
+                                            isDirty
+                                                ? 'Click to revert to original'
+                                                : 'Permissions match the saved state'
+                                        }
                                     />
                                 </div>
                             </div>
@@ -228,52 +392,78 @@ const PermissionsPage = () => {
                             {/* Permission Card */}
                             <Card>
                                 <Card.Body>
-                                    <div className="table-responsive">
-                                        <Table className="m-0 table-nowrap bg-white border">
-                                            <thead>
-                                                <tr>
-                                                    <th>Module</th>
-                                                    {allActions.map((action) => (
-                                                        <th key={action}>{actionLabels[action]}</th>
-                                                    ))}
-                                                </tr>
-                                            </thead>
-                                            <tbody>
-                                                {activePermissions.map((mod, idx) => (
-                                                    <tr key={mod.module}>
-                                                        <td className="text-dark fw-medium">
-                                                            {mod.module}
-                                                        </td>
-                                                        {allActions.map((action) => (
-                                                            <td key={action}>
-                                                                <Form.Check
-                                                                    type="checkbox"
-                                                                    checked={Boolean(mod[action])}
-                                                                    onChange={() =>
-                                                                        togglePermission(idx, action)
-                                                                    }
-                                                                />
-                                                            </td>
+                                    {loadingPerms ? (
+                                        <div className="text-center py-5">
+                                            <Spinner animation="border" className="mb-3" />
+                                            <p className="mb-0">Loading permissions...</p>
+                                        </div>
+                                    ) : activePermissions.length === 0 ? (
+                                        <div className="text-center py-5">
+                                            <Icon name="shield" className="fs-1 text-muted mb-3" />
+                                            <p className="mb-0">No permission data available</p>
+                                        </div>
+                                    ) : (
+                                        <>
+                                            <div className="table-responsive">
+                                                <Table className="m-0 table-nowrap bg-white border">
+                                                    <thead>
+                                                        <tr>
+                                                            <th>Module</th>
+                                                            {allActions.map((action) => (
+                                                                <th key={action}>{actionLabels[action]}</th>
+                                                            ))}
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody>
+                                                        {activePermissions.map((mod, idx) => (
+                                                            <tr key={mod.module}>
+                                                                <td className="text-dark fw-medium">
+                                                                    {mod.module}
+                                                                </td>
+                                                                {allActions.map((action) => (
+                                                                    <td key={action}>
+                                                                        <Form.Check
+                                                                            type="checkbox"
+                                                                            checked={Boolean(mod[action])}
+                                                                            onChange={() =>
+                                                                                togglePermission(idx, action)
+                                                                            }
+                                                                        />
+                                                                    </td>
+                                                                ))}
+                                                            </tr>
                                                         ))}
-                                                    </tr>
-                                                ))}
-                                            </tbody>
-                                        </Table>
-                                    </div>
+                                                    </tbody>
+                                                </Table>
+                                            </div>
 
-                                    {/* Action buttons */}
-                                    <div className="d-flex align-items-center justify-content-end flex-wrap row-gap-2 border-top mt-4 pt-4">
-                                        <Button
-                                            variant="light"
-                                            className="me-2"
-                                            onClick={handleRevertAll}
-                                        >
-                                            Cancel
-                                        </Button>
-                                        <Button variant="primary" onClick={handleSave}>
-                                            Save Changes
-                                        </Button>
-                                    </div>
+                                            {/* Action buttons */}
+                                            <div className="d-flex align-items-center justify-content-end flex-wrap row-gap-2 border-top mt-4 pt-4">
+                                                <Button
+                                                    variant="light"
+                                                    className="me-2"
+                                                    onClick={handleRevertToBaseline}
+                                                    disabled={!isDirty}
+                                                >
+                                                    Revert All
+                                                </Button>
+                                                <Button
+                                                    variant="primary"
+                                                    onClick={handleSave}
+                                                    disabled={saving}
+                                                >
+                                                    {saving ? (
+                                                        <>
+                                                            <Spinner animation="border" size="sm" className="me-1" />
+                                                            Saving...
+                                                        </>
+                                                    ) : (
+                                                        'Save Changes'
+                                                    )}
+                                                </Button>
+                                            </div>
+                                        </>
+                                    )}
                                 </Card.Body>
                             </Card>
                         </div>
@@ -293,11 +483,7 @@ const PermissionsPage = () => {
             {/* ================================================================ */}
 
             {/* ---- Add Role Modal ---- */}
-            <Modal
-                show={showAddRole}
-                onHide={() => setShowAddRole(false)}
-                centered
-            >
+            <Modal show={showAddRole} onHide={() => setShowAddRole(false)} centered>
                 <Modal.Header closeButton className="border-0 p-4 pb-3">
                     <h4 className="modal-title">Add Role</h4>
                 </Modal.Header>
@@ -325,15 +511,57 @@ const PermissionsPage = () => {
                                 variant="light"
                                 className="w-100"
                                 onClick={() => setShowAddRole(false)}
+                                disabled={addingRole}
                             >
                                 Cancel
                             </Button>
-                            <Button variant="primary" className="w-100" type="submit">
-                                Save
+                            <Button
+                                variant="primary"
+                                className="w-100"
+                                type="submit"
+                                disabled={addingRole}
+                            >
+                                {addingRole ? 'Saving...' : 'Save'}
                             </Button>
                         </div>
                     </Modal.Body>
                 </Form>
+            </Modal>
+
+            {/* ---- Delete Role Confirmation Modal ---- */}
+            <Modal
+                show={showDeleteConfirm}
+                onHide={() => setShowDeleteConfirm(false)}
+                centered
+            >
+                <Modal.Header closeButton className="border-0 p-4 pb-3">
+                    <h4 className="modal-title text-danger">Delete Role</h4>
+                </Modal.Header>
+                <Modal.Body className="p-4 pt-1">
+                    <p>
+                        Are you sure you want to delete{' '}
+                        <strong>{activeRoleName}</strong>? This action cannot be
+                        undone.
+                    </p>
+                    <div className="d-flex align-items-center justify-content-between gap-2 pt-1">
+                        <Button
+                            variant="light"
+                            className="w-100"
+                            onClick={() => setShowDeleteConfirm(false)}
+                            disabled={deletingRole}
+                        >
+                            Cancel
+                        </Button>
+                        <Button
+                            variant="danger"
+                            className="w-100"
+                            onClick={handleDeleteRole}
+                            disabled={deletingRole}
+                        >
+                            {deletingRole ? 'Deleting...' : 'Delete'}
+                        </Button>
+                    </div>
+                </Modal.Body>
             </Modal>
         </>
     );
