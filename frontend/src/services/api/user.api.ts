@@ -5,12 +5,21 @@ import type { PageResponse, UserCreateRequest, UserEntry, UserQuery, UserUpdateR
 const USER_ENDPOINT = '/users';
 
 export const getUsers = async (query?: UserQuery): Promise<PageResponse<UserEntry>> => {
-    const params: Record<string, string | number> = {
+    const params: Record<string, string | number | undefined> = {
         page: query?.page ?? 0,
         size: query?.size ?? 50,
         sortBy: query?.sortBy ?? 'createdAt',
         sortDir: query?.sortDir ?? 'desc',
+        search: query?.search || undefined,
+        status: query?.status || undefined,
+        roleIds: query?.roleIds || undefined,
     };
+    // Remove undefined values so they aren't sent as query params
+    Object.keys(params).forEach((key) => {
+        if (params[key] === undefined) {
+            delete params[key];
+        }
+    });
     const { data } = await api.get<ApiResponse<PageResponse<UserEntry>>>(USER_ENDPOINT, { params });
     return data.result;
 };

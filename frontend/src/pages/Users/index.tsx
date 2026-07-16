@@ -70,12 +70,11 @@ const defaultColumns: ColumnOption[] = [
 /*  Filter state shape                                                */
 /* ------------------------------------------------------------------ */
 interface AppliedFilters {
-    userIds: number[];
-    roles: string[];
-    status: string; // '' | 'Active' | 'Inactive'
+    roleIds: number[];
+    status: string; // '' | 'active' | 'inactive'
 }
 
-const emptyAppliedFilters: AppliedFilters = { userIds: [], roles: [], status: '' };
+const emptyAppliedFilters: AppliedFilters = { roleIds: [], status: '' };
 
 /* ------------------------------------------------------------------ */
 /*  Sort options mapping                                              */
@@ -146,23 +145,22 @@ const UsersPage = () => {
     };
     const [editForm, setEditForm] = useState(editEmptyForm);
 
-    /* ---------- live search state ---------- */
-    // const [searchInput, setSearchInput] = useState('');
-    const [searchTerm, setSearchTerm] = useState('');
+    /* ---------- live search state (debounced) ---------- */
+    const [searchInput, setSearchInput] = useState('');
+    const [debouncedSearch, setDebouncedSearch] = useState('');
 
-    // useEffect(() => {
-    //     const timer = setTimeout(() => {
-    //         setSearchTerm(searchInput.trim().toLowerCase());
-    //     }, 300);
-    //     return () => clearTimeout(timer);
-    // }, [searchInput]);
+    // Debounce search input by 300ms
+    useEffect(() => {
+        const timer = setTimeout(() => {
+            setDebouncedSearch(searchInput.trim());
+        }, 300);
+        return () => clearTimeout(timer);
+    }, [searchInput]);
 
     /* ---------- filter state ---------- */
-    const [draftUserIds, setDraftUserIds] = useState<number[]>([]);
-    const [draftRoles, setDraftRoles] = useState<string[]>([]);
+    const [draftRoles, setDraftRoles] = useState<number[]>([]);
     const [draftStatus, setDraftStatus] = useState('');
     const [appliedFilters, setAppliedFilters] = useState<AppliedFilters>(emptyAppliedFilters);
-    const [filterNameSearch, setFilterNameSearch] = useState('');
     const [filterRoleSearch, setFilterRoleSearch] = useState('');
 
     /* ---------- fetch users ---------- */
@@ -175,15 +173,18 @@ const UsersPage = () => {
                 size: PAGE_SIZE,
                 sortBy: sortConfig.sortBy,
                 sortDir: sortConfig.sortDir,
+                search: debouncedSearch || undefined,
+                status: appliedFilters.status || undefined,
+                roleIds: appliedFilters.roleIds.length > 0 ? appliedFilters.roleIds.join(',') : undefined,
             });
             setUsers(result.items);
-            setTotalItems(result.totalElements)
+            setTotalItems(result.totalElements);
         } catch {
             console.error('Failed to load users');
         } finally {
             setLoading(false);
         }
-    }, [sort, currentPage]);
+    }, [sort, currentPage, debouncedSearch, appliedFilters]);
 
     /* ---------- fetch roles ---------- */
     const loadRoles = useCallback(async () => {
@@ -329,80 +330,34 @@ const UsersPage = () => {
     /* ---------- filter offcanvas helpers ---------- */
     const openFilter = () => {
         // sync draft with currently applied filters whenever the panel opens
-        setDraftUserIds(appliedFilters.userIds);
-        setDraftRoles(appliedFilters.roles);
+        setDraftRoles(appliedFilters.roleIds);
         setDraftStatus(appliedFilters.status);
         setShowFilter(true);
     };
 
-    const toggleDraftUserId = (id: number) => {
-        setDraftUserIds((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
-    };
-
-    const toggleDraftRole = (role: string) => {
-        setDraftRoles((prev) => (prev.includes(role) ? prev.filter((x) => x !== role) : [...prev, role]));
+    const toggleDraftRole = (roleId: number) => {
+        setDraftRoles((prev) => (prev.includes(roleId) ? prev.filter((x) => x !== roleId) : [...prev, roleId]));
     };
 
     const handleApplyFilter = () => {
-        setAppliedFilters({ userIds: draftUserIds, roles: draftRoles, status: draftStatus });
+        setAppliedFilters({ roleIds: draftRoles, status: draftStatus });
         setShowFilter(false);
     };
 
     const handleResetFilter = () => {
-        setDraftUserIds([]);
         setDraftRoles([]);
         setDraftStatus('');
-        setFilterNameSearch('');
         setFilterRoleSearch('');
         setAppliedFilters(emptyAppliedFilters);
     };
 
-    const filteredNameOptions = useMemo(
-        () =>
-            users.filter((u) =>
-                u.fullName.toLowerCase().includes(filterNameSearch.trim().toLowerCase()),
-            ),
-        [users, filterNameSearch],
-    );
-
-    const roleNames = useMemo(() => roles.map((r) => r.name), [roles]);
-
     const filteredRoleOptions = useMemo(
         () =>
-            roleNames.filter((r) =>
-                r.toLowerCase().includes(filterRoleSearch.trim().toLowerCase()),
+            roles.filter((r) =>
+                r.name.toLowerCase().includes(filterRoleSearch.trim().toLowerCase()),
             ),
-        [roleNames, filterRoleSearch],
+        [roles, filterRoleSearch],
     );
-
-    /* ---------- combined filtering + live search ---------- */
-    const filteredUsers = useMemo(() => {
-        let result = users;
-
-        // modal filters
-        if (appliedFilters.userIds.length) {
-            result = result.filter((u) => appliedFilters.userIds.includes(u.id));
-        }
-        if (appliedFilters.roles.length) {
-            result = result.filter((u) => appliedFilters.roles.includes(u.role));
-        }
-        if (appliedFilters.status) {
-            result = result.filter((u) => u.status === appliedFilters.status);
-        }
-
-        // live search across every displayed field, multi-term (space separated), AND across terms
-        if (searchTerm) {
-            const terms = searchTerm.split(/\s+/).filter(Boolean);
-            result = result.filter((u) => {
-                const haystack = [u.fullName, u.role, u.phoneNumber, u.email]
-                    .join(' ')
-                    .toLowerCase();
-                return terms.every((term) => haystack.includes(term));
-            });
-        }
-
-        return result;
-    }, [users, appliedFilters, searchTerm]);
 
 
     /* ---------- render ---------- */
@@ -412,7 +367,7 @@ const UsersPage = () => {
             <PageHeader
                 title="User"
                 onRefresh={loadUsers}
-                action={HeaderUsers(filteredUsers, () => {
+                action={HeaderUsers(users, () => {
                     setAddForm(addEmptyForm);
                     clearAvatar();
                     setShowAdd(true);
@@ -431,8 +386,8 @@ const UsersPage = () => {
                                     placeholder="Search"
                                     aria-controls="DataTables_Table_0"
                                     type="text"
-                                    value={searchTerm}
-                                    onChange={(e) => setSearchTerm(e.target.value)}
+                                    value={searchInput}
+                                    onChange={(e) => setSearchInput(e.target.value)}
                                 />
                                 <Icon name="search" className="position-absolute top-50 end-0 translate-middle-y me-3 text-secondary" />
                             </div>
@@ -447,12 +402,10 @@ const UsersPage = () => {
                             >
                                 <Icon name="funnel" className="me-2" />
                                 Filter
-                                {(appliedFilters.userIds.length > 0 ||
-                                    appliedFilters.roles.length > 0 ||
+                                {(appliedFilters.roleIds.length > 0 ||
                                     appliedFilters.status) && (
                                         <Badge bg="primary" pill className="ms-2">
-                                            {appliedFilters.userIds.length +
-                                                appliedFilters.roles.length +
+                                            {appliedFilters.roleIds.length +
                                                 (appliedFilters.status ? 1 : 0)}
                                         </Badge>
                                     )}
@@ -525,14 +478,14 @@ const UsersPage = () => {
                                         </td>
                                     </tr>
                                 )}
-                                {!loading && filteredUsers.length === 0 && (
+                                {!loading && users.length === 0 && (
                                     <tr>
                                         <td colSpan={columns.filter((c) => c.visible).length} className="text-center py-4">
                                             No users found
                                         </td>
                                     </tr>
                                 )}
-                                {filteredUsers.map((user) => {
+                                {users.map((user) => {
                                     const isAdmin = user.role === 'Admin / Owner';
 
                                     return (
@@ -1089,45 +1042,6 @@ const UsersPage = () => {
                 <Offcanvas.Body className="d-flex flex-column pt-3">
                     <div>
                         <Form.Group className="mb-3">
-                            <Form.Label>Name</Form.Label>
-                            <Dropdown autoClose="outside">
-                                <Dropdown.Toggle
-                                    as={Button}
-                                    variant="white"
-                                    className="d-flex align-items-center justify-content-between w-100"
-                                >
-                                    {draftUserIds.length > 0 ? `${draftUserIds.length} selected` : 'Select'}
-                                </Dropdown.Toggle>
-                                <Dropdown.Menu className="p-3 w-100">
-                                    <h6 className="fs-14 fw-semibold mb-3">Name</h6>
-                                    <InputGroup className="mb-3 position-relative">
-                                        <Form.Control
-                                            type="text"
-                                            placeholder="Search"
-                                            value={filterNameSearch}
-                                            onChange={(e) => setFilterNameSearch(e.target.value)}
-                                        />
-                                        <InputGroup.Text>
-                                            <Icon name="search" className="text-dark" />
-                                        </InputGroup.Text>
-                                    </InputGroup>
-                                    <div className="vstack gap-2">
-                                        {filteredNameOptions.map((u) => (
-                                            <Form.Check
-                                                key={u.id}
-                                                type="checkbox"
-                                                label={u.fullName}
-                                                id={`filter-name-${u.id}`}
-                                                checked={draftUserIds.includes(u.id)}
-                                                onChange={() => toggleDraftUserId(u.id)}
-                                            />
-                                        ))}
-                                    </div>
-                                </Dropdown.Menu>
-                            </Dropdown>
-                        </Form.Group>
-
-                        <Form.Group className="mb-3">
                             <Form.Label>Role</Form.Label>
                             <Dropdown autoClose="outside">
                                 <Dropdown.Toggle
@@ -1153,12 +1067,12 @@ const UsersPage = () => {
                                     <div className="vstack gap-2">
                                         {filteredRoleOptions.map((r) => (
                                             <Form.Check
-                                                key={r}
+                                                key={r.id}
                                                 type="checkbox"
-                                                label={r}
-                                                id={`filter-role-${r}`}
-                                                checked={draftRoles.includes(r)}
-                                                onChange={() => toggleDraftRole(r)}
+                                                label={r.name}
+                                                id={`filter-role-${r.id}`}
+                                                checked={draftRoles.includes(r.id)}
+                                                onChange={() => toggleDraftRole(r.id)}
                                             />
                                         ))}
                                     </div>

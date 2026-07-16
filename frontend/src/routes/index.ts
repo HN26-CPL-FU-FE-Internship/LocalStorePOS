@@ -14,6 +14,7 @@ import Register from '@/pages/Register';
 import Reservation from '@/pages/Reservation';
 import ResetPassword from '@/pages/ResetPassword';
 import Users from '@/pages/Users';
+import Permissions from '@/pages/Permissions';
 
 export const publicRoutes = [
     { path: configs.routes.login, component: Login, layout: AuthenticationLayout },
@@ -36,7 +37,7 @@ export const publicRoutes = [
     { path: configs.routes.invoices, component: Reservation, layout: AppLayout },
     { path: configs.routes.payments, component: Reservation, layout: AppLayout },
     { path: configs.routes.users, component: Users, layout: AppLayout },
-    { path: configs.routes['role-permissions'], component: Reservation, layout: AppLayout },
+    { path: configs.routes['role-permissions'], component: Permissions, layout: AppLayout },
     { path: configs.routes['earning-reports'], component: Reservation, layout: AppLayout },
     { path: configs.routes['order-reports'], component: Reservation, layout: AppLayout },
     { path: configs.routes['sale-reports'], component: Reservation, layout: AppLayout },

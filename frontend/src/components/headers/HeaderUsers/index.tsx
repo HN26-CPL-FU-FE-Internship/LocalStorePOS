@@ -14,7 +14,7 @@ const HeaderUsers = (filteredUsers: UserEntry[], resetForm: () => void, setShowA
             lastName: u.lastName,
             fullName: u.fullName,
             role: u.role,
-            phone: u.phone,
+            phone: u.phoneNumber,
             email: u.email,
             status: u.status,
         }));

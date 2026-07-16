@@ -9,7 +9,8 @@ import com.pos.backend.service.Common.PageResponse;
 
 public interface UserService {
 
-    PageResponse<UserResponse> getAllUsers(int page, int size, String sortBy, String sortDir);
+    PageResponse<UserResponse> getAllUsers(int page, int size, String sortBy, String sortDir,
+            String search, String status, String roleIds);
 
     UserResponse getUserById(Long id);
 

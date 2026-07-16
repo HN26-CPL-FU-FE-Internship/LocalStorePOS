@@ -20,10 +20,13 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 import org.springframework.web.multipart.MultipartFile;
+
+import jakarta.persistence.criteria.Predicate;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -46,13 +49,16 @@ public class UserServiceImpl implements UserService {
     PasswordEncoder passwordEncoder;
 
     @Override
-    public PageResponse<UserResponse> getAllUsers(int page, int size, String sortBy, String sortDir) {
+    public PageResponse<UserResponse> getAllUsers(int page, int size, String sortBy, String sortDir,
+            String search, String status, String roleIds) {
         Sort sort = sortDir.equalsIgnoreCase("desc")
                 ? Sort.by(sortBy).descending()
                 : Sort.by(sortBy).ascending();
 
         Pageable pageable = PageRequest.of(page, size, sort);
-        Page<User> userPage = userRepository.findAll(pageable);
+
+        Specification<User> spec = buildFilterSpec(search, status, roleIds);
+        Page<User> userPage = userRepository.findAll(spec, pageable);
 
         return PageResponse.<UserResponse>builder()
                 .items(userPage.getContent().stream()
@@ -173,6 +179,53 @@ public class UserServiceImpl implements UserService {
     /* ---------------------------------------------------------------- */
     /* Helper methods */
     /* ---------------------------------------------------------------- */
+
+    private Specification<User> buildFilterSpec(String search, String status, String roleIds) {
+        return (root, query, criteriaBuilder) -> {
+            Predicate predicate = criteriaBuilder.conjunction();
+
+            // Multi-term search: split by whitespace, each term must match ANY field,
+            // ALL terms must match for the record to be returned.
+            // e.g. "flo 912" → firstName ILIKE '%flo%' AND phone ILIKE '%912%' → matched
+            if (StringUtils.hasText(search)) {
+                String[] terms = search.trim().split("\\s+");
+                Predicate[] termPredicates = new Predicate[terms.length];
+                for (int i = 0; i < terms.length; i++) {
+                    String pattern = "%" + terms[i].toLowerCase() + "%";
+                    termPredicates[i] = criteriaBuilder.or(
+                            criteriaBuilder.like(criteriaBuilder.lower(root.get("firstName")), pattern),
+                            criteriaBuilder.like(criteriaBuilder.lower(root.get("lastName")), pattern),
+                            criteriaBuilder.like(criteriaBuilder.lower(root.get("email")), pattern),
+                            criteriaBuilder.like(criteriaBuilder.lower(root.get("phoneNumber")), pattern));
+                }
+                predicate = criteriaBuilder.and(predicate, criteriaBuilder.and(termPredicates));
+            }
+
+            // Filter by status
+            if (StringUtils.hasText(status)) {
+                predicate = criteriaBuilder.and(predicate,
+                        criteriaBuilder.equal(root.get("status"),
+                                com.pos.backend.constant.enums.CommonStatus.valueOf(status)));
+            }
+
+            // Filter by role IDs (comma-separated)
+            if (StringUtils.hasText(roleIds)) {
+                String[] ids = roleIds.split(",");
+                jakarta.persistence.criteria.CriteriaBuilder.In<Long> inClause = criteriaBuilder
+                        .in(root.get("role").get("id"));
+                for (String id : ids) {
+                    try {
+                        inClause.value(Long.parseLong(id.trim()));
+                    } catch (NumberFormatException e) {
+                        // Skip invalid IDs
+                    }
+                }
+                predicate = criteriaBuilder.and(predicate, inClause);
+            }
+
+            return predicate;
+        };
+    }
 
     private UserResponse toUserResponse(User user) {
         return UserResponse.builder()
