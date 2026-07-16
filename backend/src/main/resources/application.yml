@@ -30,5 +30,5 @@ spring:
 
 jwt:
   signer-key: "UoMH756YIqZAYeR8AuczJ0RrB0wO/mlwQiGxa+NahqXfUd6+OYxy0CkI4QnCGLWM"
-  access-token-expiration: 1
+  access-token-expiration: 30
   refresh-token-expiration: 10080
