@@ -1,4 +1,5 @@
 import { api } from '@/lib/axios';
+import type { ApiResponse } from '@/types/auth';
 import type { PageResponse, UserCreateRequest, UserEntry, UserQuery, UserUpdateRequest } from '@/types/user';
 
 const USER_ENDPOINT = '/users';
@@ -10,13 +11,13 @@ export const getUsers = async (query?: UserQuery): Promise<PageResponse<UserEntr
         sortBy: query?.sortBy ?? 'createdAt',
         sortDir: query?.sortDir ?? 'desc',
     };
-    const { data } = await api.get<PageResponse<UserEntry>>(USER_ENDPOINT, { params });
-    return data;
+    const { data } = await api.get<ApiResponse<PageResponse<UserEntry>>>(USER_ENDPOINT, { params });
+    return data.result;
 };
 
 export const getUserById = async (id: number): Promise<UserEntry> => {
-    const { data } = await api.get<UserEntry>(`${USER_ENDPOINT}/${id}`);
-    return data;
+    const { data } = await api.get<ApiResponse<UserEntry>>(`${USER_ENDPOINT}/${id}`);
+    return data.result;
 };
 
 export const createUser = async (request: UserCreateRequest, avatarFile?: File): Promise<UserEntry> => {
@@ -26,10 +27,10 @@ export const createUser = async (request: UserCreateRequest, avatarFile?: File):
     if (avatarFile) {
         formData.append('avatar', avatarFile);
     }
-    const { data } = await api.post<UserEntry>(USER_ENDPOINT, formData, {
+    const { data } = await api.post<ApiResponse<UserEntry>>(USER_ENDPOINT, formData, {
         headers: { 'Content-Type': 'multipart/form-data' },
     });
-    return data;
+    return data.result;
 };
 
 export const updateUser = async (
@@ -51,12 +52,12 @@ export const updateUser = async (
         formData.append("avatar", avatarFile);
     }
 
-    const { data } = await api.put<UserEntry>(
+    const { data } = await api.put<ApiResponse<UserEntry>>(
         `${USER_ENDPOINT}/${id}`,
         formData
     );
 
-    return data;
+    return data.result;
 };
 
 export const deleteUser = async (id: number): Promise<void> => {

@@ -23,6 +23,7 @@ import PageHeader from '@/components/common/PageHeader';
 import HeaderUsers from '@/components/headers/HeaderUsers';
 import userImages from '@/assets/img/users';
 import { api } from '@/lib/axios';
+import type { ApiResponse } from '@/types/auth';
 import Pagination from '@/components/common/Pagination';
 import { useLocation } from 'react-router-dom';
 
@@ -187,8 +188,8 @@ const UsersPage = () => {
     /* ---------- fetch roles ---------- */
     const loadRoles = useCallback(async () => {
         try {
-            const { data } = await api.get<RoleOption[]>('/roles');
-            setRoles(data);
+            const { data } = await api.get<ApiResponse<RoleOption[]>>('/roles');
+            setRoles(data.result);
         } catch {
             console.error('Failed to load roles');
         }
