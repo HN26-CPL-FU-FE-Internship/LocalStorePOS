@@ -24,6 +24,10 @@ public enum ErrorCode {
         INVALID_TOKEN(1009, HttpStatus.UNAUTHORIZED, "Invalid token"),
         REFRESH_TOKEN_EXPIRED(1010, HttpStatus.UNAUTHORIZED, "Refresh token is expired"),
         CAN_NOT_CREATE_TOKEN(1011, HttpStatus.BAD_REQUEST, "Can not create token"),
+        ORDER_NOT_FOUND(1018, HttpStatus.NOT_FOUND, "Can not find order"),
+        ORDER_HAS_BEEN_DELIVERED(1019, HttpStatus.BAD_REQUEST, "Order has been delivered"),
+        ORDER_HAS_BEEN_SERVED(1020, HttpStatus.BAD_REQUEST, "Order has been served"),
+        INVALID_ORDER_STATUS_TRANSITION(1021, HttpStatus.BAD_REQUEST, "Invalid order status transition"),
         ;
 
         int code;
