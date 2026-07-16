@@ -2,13 +2,15 @@ import Button from 'react-bootstrap/Button';
 import Icon from '../Icon';
 import HeaderDashboard from '@/components/HeaderDashboard';
 import HeaderOrders from '@/components/HeaderOrders';
+import HeaderKitchen from '@/components/HeaderKitchen';
 
 export interface PageHeaderProps {
     title: string;
     onRefresh?: () => void;
+    onDateRangeChange?: (from: Date, to: Date) => void;
 }
 
-const PageHeader = ({ title, onRefresh }: PageHeaderProps) => {
+const PageHeader = ({ title, onRefresh, onDateRangeChange }: PageHeaderProps) => {
     return (
         <div className="d-flex align-items-center flex-wrap gap-3 mb-4">
             <div className="flex-grow-1">
@@ -26,8 +28,9 @@ const PageHeader = ({ title, onRefresh }: PageHeaderProps) => {
                 </h3>
             </div>
             <div className="gap-2 d-flex align-items-center flex-wrap">
-                {title === 'Dashboard' ? <HeaderDashboard /> : ''}
-                {title === 'Orders' ? <HeaderOrders /> : ''}
+                {title === 'Dashboard' ? <HeaderDashboard onDateRangeChange={onDateRangeChange} /> : ''}
+                {title === 'Orders' ? <HeaderOrders onDateRangeChange={onDateRangeChange} /> : ''}
+                {title === 'Kitchen' ? <HeaderKitchen /> : ''}
             </div>
         </div>
     );
