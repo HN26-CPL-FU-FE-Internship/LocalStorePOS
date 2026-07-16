@@ -21,6 +21,7 @@ import type { PermissionModule } from '@/types';
 interface RoleEntry {
     id: number;
     name: string;
+    isSystemRole: boolean;
 }
 
 interface RolePermissionsResponse {
@@ -80,6 +81,10 @@ const PermissionsPage = () => {
     const [loadingPerms, setLoadingPerms] = useState(false);
     const [saving, setSaving] = useState(false);
     const [feedback, setFeedback] = useState<{ type: 'success' | 'danger'; message: string } | null>(null);
+
+    // Reset to default
+    const [showResetConfirm, setShowResetConfirm] = useState(false);
+    const [resetting, setResetting] = useState(false);
 
     // Add Role modal
     const [showAddRole, setShowAddRole] = useState(false);
@@ -166,9 +171,14 @@ const PermissionsPage = () => {
     }, [activeRoleId]);
 
     /* ---------- active role ---------- */
-    const activeRoleName = useMemo(
-        () => roles.find((r) => r.id === activeRoleId)?.name ?? '',
+    const activeRole = useMemo(
+        () => roles.find((r) => r.id === activeRoleId) ?? null,
         [roles, activeRoleId],
+    );
+
+    const activeRoleName = useMemo(
+        () => activeRole?.name ?? '',
+        [activeRole],
     );
 
     const activePermissions = useMemo(
@@ -197,6 +207,32 @@ const PermissionsPage = () => {
             ...prev,
             [activeRoleId]: baseline.map((m) => ({ ...m })),
         }));
+    };
+
+    /* ---------- reset to default settings ---------- */
+    const handleResetToDefault = async () => {
+        if (activeRoleId == null) return;
+        setResetting(true);
+        try {
+            await api.post(`/roles/${activeRoleId}/permissions/reset`);
+            // Re-fetch permissions from API to get the new default state
+            const { data } = await api.get<ApiResponse<RolePermissionsResponse>>(
+                `/roles/${activeRoleId}/permissions`,
+            );
+            const perms = data.result.permissions;
+            const permsClone = perms.map((m: PermissionModule) => ({ ...m }));
+            setPermissionsMap((prev) => ({ ...prev, [activeRoleId]: permsClone }));
+            setBaselineMap((prev) => ({
+                ...prev,
+                [activeRoleId]: permsClone,
+            }));
+            setShowResetConfirm(false);
+            showFeedback('success', 'Permissions restored to default');
+        } catch {
+            showFeedback('danger', 'Failed to reset permissions');
+        } finally {
+            setResetting(false);
+        }
     };
 
     /* ---------- save changes ---------- */
@@ -439,6 +475,16 @@ const PermissionsPage = () => {
 
                                             {/* Action buttons */}
                                             <div className="d-flex align-items-center justify-content-end flex-wrap row-gap-2 border-top mt-4 pt-4">
+                                                {(activeRole?.isSystemRole ?? false) && (
+                                                    <Button
+                                                        variant="outline-warning"
+                                                        className="me-auto"
+                                                        onClick={() => setShowResetConfirm(true)}
+                                                    >
+                                                        <Icon name="rotate-ccw" className="me-1" />
+                                                        Reset to Default
+                                                    </Button>
+                                                )}
                                                 <Button
                                                     variant="light"
                                                     className="me-2"
@@ -526,6 +572,49 @@ const PermissionsPage = () => {
                         </div>
                     </Modal.Body>
                 </Form>
+            </Modal>
+
+            {/* ---- Reset to Default Confirmation Modal ---- */}
+            <Modal
+                show={showResetConfirm}
+                onHide={() => setShowResetConfirm(false)}
+                centered
+            >
+                <Modal.Header closeButton className="border-0 p-4 pb-3">
+                    <h4 className="modal-title text-warning">Reset Permissions</h4>
+                </Modal.Header>
+                <Modal.Body className="p-4 pt-1">
+                    <p>
+                        This will reset all permissions for{' '}
+                        <strong>{activeRoleName}</strong> to the factory default
+                        values. This action cannot be undone.
+                    </p>
+                    <div className="d-flex align-items-center justify-content-between gap-2 pt-1">
+                        <Button
+                            variant="light"
+                            className="w-100"
+                            onClick={() => setShowResetConfirm(false)}
+                            disabled={resetting}
+                        >
+                            Cancel
+                        </Button>
+                        <Button
+                            variant="warning"
+                            className="w-100"
+                            onClick={handleResetToDefault}
+                            disabled={resetting}
+                        >
+                            {resetting ? (
+                                <>
+                                    <Spinner animation="border" size="sm" className="me-1" />
+                                    Resetting...
+                                </>
+                            ) : (
+                                'Reset'
+                            )}
+                        </Button>
+                    </div>
+                </Modal.Body>
             </Modal>
 
             {/* ---- Delete Role Confirmation Modal ---- */}

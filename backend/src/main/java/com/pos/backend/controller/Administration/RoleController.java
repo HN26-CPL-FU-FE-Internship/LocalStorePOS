@@ -42,6 +42,7 @@ public class RoleController {
                 .map(role -> RoleResponse.builder()
                         .id(role.getId())
                         .name(role.getName())
+                        .isSystemRole(role.isSystemRole())
                         .build())
                 .toList();
         return ApiResponse.<List<RoleResponse>>builder()
@@ -59,6 +60,7 @@ public class RoleController {
                 .result(RoleResponse.builder()
                         .id(role.getId())
                         .name(role.getName())
+                        .isSystemRole(false)
                         .build())
                 .message("Role created successfully")
                 .build();
@@ -92,6 +94,14 @@ public class RoleController {
         permissionService.updateRolePermissions(roleId, request);
         return ApiResponse.<Void>builder()
                 .message("Permissions updated successfully")
+                .build();
+    }
+
+    @PostMapping("/{roleId}/permissions/reset")
+    public ApiResponse<Void> resetRolePermissions(@PathVariable Long roleId) {
+        permissionService.resetRolePermissions(roleId);
+        return ApiResponse.<Void>builder()
+                .message("Permissions reset to default")
                 .build();
     }
 }

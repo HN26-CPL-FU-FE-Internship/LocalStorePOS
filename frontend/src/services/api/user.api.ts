@@ -72,3 +72,35 @@ export const updateUser = async (
 export const deleteUser = async (id: number): Promise<void> => {
     await api.delete(`${USER_ENDPOINT}/${id}`);
 };
+
+/* ---------- User Permission Overrides ---------- */
+
+export interface UserPermissionsResponse {
+    userId: number;
+    userName: string;
+    permissions: PermissionModuleResponse[];
+}
+
+export interface PermissionModuleResponse {
+    module: string;
+    view: boolean;
+    add: boolean;
+    edit: boolean;
+    delete_: boolean;
+    export_: boolean;
+    approvedVoid: boolean;
+}
+
+export const getUserPermissions = async (userId: number): Promise<UserPermissionsResponse> => {
+    const { data } = await api.get<ApiResponse<UserPermissionsResponse>>(
+        `${USER_ENDPOINT}/${userId}/permissions`,
+    );
+    return data.result;
+};
+
+export const updateUserPermissions = async (
+    userId: number,
+    permissions: PermissionModuleResponse[],
+): Promise<void> => {
+    await api.put(`${USER_ENDPOINT}/${userId}/permissions`, { permissions });
+};

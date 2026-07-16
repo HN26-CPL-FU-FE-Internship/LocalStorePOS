@@ -1,9 +1,12 @@
 package com.pos.backend.controller.Administration;
 
+import com.pos.backend.dto.request.Administration.UserPermissionsUpdateRequest;
 import com.pos.backend.dto.request.User.UserCreationRequest;
 import com.pos.backend.dto.request.User.UserUpdateRequest;
 import com.pos.backend.dto.response.ApiResponse;
+import com.pos.backend.dto.response.Administration.UserPermissionsResponse;
 import com.pos.backend.dto.response.User.UserResponse;
+import com.pos.backend.service.Administration.UserPermissionService;
 import com.pos.backend.service.Administration.UserServices.UserServiceImpl;
 import com.pos.backend.service.Common.PageResponse;
 
@@ -20,6 +23,7 @@ import org.springframework.web.multipart.MultipartFile;
 public class UserController {
 
     private final UserServiceImpl userService;
+    private final UserPermissionService userPermissionService;
 
     @GetMapping
     public ApiResponse<PageResponse<UserResponse>> getUsers(
@@ -39,6 +43,23 @@ public class UserController {
     public ApiResponse<UserResponse> getUserById(@PathVariable Long id) {
         return ApiResponse.<UserResponse>builder()
                 .result(userService.getUserById(id))
+                .build();
+    }
+
+    @GetMapping("/{id}/permissions")
+    public ApiResponse<UserPermissionsResponse> getUserPermissions(@PathVariable Long id) {
+        return ApiResponse.<UserPermissionsResponse>builder()
+                .result(userPermissionService.getUserPermissions(id))
+                .build();
+    }
+
+    @PutMapping("/{id}/permissions")
+    public ApiResponse<Void> updateUserPermissions(
+            @PathVariable Long id,
+            @Valid @RequestBody UserPermissionsUpdateRequest request) {
+        userPermissionService.updateUserPermissions(id, request);
+        return ApiResponse.<Void>builder()
+                .message("User permissions updated successfully")
                 .build();
     }
 
