@@ -1,9 +1,9 @@
 import { Button } from 'react-bootstrap';
 import Icon from '../common/Icon';
 import ExportButton from '../common/ExportButton';
-import DateRangeLabel from '../common/DateRangeLabel';
+import DateRangePicker from '@/components/common/DateRangePicker';
 
-function HeaderDashboard() {
+function HeaderDashboard({ onDateRangeChange }: { onDateRangeChange?: (from: Date, to: Date) => void }) {
     const handleSyncData = () => {};
 
     return (
@@ -18,7 +18,7 @@ function HeaderDashboard() {
             {/* The original date range picker relies on the daterangepicker jQuery
               plugin (assets/plugins/daterangepicker) — see limitations note below.
               This preserves the same visual placeholder. */}
-            <DateRangeLabel />
+            <DateRangePicker onDateRangeChange={onDateRangeChange} />
         </>
     );
 }

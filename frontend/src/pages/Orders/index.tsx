@@ -12,7 +12,7 @@ import OrderModal from './components/OrderModal';
 import Loading from '@/components/common/Loading';
 import TopProgressBar from '@/components/common/TopProgressBar';
 import PayOrderModal from './components/PayOrderModal';
-import { useUpdateStatus } from '@/hooks/order/useUpdateStatus';
+import { useUpdateStatus } from '@/hooks/order/';
 
 const Orders = () => {
     const [showOrderModal, setShowOrderModal] = useState(false);
