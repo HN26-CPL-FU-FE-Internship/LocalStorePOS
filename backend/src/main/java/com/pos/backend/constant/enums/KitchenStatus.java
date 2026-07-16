@@ -2,7 +2,7 @@ package com.pos.backend.constant.enums;
 
 public enum KitchenStatus {
     new_order,
-    preparing,
+    in_kitchen,
     delayed,
     completed,
     cancelled

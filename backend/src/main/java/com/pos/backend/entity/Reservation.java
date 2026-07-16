@@ -39,9 +39,9 @@ public class Reservation extends BaseEntity {
     @Column(name = "reservation_time", nullable = false)
     private LocalDateTime reservationTime;
 
-    @Builder.Default
+    
     @Column(nullable = false)
-    private Integer guests = 1;
+    private Integer guests;
 
     @Builder.Default
     @Enumerated(EnumType.STRING)

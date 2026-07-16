@@ -2,6 +2,7 @@ import configs from '@/configs';
 import AppLayout from '@/layouts/AppLayout';
 import AuthenticationLayout from '@/layouts/AuthenticationLayout';
 import POSLayout from '@/layouts/POSLayout';
+import CategoriesPage from '@/pages/Categories';
 import DashboardIndex from '@/pages/Dashboard';
 import EmailVerify from '@/pages/EmailVerify';
 import ForgotPassword from '@/pages/ForgotPassword';
@@ -28,7 +29,7 @@ export const publicRoutes = [
     { path: configs.routes.orders, component: Orders, layout: AppLayout },
     { path: configs.routes.kitchen, component: Kitchen, layout: AppLayout },
     { path: configs.routes.reservation, component: Reservation, layout: AppLayout },
-    { path: configs.routes.categories, component: Reservation, layout: AppLayout },
+    { path: configs.routes.categories, component: CategoriesPage, layout: AppLayout },
     { path: configs.routes.items, component: Reservation, layout: AppLayout },
     { path: configs.routes.addons, component: Reservation, layout: AppLayout },
     { path: configs.routes.coupons, component: Reservation, layout: AppLayout },
