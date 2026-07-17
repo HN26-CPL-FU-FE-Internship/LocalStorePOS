@@ -8,6 +8,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import com.pos.backend.constant.ErrorCode;
+import com.pos.backend.constant.enums.CommonStatus;
 import com.pos.backend.dto.request.Authentication.LoginRequest;
 import com.pos.backend.dto.response.Administration.PermissionModuleResponse;
 import com.pos.backend.dto.response.Authentication.LoginResponse;
@@ -54,6 +55,10 @@ public class LoginService {
             throw new AppException(ErrorCode.INVALID_CREDENTIALS);
         }
 
+        if (user.getStatus() == CommonStatus.inactive) {
+            throw new AppException(ErrorCode.USER_INACTIVE);
+        }
+
         String accessToken = jwtService.generateToken(user);
         String refreshToken = GenerateRefreshTokenUtil.generateRefreshToken();
 
@@ -76,6 +81,10 @@ public class LoginService {
         }
 
         User user = session.getUser();
+
+        if (user.getStatus() == CommonStatus.inactive) {
+            throw new AppException(ErrorCode.USER_INACTIVE);
+        }
 
         String newAccessToken = jwtService.generateToken(user);
         String newRefreshToken = GenerateRefreshTokenUtil.generateRefreshToken();
@@ -100,6 +109,7 @@ public class LoginService {
                 .phoneNumber(user.getPhoneNumber())
                 .role(user.getRole().getName())
                 .avatarPath(user.getAvatarPath())
+                .status(user.getStatus().name())
                 .permissions(permissions)
                 .build();
 

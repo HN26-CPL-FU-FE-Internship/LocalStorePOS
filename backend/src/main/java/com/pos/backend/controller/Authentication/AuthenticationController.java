@@ -89,6 +89,7 @@ public class AuthenticationController {
                 .phoneNumber(user.getPhoneNumber())
                 .role(user.getRole().getName())
                 .avatarPath(user.getAvatarPath())
+                .status(user.getStatus().name())
                 .permissions(permissions)
                 .build();
 

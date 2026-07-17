@@ -36,6 +36,7 @@ public enum ErrorCode {
         INVALID_IMAGE_FILE(1018, HttpStatus.BAD_REQUEST, "Invalid image file"),
         IMAGE_TOO_LARGE(1019, HttpStatus.BAD_REQUEST, "Image must not exceed 5 MB"),
         FILE_UPLOAD_FAILED(1020, HttpStatus.INTERNAL_SERVER_ERROR, "Failed to upload file"),
+        USER_INACTIVE(1021, HttpStatus.FORBIDDEN, "Your account has been deactivated. Please contact administrator."),
         ;
 
         int code;

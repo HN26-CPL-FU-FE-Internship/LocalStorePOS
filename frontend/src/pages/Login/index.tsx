@@ -72,8 +72,15 @@ function Login() {
                 }
 
             },
-            onError: () => {
-                setError('Invalid email or password!');
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            onError: (error: any) => {
+                const backendCode = error?.response?.data?.code;
+                const backendMessage = error?.response?.data?.message;
+                if (backendCode === 1021) {
+                    setError(backendMessage || 'Your account has been deactivated. Please contact administrator.');
+                } else {
+                    setError('Invalid email or password!');
+                }
             },
         });
     };

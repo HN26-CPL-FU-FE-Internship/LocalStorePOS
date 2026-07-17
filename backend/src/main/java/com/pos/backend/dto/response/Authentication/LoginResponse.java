@@ -38,6 +38,7 @@ public class LoginResponse {
         String phoneNumber;
         String role;
         String avatarPath;
+        String status;
         List<PermissionModuleResponse> permissions;
     }
 }

@@ -16,6 +16,7 @@ export interface UserInfo {
     phoneNumber: string;
     role: string;
     avatarPath: string | null;
+    status: string;
     permissions: PermissionModule[];
 }
 
