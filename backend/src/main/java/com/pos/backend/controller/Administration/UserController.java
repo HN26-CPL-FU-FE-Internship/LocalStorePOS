@@ -14,6 +14,7 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 
 import org.springframework.http.MediaType;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -26,6 +27,7 @@ public class UserController {
         private final UserPermissionService userPermissionService;
 
         @GetMapping
+        @PreAuthorize("@perm.hasPermission(authentication, 'Manage Staffs', 'view')")
         public ApiResponse<PageResponse<UserResponse>> getUsers(
                         @RequestParam(defaultValue = "0") int page,
                         @RequestParam(defaultValue = "10") int size,
@@ -40,6 +42,7 @@ public class UserController {
         }
 
         @GetMapping("/{id}")
+        @PreAuthorize("@perm.hasPermission(authentication, 'Manage Staffs', 'view')")
         public ApiResponse<UserResponse> getUserById(@PathVariable Long id) {
                 return ApiResponse.<UserResponse>builder()
                                 .result(userService.getUserById(id))
@@ -47,6 +50,7 @@ public class UserController {
         }
 
         @GetMapping("/{id}/permissions")
+        @PreAuthorize("@perm.hasPermission(authentication, 'Manage Staffs', 'view')")
         public ApiResponse<UserPermissionsResponse> getUserPermissions(@PathVariable Long id) {
                 return ApiResponse.<UserPermissionsResponse>builder()
                                 .result(userPermissionService.getUserPermissions(id))
@@ -54,6 +58,7 @@ public class UserController {
         }
 
         @PutMapping("/{id}/permissions")
+        @PreAuthorize("@perm.hasPermission(authentication, 'Manage Staffs', 'edit')")
         public ApiResponse<Void> updateUserPermissions(
                         @PathVariable Long id,
                         @Valid @RequestBody UserPermissionsUpdateRequest request) {
@@ -64,6 +69,7 @@ public class UserController {
         }
 
         @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+        @PreAuthorize("@perm.hasPermission(authentication, 'Manage Staffs', 'add')")
         public ApiResponse<UserResponse> createUser(
                         @RequestPart("user") @Valid UserCreationRequest request,
                         @RequestPart(value = "avatar", required = false) MultipartFile avatarFile) {
@@ -73,6 +79,7 @@ public class UserController {
         }
 
         @PutMapping(value = "/{id}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+        @PreAuthorize("@perm.hasPermission(authentication, 'Manage Staffs', 'edit')")
         public ApiResponse<UserResponse> updateUser(
                         @PathVariable Long id,
                         @RequestPart("user") @Valid UserUpdateRequest request,
@@ -83,6 +90,7 @@ public class UserController {
         }
 
         @DeleteMapping("/{id}")
+        @PreAuthorize("@perm.hasPermission(authentication, 'Manage Staffs', 'delete')")
         public ApiResponse<Void> deleteUser(@PathVariable Long id) {
                 userService.deleteUser(id);
                 return ApiResponse.<Void>builder()

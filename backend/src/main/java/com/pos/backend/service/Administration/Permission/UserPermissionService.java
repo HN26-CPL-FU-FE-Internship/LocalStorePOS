@@ -44,6 +44,20 @@ public class UserPermissionService {
                 User user = userRepository.findById(userId)
                                 .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
 
+                List<PermissionModuleResponse> permissions = getEffectivePermissions(user);
+
+                return UserPermissionsResponse.builder()
+                                .userId(user.getId())
+                                .userName(user.getFirstName() + " " + user.getLastName())
+                                .permissions(permissions)
+                                .build();
+        }
+
+        /**
+         * Get effective permission list for a User entity.
+         * Used internally by LoginService and AuthController.
+         */
+        public List<PermissionModuleResponse> getEffectivePermissions(User user) {
                 List<PermissionModule> allModules = moduleRepository.findAll();
 
                 // Get role-level permissions
@@ -56,7 +70,7 @@ public class UserPermissionService {
                 Map<Long, UserPermissionOverride> overrideMap = overrides.stream()
                                 .collect(Collectors.toMap(ov -> ov.getModule().getId(), Function.identity()));
 
-                List<PermissionModuleResponse> permissions = allModules.stream()
+                return allModules.stream()
                                 .map(module -> {
                                         RolePermission rp = rolePermMap.get(module.getId());
                                         UserPermissionOverride ov = overrideMap.get(module.getId());
@@ -86,12 +100,6 @@ public class UserPermissionService {
                                                         .build();
                                 })
                                 .collect(Collectors.toList());
-
-                return UserPermissionsResponse.builder()
-                                .userId(user.getId())
-                                .userName(user.getFirstName() + " " + user.getLastName())
-                                .permissions(permissions)
-                                .build();
         }
 
         /**

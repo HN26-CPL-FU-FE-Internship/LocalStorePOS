@@ -38,16 +38,23 @@ api.interceptors.request.use(
     (error) => Promise.reject(error),
 );
 
-// ── Response interceptor: auto-refresh on 401 ──────────────────────────
+// ── Response interceptor: auto-refresh on 401, redirect on 403 ────────
 api.interceptors.response.use(
     (response) => {
         return response;
     },
     async (error) => {
         const originalRequest = error.config;
+        const status = error.response?.status;
+
+        // 403 Forbidden — user lacks permission for this endpoint
+        if (status === 403) {
+            // Let the error propagate so components can handle it if needed
+            return Promise.reject(error);
+        }
 
         // Not a 401, or already retried → reject immediately
-        if (error.response?.status !== 401 || originalRequest._retry) {
+        if (status !== 401 || originalRequest._retry) {
             return Promise.reject(error);
         }
 
@@ -59,6 +66,7 @@ api.interceptors.response.use(
         const refreshToken = tokenUtils.getRefreshToken();
         if (!refreshToken) {
             tokenUtils.clearTokens();
+            window.location.href = '/restaurant-pos/login';
             return Promise.reject(error);
         }
 

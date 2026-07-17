@@ -9,12 +9,14 @@ import org.springframework.stereotype.Service;
 
 import com.pos.backend.constant.ErrorCode;
 import com.pos.backend.dto.request.Authentication.LoginRequest;
+import com.pos.backend.dto.response.Administration.PermissionModuleResponse;
 import com.pos.backend.dto.response.Authentication.LoginResponse;
 import com.pos.backend.entity.User;
 import com.pos.backend.entity.UserSession;
 import com.pos.backend.exception.AppException;
 import com.pos.backend.repository.UserRepository;
 import com.pos.backend.repository.UserSessionRepository;
+import com.pos.backend.service.Administration.Permission.UserPermissionService;
 import com.pos.backend.service.Common.UserSessionService;
 import com.pos.backend.service.JWT.JwtService;
 import com.pos.backend.util.GenerateRefreshTokenUtil;
@@ -33,6 +35,7 @@ public class LoginService {
     final UserSessionService userSessionService;
     final JwtService jwtService;
     final PasswordEncoder passwordEncoder;
+    final UserPermissionService userPermissionService;
 
     @Value("${jwt.signer-key}")
     String signerKey;
@@ -42,7 +45,7 @@ public class LoginService {
 
     public LoginResponse login(LoginRequest request) {
 
-        User user = userRepository.findByEmail(request.getEmail())
+        User user = userRepository.findByEmailWithRole(request.getEmail())
                 .orElseThrow(() -> new AppException(ErrorCode.INVALID_CREDENTIALS));
 
         boolean isValid = passwordEncoder.matches(request.getPassword(), user.getPasswordHash());
@@ -57,10 +60,7 @@ public class LoginService {
         UserSession session = buildUserSession(refreshToken, user);
         userSessionRepository.save(session);
 
-        return LoginResponse.builder()
-                .accessToken(accessToken)
-                .refreshToken(refreshToken)
-                .build();
+        return buildLoginResponse(accessToken, refreshToken, user);
     }
 
     public LoginResponse refreshToken(String refreshToken) {
@@ -86,9 +86,27 @@ public class LoginService {
         userSessionRepository.save(session);
         userSessionRepository.cleanup(Instant.now());
 
+        return buildLoginResponse(newAccessToken, newRefreshToken, user);
+    }
+
+    private LoginResponse buildLoginResponse(String accessToken, String refreshToken, User user) {
+        java.util.List<PermissionModuleResponse> permissions = userPermissionService.getEffectivePermissions(user);
+
+        LoginResponse.UserInfo userInfo = LoginResponse.UserInfo.builder()
+                .id(user.getId())
+                .firstName(user.getFirstName())
+                .lastName(user.getLastName())
+                .email(user.getEmail())
+                .phoneNumber(user.getPhoneNumber())
+                .role(user.getRole().getName())
+                .avatarPath(user.getAvatarPath())
+                .permissions(permissions)
+                .build();
+
         return LoginResponse.builder()
-                .accessToken(newAccessToken)
-                .refreshToken(newRefreshToken)
+                .accessToken(accessToken)
+                .refreshToken(refreshToken)
+                .user(userInfo)
                 .build();
     }
 

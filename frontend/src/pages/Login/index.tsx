@@ -10,9 +10,11 @@ import { tokenUtils } from '@/utils/token';
 import { useLogin } from '@/hooks/auth';
 import { loginSchema, type LoginForm } from './login.schema';
 import { useForm } from 'react-hook-form';
+import useAuth from '@/hooks/useAuth';
 
 function Login() {
     const navigate = useNavigate();
+    const { setUser } = useAuth();
 
     const [isHide, setIsHide] = useState(true);
     const [inputType, setInputType] = useState('password');
@@ -34,8 +36,41 @@ function Login() {
     const onSubmit = (data: LoginForm) => {
         loginMutation.mutate(data, {
             onSuccess: (response) => {
-                tokenUtils.saveTokens(response.data.result);
-                navigate(routes.dashboard);
+                const result = response.data.result;
+                tokenUtils.saveTokens({ accessToken: result.accessToken, refreshToken: result.refreshToken });
+                if (result.user) {
+                    setUser(result.user);
+                }
+                switch (result.user?.role) {
+                    case "Admin / Owner":
+                        navigate(routes.dashboard);
+                        break;
+                    case "Supervisor":
+                        navigate(routes.dashboard);
+                        break;
+                    case "Cashier":
+                        navigate(routes.pos);
+                        break;
+                    case "Chef":
+                        navigate(routes.kitchen);
+                        break;
+                    case "Waiter":
+                        navigate(routes.pos);
+                        break;
+                    case "Delivery":
+                        navigate(routes.orders);
+                        break;
+                    case "Accountant":
+                        navigate(routes['earning-reports']);
+                        break;
+                    case "System Operator":
+                        navigate(routes['store-settings']);
+                        break;
+                    default:
+                        navigate(routes.dashboard);
+                        break;
+                }
+
             },
             onError: () => {
                 setError('Invalid email or password!');

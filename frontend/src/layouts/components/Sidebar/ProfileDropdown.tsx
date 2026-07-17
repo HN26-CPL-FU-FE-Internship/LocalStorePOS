@@ -2,61 +2,60 @@ import Dropdown from 'react-bootstrap/Dropdown';
 import Badge from 'react-bootstrap/Badge';
 import Button from 'react-bootstrap/Button';
 import Icon from '@/components/common/Icon';
-import type { ProfileMenuItem, UserProfile } from '@/types';
-import { Link, useNavigate } from 'react-router-dom';
-import { tokenUtils } from '@/utils/token';
-import configs from '@/configs';
-import { useLogout } from '@/hooks/auth';
+import type { ProfileMenuItem } from '@/types';
+import { Link } from 'react-router-dom';
+import useAuth from '@/hooks/useAuth';
+import { ROUTE_PERMISSION_MAP } from '@/types/permission';
 
 export interface ProfileDropdownProps {
-    user: UserProfile;
     menuItems: ProfileMenuItem[];
     logoutHref: string;
 }
 
-const ProfileDropdown = ({ user, menuItems }: ProfileDropdownProps) => {
-    const navigate = useNavigate();
+const ProfileDropdown = ({ menuItems }: ProfileDropdownProps) => {
+    const { user, logout, canView } = useAuth();
 
-    const logoutMutation = useLogout();
-    const handleLogout = async () => {
-        const refreshToken = tokenUtils.getRefreshToken();
-
-        logoutMutation.mutate(refreshToken!, {
-            onSettled: () => {
-                tokenUtils.clearTokens();
-                navigate(configs.routes.login, {
-                    replace: true,
-                });
-            }
-        });
-    };
+    // Filter menu items based on permissions
+    const visibleMenuItems = menuItems.filter((item) => {
+        const module = ROUTE_PERMISSION_MAP[item.href];
+        return !module || canView(module);
+    });
 
     return (
         <Dropdown drop="end" className="dropdown">
             <Dropdown.Toggle as="a" href="#" bsPrefix="avatar avatar-sm profile-toggle">
-                <img src={user.avatarUrl} alt="user" className="img-fluid rounded-circle" />
+                {user?.avatarPath ? (
+                    <img src={user.avatarPath} alt="user" className="img-fluid rounded-circle" />
+                ) : (
+                    <div className="avatar-letter rounded-circle d-flex align-items-center justify-content-center bg-primary text-white">
+                        {user?.firstName?.charAt(0)?.toUpperCase()}
+                    </div>
+                )}
             </Dropdown.Toggle>
             <Dropdown.Menu className="p-0 dropdown-menu-end dropdown-menu-md">
                 <div className="dropdown-header border-bottom p-3">
                     <div className="d-flex align-items-center justify-content-between gap-3">
                         <div className="d-flex align-items-center">
                             <div className="avatar avatar-lg avatar-rounded border border-success">
-                                <img src={user.avatarUrl} className="rounded-circle" alt="user" />
+                                {user?.avatarPath ? (
+                                    <img src={user.avatarPath} className="rounded-circle" alt="user" />
+                                ) : (
+                                    <div className="avatar-letter rounded-circle d-flex align-items-center justify-content-center bg-primary text-white fs-5">
+                                        {user?.firstName?.charAt(0)?.toUpperCase()}
+                                    </div>
+                                )}
                             </div>
                             <div className="ms-2">
-                                <h5 className="mb-1 fs-14 fw-semibold">{user.name}</h5>
-                                <span className="d-block fs-13">{user.role}</span>
+                                <h5 className="mb-1 fs-14 fw-semibold">
+                                    {user?.firstName} {user?.lastName}
+                                </h5>
+                                <span className="d-block fs-13">{user?.role}</span>
                             </div>
                         </div>
-                        {user.plan && (
-                            <Badge bg="" className="badge-soft-success">
-                                {user.plan}
-                            </Badge>
-                        )}
                     </div>
                 </div>
                 <div className="p-3">
-                    {menuItems.map((item) => (
+                    {visibleMenuItems.map((item) => (
                         <Dropdown.Item as={Link} key={item.id} to={item.href} className="d-flex align-items-center">
                             <Icon name={item.icon} className="me-2 fs-16" />
                             <span>{item.label}</span>
@@ -64,7 +63,7 @@ const ProfileDropdown = ({ user, menuItems }: ProfileDropdownProps) => {
                     ))}
                 </div>
                 <div className="p-3 border-top">
-                    <Button variant="white" size="sm" className="w-100" onClick={handleLogout}>
+                    <Button variant="white" size="sm" className="w-100" onClick={logout}>
                         <Icon name="log-in" className="me-1" />
                         Logout
                     </Button>
