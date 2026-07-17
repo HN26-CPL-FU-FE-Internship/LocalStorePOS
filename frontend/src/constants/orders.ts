@@ -1,4 +1,4 @@
-import type { OrderQuery } from '@/types';
+import type { OrderQuery, Time } from '@/types';
 
 export const statsIcons = ['bookmark-check', 'circle-arrow-out-down-right', 'loader', 'bike', 'send', 'user'];
 
@@ -28,6 +28,7 @@ export const paymentTypes = [
 export const statuses = ['pending', 'preparing', 'served', 'delivered', 'completed', 'cancelled'];
 export const orderKeys = {
     all: ['order'] as const,
+    stats: (query: Time) => ['order', 'stats', query],
     summary: () => ['order', 'summary'] as const,
     summaryList: (query: OrderQuery) => ['order', 'summary', query] as const,
 };

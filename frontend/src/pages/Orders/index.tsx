@@ -99,7 +99,7 @@ const Orders = () => {
         <>
             <TopProgressBar active={isBackgroundFetching} />
             {/* <PageHeader title="Orders" onDateRangeChange={handleDateRangeChange} /> */}
-            <PageHeader title="Orders" action={HeaderOrders({ onDateRangeChange: handleDateRangeChange })} />
+            <PageHeader title="Orders" action={<HeaderOrders onDateRangeChange={handleDateRangeChange} />} />
 
             <div style={{ position: 'relative' }}>
                 <div

@@ -36,7 +36,7 @@ import HeaderDashboard from '@/components/headers/HeaderDashboard';
 const DashboardPage = ({ onDateRangeChange }: { onDateRangeChange?: (from: Date, to: Date) => void }) => {
     return (
         <>
-            <PageHeader title="Dashboard" action={HeaderDashboard({ onDateRangeChange })} />
+            <PageHeader title="Dashboard" action={<HeaderDashboard onDateRangeChange={onDateRangeChange} />} />
 
             <StatsRow stats={dashboardStats} />
 
