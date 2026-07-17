@@ -1,5 +1,5 @@
 import DateRangePicker from '@/components/common/DateRangePicker';
-import AddNewButton from '../common/AddNewButton';
+import AddNewButton from '@/components/common/AddNewButton';
 import { useNavigate } from 'react-router-dom';
 import configs from '@/configs';
 

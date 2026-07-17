@@ -1,6 +1,6 @@
 import { Button } from 'react-bootstrap';
-import Icon from '../common/Icon';
-import ExportButton from '../common/ExportButton';
+import Icon from '@/components/common/Icon';
+import ExportButton from '@/components/common/ExportButton';
 import DateRangePicker from '@/components/common/DateRangePicker';
 
 function HeaderDashboard({ onDateRangeChange }: { onDateRangeChange?: (from: Date, to: Date) => void }) {
@@ -13,7 +13,7 @@ function HeaderDashboard({ onDateRangeChange }: { onDateRangeChange?: (from: Dat
                 Sync Data
             </Button>
 
-            <ExportButton />
+            <ExportButton handleExportPdf={() => {}} handleExportExcel={() => {}} />
 
             {/* The original date range picker relies on the daterangepicker jQuery
               plugin (assets/plugins/daterangepicker) — see limitations note below.

@@ -13,6 +13,7 @@ import Loading from '@/components/common/Loading';
 import TopProgressBar from '@/components/common/TopProgressBar';
 import PayOrderModal from './components/PayOrderModal';
 import { useUpdateStatus } from '@/hooks/order/';
+import HeaderOrders from '@/components/headers/HeaderOrders';
 
 const Orders = () => {
     const [showOrderModal, setShowOrderModal] = useState(false);
@@ -97,7 +98,8 @@ const Orders = () => {
     return (
         <>
             <TopProgressBar active={isBackgroundFetching} />
-            <PageHeader title="Orders" onDateRangeChange={handleDateRangeChange} />
+            {/* <PageHeader title="Orders" onDateRangeChange={handleDateRangeChange} /> */}
+            <PageHeader title="Orders" action={HeaderOrders({ onDateRangeChange: handleDateRangeChange })} />
 
             <div style={{ position: 'relative' }}>
                 <div

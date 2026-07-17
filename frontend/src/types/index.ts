@@ -207,3 +207,4 @@ export type { PageResponse, Pageable, Sort } from './pageAble';
 export type { ThemeType } from './theme';
 export type { OrderQuery, OrderStat, OrderSummary, ModalActionProps, OrderUpdateStatus } from './order';
 export type { Time } from './time';
+export type { PermissionModule, UserEntry, Status } from './user';

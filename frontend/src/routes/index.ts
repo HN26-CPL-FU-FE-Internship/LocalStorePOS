@@ -2,6 +2,7 @@ import configs from '@/configs';
 import AppLayout from '@/layouts/AppLayout';
 import AuthenticationLayout from '@/layouts/AuthenticationLayout';
 import POSLayout from '@/layouts/POSLayout';
+import CategoriesPage from '@/pages/Categories';
 import DashboardIndex from '@/pages/Dashboard';
 import EmailVerify from '@/pages/EmailVerify';
 import ForgotPassword from '@/pages/ForgotPassword';
@@ -13,6 +14,8 @@ import POS from '@/pages/POS';
 import Register from '@/pages/Register';
 import Reservation from '@/pages/Reservation';
 import ResetPassword from '@/pages/ResetPassword';
+import Users from '@/pages/Users';
+import Permissions from '@/pages/Permissions';
 
 export const publicRoutes = [
     { path: configs.routes.login, component: Login, layout: AuthenticationLayout },
@@ -26,7 +29,7 @@ export const publicRoutes = [
     { path: configs.routes.orders, component: Orders, layout: AppLayout },
     { path: configs.routes.kitchen, component: Kitchen, layout: AppLayout },
     { path: configs.routes.reservation, component: Reservation, layout: AppLayout },
-    { path: configs.routes.categories, component: Reservation, layout: AppLayout },
+    { path: configs.routes.categories, component: CategoriesPage, layout: AppLayout },
     { path: configs.routes.items, component: Reservation, layout: AppLayout },
     { path: configs.routes.addons, component: Reservation, layout: AppLayout },
     { path: configs.routes.coupons, component: Reservation, layout: AppLayout },
@@ -34,8 +37,8 @@ export const publicRoutes = [
     { path: configs.routes.customers, component: Reservation, layout: AppLayout },
     { path: configs.routes.invoices, component: Reservation, layout: AppLayout },
     { path: configs.routes.payments, component: Reservation, layout: AppLayout },
-    { path: configs.routes.users, component: Reservation, layout: AppLayout },
-    { path: configs.routes['role-permissions'], component: Reservation, layout: AppLayout },
+    { path: configs.routes.users, component: Users, layout: AppLayout },
+    { path: configs.routes['role-permissions'], component: Permissions, layout: AppLayout },
     { path: configs.routes['earning-reports'], component: Reservation, layout: AppLayout },
     { path: configs.routes['order-reports'], component: Reservation, layout: AppLayout },
     { path: configs.routes['sale-reports'], component: Reservation, layout: AppLayout },

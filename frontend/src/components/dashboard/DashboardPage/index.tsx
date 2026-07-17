@@ -26,6 +26,7 @@ import {
     availableTables,
     activityLog,
 } from '../../../data/dashboardData';
+import HeaderDashboard from '@/components/headers/HeaderDashboard';
 
 /**
  * Direct port of index.html's <div class="content pb-0"> body.
@@ -35,7 +36,7 @@ import {
 const DashboardPage = ({ onDateRangeChange }: { onDateRangeChange?: (from: Date, to: Date) => void }) => {
     return (
         <>
-            <PageHeader title="Dashboard" onDateRangeChange={onDateRangeChange} />
+            <PageHeader title="Dashboard" action={HeaderDashboard({ onDateRangeChange })} />
 
             <StatsRow stats={dashboardStats} />
 
