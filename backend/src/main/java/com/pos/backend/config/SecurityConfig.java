@@ -37,7 +37,7 @@ import lombok.experimental.FieldDefaults;
 @FieldDefaults(level = AccessLevel.PRIVATE)
 public class SecurityConfig {
 
-        final String[] publicEndPoints = { "/api/auth/**" };
+        final String[] publicEndPoints = { "/api/auth/login", "/api/auth/register", "/api/auth/refresh" };
 
         final JwtAuthenticationEntryPoint jwtAuthenticationEntryPoint;
         final JwtAccessDeniedHandler jwtAccessDeniedHandler;

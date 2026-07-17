@@ -38,6 +38,7 @@ public enum ErrorCode {
         ORDER_HAS_BEEN_DELIVERED(1022, HttpStatus.BAD_REQUEST, "Order has been delivered"),
         ORDER_HAS_BEEN_SERVED(1023, HttpStatus.BAD_REQUEST, "Order has been served"),
         INVALID_ORDER_STATUS_TRANSITION(1024, HttpStatus.BAD_REQUEST, "Invalid order status transition"),
+        USER_INACTIVE(1025, HttpStatus.FORBIDDEN, "Your account has been deactivated. Please contact administrator."),
         ;
 
         int code;

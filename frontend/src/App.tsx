@@ -4,6 +4,8 @@ import { publicRoutes } from './routes';
 import useContextData from './hooks/useContextData';
 import type { ThemeContextType } from './provider/ThemeProvider/ThemeContext';
 import ThemeContext from './provider/ThemeProvider/ThemeContext';
+import AuthGuard from './components/common/AuthGuard';
+import { PUBLIC_ROUTES } from './types/permission';
 import { useEffect } from 'react';
 
 function App() {
@@ -30,15 +32,18 @@ function App() {
                         }
 
                         const Page = route.component;
+                        const isPublic = PUBLIC_ROUTES.includes(route.path);
 
                         return (
                             <Route
                                 key={index}
                                 path={route.path}
                                 element={
-                                    <Layout>
-                                        <Page />
-                                    </Layout>
+                                    <AuthGuard publicRoute={isPublic}>
+                                        <Layout>
+                                            <Page />
+                                        </Layout>
+                                    </AuthGuard>
                                 }
                             />
                         );

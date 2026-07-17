@@ -15,6 +15,7 @@ import com.pos.backend.service.Administration.Permission.PermissionService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -36,6 +37,7 @@ public class RoleController {
         private final PermissionService permissionService;
 
         @GetMapping
+        @PreAuthorize("@perm.hasPermission(authentication, 'Manage Staffs', 'view')")
         public ApiResponse<List<RoleResponse>> getRoles() {
                 List<RoleResponse> roles = roleRepository.findAll()
                                 .stream()
@@ -51,6 +53,7 @@ public class RoleController {
         }
 
         @PostMapping
+        @PreAuthorize("@perm.hasPermission(authentication, 'Manage Staffs', 'add')")
         public ApiResponse<RoleResponse> createRole(@Valid @RequestBody RoleCreateRequest request) {
                 Role role = roleRepository.save(Role.builder()
                                 .name(request.getName())
@@ -67,6 +70,7 @@ public class RoleController {
         }
 
         @DeleteMapping("/{id}")
+        @PreAuthorize("@perm.hasPermission(authentication, 'Manage Staffs', 'delete')")
         public ApiResponse<Void> deleteRole(@PathVariable Long id) {
                 Role role = roleRepository.findById(id)
                                 .orElseThrow(() -> new AppException(ErrorCode.ROLE_NOT_FOUND));
@@ -81,6 +85,7 @@ public class RoleController {
         }
 
         @GetMapping("/{roleId}/permissions")
+        @PreAuthorize("@perm.hasPermission(authentication, 'Manage Staffs', 'view')")
         public ApiResponse<RolePermissionsResponse> getRolePermissions(@PathVariable Long roleId) {
                 return ApiResponse.<RolePermissionsResponse>builder()
                                 .result(permissionService.getRolePermissions(roleId))
@@ -88,6 +93,7 @@ public class RoleController {
         }
 
         @PutMapping("/{roleId}/permissions")
+        @PreAuthorize("@perm.hasPermission(authentication, 'Manage Staffs', 'edit')")
         public ApiResponse<Void> updateRolePermissions(
                         @PathVariable Long roleId,
                         @Valid @RequestBody RolePermissionsUpdateRequest request) {
@@ -98,6 +104,7 @@ public class RoleController {
         }
 
         @PostMapping("/{roleId}/permissions/reset")
+        @PreAuthorize("@perm.hasPermission(authentication, 'Manage Staffs', 'edit')")
         public ApiResponse<Void> resetRolePermissions(@PathVariable Long roleId) {
                 permissionService.resetRolePermissions(roleId);
                 return ApiResponse.<Void>builder()

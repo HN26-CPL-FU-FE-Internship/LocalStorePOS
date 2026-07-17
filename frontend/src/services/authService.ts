@@ -12,6 +12,6 @@ export const authService = {
     },
 
     refreshToken: (data: RefreshTokenRequest) => {
-        api.post<ApiResponse<LoginResponse>>('/auth/refresh', data);
+        return api.post<ApiResponse<LoginResponse>>('/auth/refresh', data);
     },
 };

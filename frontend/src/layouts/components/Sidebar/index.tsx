@@ -6,7 +6,7 @@ import SidebarMenu from './SidebarMenu';
 import NotificationsDropdown from './NotificationsDropdown';
 import ProfileDropdown from './ProfileDropdown';
 import StoreSwitcherDropdown from './StoreSwitcherDropdown';
-import { sidebarTabs, storeOptions, currentUser, profileMenuItems, logoutHref } from '@/data/navigationData';
+import { sidebarTabs, storeOptions, profileMenuItems, logoutHref } from '@/data/navigationData';
 import { notificationGroups } from '@/data/dashboardData';
 import { Link, useLocation } from 'react-router-dom';
 import configs from '@/configs';
@@ -43,7 +43,7 @@ const Sidebar = ({ onClose }: SidebarProps) => {
 
                         <div className="sidebar-profile ">
                             <NotificationsDropdown groups={notificationGroups} unreadCount={4} />
-                            <ProfileDropdown user={currentUser} menuItems={profileMenuItems} logoutHref={logoutHref} />
+                            <ProfileDropdown menuItems={profileMenuItems} logoutHref={logoutHref} />
                         </div>
                     </div>
                 </div>
