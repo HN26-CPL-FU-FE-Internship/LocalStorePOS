@@ -7,6 +7,7 @@ export interface IconProps {
     name: string;
     className?: string;
     style?: CSSProperties;
+    action?: (e: React.MouseEvent) => void
 }
 
 const toPascalCase = (value: string) =>
@@ -16,13 +17,14 @@ const toPascalCase = (value: string) =>
         .map((segment) => segment.charAt(0).toUpperCase() + segment.slice(1))
         .join('');
 
-const Icon = ({ name, className = '', style }: IconProps) => {
+const Icon = ({ name, className = '', style, action }: IconProps) => {
     const pascalName = toPascalCase(name);
     const IconComponent =
         (LucideIcons as unknown as Record<string, LucideIcon | undefined>)[pascalName] ?? LucideIcons.CircleHelp;
 
     return (
         <IconComponent
+            onClick={action}
             className={className}
             style={{ width: '1em', height: '1em', flex: '0 0 auto', display: 'block', ...style }}
             aria-hidden="true"

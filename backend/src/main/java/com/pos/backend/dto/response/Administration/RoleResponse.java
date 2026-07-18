@@ -1,5 +1,7 @@
 package com.pos.backend.dto.response.Administration;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
+
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -15,4 +17,7 @@ import lombok.experimental.FieldDefaults;
 public class RoleResponse {
     Long id;
     String name;
+
+    @JsonProperty("isSystemRole")
+    boolean isSystemRole;
 }

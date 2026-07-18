@@ -9,5 +9,15 @@
         background-color: var(--white);
         border: 1px solid var(--border-color);
         color: var(--gray-900);
+
+        &::before {
+            content: '\22EE' !important;
+
+            margin-right: 0 !important;
+            vertical-align: 0.255em;
+            border-top: 0 solid transparent !important;
+            border-right: 0 solid !important;
+            border-bottom: 0 solid transparent !important;
+        }
     }
 }

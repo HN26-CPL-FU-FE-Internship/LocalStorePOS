@@ -1,6 +1,9 @@
+import type { UserInfo } from './permission';
+
 export interface LoginResponse {
     accessToken: string;
     refreshToken: string;
+    user?: UserInfo;
 }
 
 export interface RefreshTokenRequest {

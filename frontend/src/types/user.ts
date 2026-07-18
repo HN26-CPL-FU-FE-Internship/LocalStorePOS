@@ -59,4 +59,7 @@ export interface UserQuery {
     size?: number;
     sortBy?: string;
     sortDir?: string;
+    search?: string;
+    status?: string;
+    roleIds?: string;
 }

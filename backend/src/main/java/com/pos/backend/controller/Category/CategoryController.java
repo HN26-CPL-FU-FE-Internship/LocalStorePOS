@@ -4,6 +4,7 @@ import java.util.List;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
@@ -44,6 +45,7 @@ public class CategoryController {
 
 
     @GetMapping
+    @PreAuthorize("@perm.hasPermission(authentication, 'Categories', 'view')")
     public ApiResponse<PageResponse<CategoryListItemResponse>> getCategories(
             @RequestParam(defaultValue = "1") int page,
             @RequestParam(defaultValue = "10") int size,
@@ -62,6 +64,7 @@ public class CategoryController {
     }
 
     @GetMapping("/{id}")
+    @PreAuthorize("@perm.hasPermission(authentication, 'Categories', 'view')")
     public ApiResponse<CategoryListItemResponse> getCategory(@PathVariable Long id) {
         return ApiResponse.<CategoryListItemResponse>builder()
                 .message("Success")
@@ -70,6 +73,7 @@ public class CategoryController {
     }
 
     @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @PreAuthorize("@perm.hasPermission(authentication, 'Categories', 'add')")
     public ApiResponse<CategoryListItemResponse> createCategory(@Valid @ModelAttribute CategoryRequest request) {
         return ApiResponse.<CategoryListItemResponse>builder()
                 .message("Category created successfully")
@@ -78,6 +82,7 @@ public class CategoryController {
     }
 
     @PutMapping(value = "/{id}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @PreAuthorize("@perm.hasPermission(authentication, 'Categories', 'edit')")
     public ApiResponse<CategoryListItemResponse> updateCategory(
             @PathVariable Long id,
             @Valid @ModelAttribute CategoryRequest request) {
@@ -89,6 +94,7 @@ public class CategoryController {
     }
 
     @PatchMapping("/{id}/status")
+    @PreAuthorize("@perm.hasPermission(authentication, 'Categories', 'edit')")
     public ApiResponse<CategoryListItemResponse> updateStatus(
             @PathVariable Long id,
             @RequestParam CommonStatus status) {
@@ -100,6 +106,7 @@ public class CategoryController {
     }
 
     @DeleteMapping("/{id}")
+    @PreAuthorize("@perm.hasPermission(authentication, 'Categories', 'delete')")
     @ResponseStatus(HttpStatus.OK)
     public ApiResponse<Void> deleteCategory(@PathVariable Long id) {
         categoryService.deleteCategory(id);

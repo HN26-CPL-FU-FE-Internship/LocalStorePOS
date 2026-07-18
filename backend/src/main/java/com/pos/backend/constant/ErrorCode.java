@@ -19,6 +19,7 @@ public enum ErrorCode {
 
         PHONE_NUMBER_ALREADY_EXISTS(1005, HttpStatus.BAD_REQUEST, "Phone number already exists"),
         ROLE_NOT_FOUND(1006, HttpStatus.NOT_FOUND, "Role is not existed"),
+        MODULE_NOT_FOUND(1015, HttpStatus.NOT_FOUND, "Permission module is not existed"),
         ROLE_NOT_ASSIGNABLE(1007, HttpStatus.FORBIDDEN, "This system cannot be assigned a role"),
         INVALID_CREDENTIALS(1008, HttpStatus.UNAUTHORIZED, "Invalid email or password."),
         INVALID_TOKEN(1009, HttpStatus.UNAUTHORIZED, "Invalid token"),
@@ -27,18 +28,21 @@ public enum ErrorCode {
         USER_NOT_FOUND(1012, HttpStatus.NOT_FOUND, "User not found"),
         INVALID_AVATAR_FILE(1013, HttpStatus.BAD_REQUEST, "Invalid avatar file"),
         CAN_NOT_UPLOAD_FILE(1014, HttpStatus.INTERNAL_SERVER_ERROR, "Can not upload file"),
-        
-        
         CATEGORY_NOT_FOUND(1015, HttpStatus.NOT_FOUND, "Category not found"),
         CATEGORY_NAME_ALREADY_EXISTS(1016, HttpStatus.BAD_REQUEST, "Category name already exists"),
         CATEGORY_HAS_ITEMS(1017, HttpStatus.BAD_REQUEST, "Cannot delete category that still has items"),
         INVALID_IMAGE_FILE(1018, HttpStatus.BAD_REQUEST, "Invalid image file"),
         IMAGE_TOO_LARGE(1019, HttpStatus.BAD_REQUEST, "Image must not exceed 5 MB"),
         FILE_UPLOAD_FAILED(1020, HttpStatus.INTERNAL_SERVER_ERROR, "Failed to upload file"),
+        ORDER_NOT_FOUND(1021, HttpStatus.NOT_FOUND, "Can not find order"),
+        ORDER_HAS_BEEN_DELIVERED(1022, HttpStatus.BAD_REQUEST, "Order has been delivered"),
+        ORDER_HAS_BEEN_SERVED(1023, HttpStatus.BAD_REQUEST, "Order has been served"),
+        INVALID_ORDER_STATUS_TRANSITION(1024, HttpStatus.BAD_REQUEST, "Invalid order status transition"),
+        USER_INACTIVE(1025, HttpStatus.FORBIDDEN, "Your account has been deactivated. Please contact administrator."),
         
-        ITEM_NOT_FOUND(1021, HttpStatus.NOT_FOUND, "Item not found"),
-        TAX_NOT_FOUND(1022, HttpStatus.NOT_FOUND, "Tax not found"),
-        INVALID_VARIATION_OR_ADDON_DATA(1023, HttpStatus.BAD_REQUEST, "Invalid variation or addon data"),
+        ITEM_NOT_FOUND(1026, HttpStatus.NOT_FOUND, "Item not found"),
+        TAX_NOT_FOUND(1027, HttpStatus.NOT_FOUND, "Tax not found"),
+        INVALID_VARIATION_OR_ADDON_DATA(1028, HttpStatus.BAD_REQUEST, "Invalid variation or addon data"),
         ;
 
         int code;

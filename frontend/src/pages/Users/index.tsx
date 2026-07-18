@@ -9,6 +9,7 @@ import {
     Form,
     Offcanvas,
     InputGroup,
+    Spinner,
 } from 'react-bootstrap';
 import Icon from '@/components/common/Icon';
 import {
@@ -16,6 +17,11 @@ import {
     createUser,
     updateUser,
     deleteUser,
+    getUserPermissions,
+    updateUserPermissions,
+} from '@/services/api/user.api';
+import type {
+    PermissionModuleResponse,
 } from '@/services/api/user.api';
 import { type PermissionModule, type UserEntry, type Status } from '@/types';
 import type { UserCreateRequest, UserUpdateRequest } from '@/types/user';
@@ -23,6 +29,7 @@ import PageHeader from '@/components/common/PageHeader';
 import HeaderUsers from '@/components/headers/HeaderUsers';
 import userImages from '@/assets/img/users';
 import { api } from '@/lib/axios';
+import type { ApiResponse } from '@/types/auth';
 import Pagination from '@/components/common/Pagination';
 import { useLocation } from 'react-router-dom';
 
@@ -69,12 +76,11 @@ const defaultColumns: ColumnOption[] = [
 /*  Filter state shape                                                */
 /* ------------------------------------------------------------------ */
 interface AppliedFilters {
-    userIds: number[];
-    roles: string[];
-    status: string; // '' | 'Active' | 'Inactive'
+    roleIds: number[];
+    status: string; // '' | 'active' | 'inactive'
 }
 
-const emptyAppliedFilters: AppliedFilters = { userIds: [], roles: [], status: '' };
+const emptyAppliedFilters: AppliedFilters = { roleIds: [], status: '' };
 
 /* ------------------------------------------------------------------ */
 /*  Sort options mapping                                              */
@@ -107,14 +113,17 @@ const UsersPage = () => {
     const [showAdd, setShowAdd] = useState(false);
     const [showEdit, setShowEdit] = useState(false);
     const [showDelete, setShowDelete] = useState(false);
+    const [showDetail, setShowDetail] = useState(false);
     const [showPermission, setShowPermission] = useState(false);
     const [showFilter, setShowFilter] = useState(false);
     const [sort, setSort] = useState<SortOption>('Newest');
     const [totalItems, setTotalItems] = useState<number>(0);
 
-    // Current user being edited / deleted / permissioned
+    // Current user being edited / deleted / detail / permissioned
     const [currentUser, setCurrentUser] = useState<UserEntry | null>(null);
     const [permissions, setPermissions] = useState<PermissionModule[]>(defaultPermissionModules);
+    const [loadingPerms, setLoadingPerms] = useState(false);
+    const [savingPerms, setSavingPerms] = useState(false);
 
     // Avatar file state
     const [avatarFile, setAvatarFile] = useState<File | undefined>(undefined);
@@ -145,23 +154,22 @@ const UsersPage = () => {
     };
     const [editForm, setEditForm] = useState(editEmptyForm);
 
-    /* ---------- live search state ---------- */
-    // const [searchInput, setSearchInput] = useState('');
-    const [searchTerm, setSearchTerm] = useState('');
+    /* ---------- live search state (debounced) ---------- */
+    const [searchInput, setSearchInput] = useState('');
+    const [debouncedSearch, setDebouncedSearch] = useState('');
 
-    // useEffect(() => {
-    //     const timer = setTimeout(() => {
-    //         setSearchTerm(searchInput.trim().toLowerCase());
-    //     }, 300);
-    //     return () => clearTimeout(timer);
-    // }, [searchInput]);
+    // Debounce search input by 300ms
+    useEffect(() => {
+        const timer = setTimeout(() => {
+            setDebouncedSearch(searchInput.trim());
+        }, 300);
+        return () => clearTimeout(timer);
+    }, [searchInput]);
 
     /* ---------- filter state ---------- */
-    const [draftUserIds, setDraftUserIds] = useState<number[]>([]);
-    const [draftRoles, setDraftRoles] = useState<string[]>([]);
+    const [draftRoles, setDraftRoles] = useState<number[]>([]);
     const [draftStatus, setDraftStatus] = useState('');
     const [appliedFilters, setAppliedFilters] = useState<AppliedFilters>(emptyAppliedFilters);
-    const [filterNameSearch, setFilterNameSearch] = useState('');
     const [filterRoleSearch, setFilterRoleSearch] = useState('');
 
     /* ---------- fetch users ---------- */
@@ -174,21 +182,24 @@ const UsersPage = () => {
                 size: PAGE_SIZE,
                 sortBy: sortConfig.sortBy,
                 sortDir: sortConfig.sortDir,
+                search: debouncedSearch || undefined,
+                status: appliedFilters.status || undefined,
+                roleIds: appliedFilters.roleIds.length > 0 ? appliedFilters.roleIds.join(',') : undefined,
             });
             setUsers(result.items);
-            setTotalItems(result.totalElements)
+            setTotalItems(result.totalElements);
         } catch {
             console.error('Failed to load users');
         } finally {
             setLoading(false);
         }
-    }, [sort, currentPage]);
+    }, [sort, currentPage, debouncedSearch, appliedFilters]);
 
     /* ---------- fetch roles ---------- */
     const loadRoles = useCallback(async () => {
         try {
-            const { data } = await api.get<RoleOption[]>('/roles');
-            setRoles(data);
+            const { data } = await api.get<ApiResponse<RoleOption[]>>('/roles');
+            setRoles(data.result);
         } catch {
             console.error('Failed to load roles');
         }
@@ -312,11 +323,36 @@ const UsersPage = () => {
         }
     };
 
+    /* ---------- detail ---------- */
+    const openDetail = (user: UserEntry) => {
+        setCurrentUser(user);
+        setShowDetail(true);
+    };
+
     /* ---------- permission ---------- */
-    const openPermission = (user: UserEntry) => {
+    const openPermission = async (user: UserEntry) => {
         setCurrentUser(user);
         setPermissions(defaultPermissionModules.map((m) => ({ ...m })));
         setShowPermission(true);
+        setLoadingPerms(true);
+        try {
+            const result = await getUserPermissions(user.id);
+            setPermissions(
+                result.permissions.map((p: PermissionModuleResponse) => ({
+                    module: p.module,
+                    view: p.view,
+                    add: p.add,
+                    edit: p.edit,
+                    delete_: p.delete_,
+                    export_: p.export_,
+                    approvedVoid: p.approvedVoid,
+                })),
+            );
+        } catch {
+            // Keep default permissions on error
+        } finally {
+            setLoadingPerms(false);
+        }
     };
 
     const togglePermission = (moduleIdx: number, field: keyof Omit<PermissionModule, 'module'>) => {
@@ -325,83 +361,59 @@ const UsersPage = () => {
         );
     };
 
+    const handleSavePermissions = async () => {
+        if (!currentUser) return;
+        setSavingPerms(true);
+        try {
+            const payload = permissions.map((p) => ({
+                module: p.module,
+                view: p.view,
+                add: p.add,
+                edit: p.edit,
+                delete_: p.delete_,
+                export_: p.export_,
+                approvedVoid: p.approvedVoid,
+            }));
+            await updateUserPermissions(currentUser.id, payload);
+            setShowPermission(false);
+        } catch {
+            alert('Failed to save permissions');
+        } finally {
+            setSavingPerms(false);
+        }
+    };
+
     /* ---------- filter offcanvas helpers ---------- */
     const openFilter = () => {
         // sync draft with currently applied filters whenever the panel opens
-        setDraftUserIds(appliedFilters.userIds);
-        setDraftRoles(appliedFilters.roles);
+        setDraftRoles(appliedFilters.roleIds);
         setDraftStatus(appliedFilters.status);
         setShowFilter(true);
     };
 
-    const toggleDraftUserId = (id: number) => {
-        setDraftUserIds((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
-    };
-
-    const toggleDraftRole = (role: string) => {
-        setDraftRoles((prev) => (prev.includes(role) ? prev.filter((x) => x !== role) : [...prev, role]));
+    const toggleDraftRole = (roleId: number) => {
+        setDraftRoles((prev) => (prev.includes(roleId) ? prev.filter((x) => x !== roleId) : [...prev, roleId]));
     };
 
     const handleApplyFilter = () => {
-        setAppliedFilters({ userIds: draftUserIds, roles: draftRoles, status: draftStatus });
+        setAppliedFilters({ roleIds: draftRoles, status: draftStatus });
         setShowFilter(false);
     };
 
     const handleResetFilter = () => {
-        setDraftUserIds([]);
         setDraftRoles([]);
         setDraftStatus('');
-        setFilterNameSearch('');
         setFilterRoleSearch('');
         setAppliedFilters(emptyAppliedFilters);
     };
 
-    const filteredNameOptions = useMemo(
-        () =>
-            users.filter((u) =>
-                u.fullName.toLowerCase().includes(filterNameSearch.trim().toLowerCase()),
-            ),
-        [users, filterNameSearch],
-    );
-
-    const roleNames = useMemo(() => roles.map((r) => r.name), [roles]);
-
     const filteredRoleOptions = useMemo(
         () =>
-            roleNames.filter((r) =>
-                r.toLowerCase().includes(filterRoleSearch.trim().toLowerCase()),
+            roles.filter((r) =>
+                r.name.toLowerCase().includes(filterRoleSearch.trim().toLowerCase()),
             ),
-        [roleNames, filterRoleSearch],
+        [roles, filterRoleSearch],
     );
-
-    /* ---------- combined filtering + live search ---------- */
-    const filteredUsers = useMemo(() => {
-        let result = users;
-
-        // modal filters
-        if (appliedFilters.userIds.length) {
-            result = result.filter((u) => appliedFilters.userIds.includes(u.id));
-        }
-        if (appliedFilters.roles.length) {
-            result = result.filter((u) => appliedFilters.roles.includes(u.role));
-        }
-        if (appliedFilters.status) {
-            result = result.filter((u) => u.status === appliedFilters.status);
-        }
-
-        // live search across every displayed field, multi-term (space separated), AND across terms
-        if (searchTerm) {
-            const terms = searchTerm.split(/\s+/).filter(Boolean);
-            result = result.filter((u) => {
-                const haystack = [u.fullName, u.role, u.phoneNumber, u.email]
-                    .join(' ')
-                    .toLowerCase();
-                return terms.every((term) => haystack.includes(term));
-            });
-        }
-
-        return result;
-    }, [users, appliedFilters, searchTerm]);
 
 
     /* ---------- render ---------- */
@@ -411,7 +423,7 @@ const UsersPage = () => {
             <PageHeader
                 title="User"
                 onRefresh={loadUsers}
-                action={HeaderUsers(filteredUsers, () => {
+                action={HeaderUsers(users, () => {
                     setAddForm(addEmptyForm);
                     clearAvatar();
                     setShowAdd(true);
@@ -430,8 +442,8 @@ const UsersPage = () => {
                                     placeholder="Search"
                                     aria-controls="DataTables_Table_0"
                                     type="text"
-                                    value={searchTerm}
-                                    onChange={(e) => setSearchTerm(e.target.value)}
+                                    value={searchInput}
+                                    onChange={(e) => setSearchInput(e.target.value)}
                                 />
                                 <Icon name="search" className="position-absolute top-50 end-0 translate-middle-y me-3 text-secondary" />
                             </div>
@@ -446,12 +458,10 @@ const UsersPage = () => {
                             >
                                 <Icon name="funnel" className="me-2" />
                                 Filter
-                                {(appliedFilters.userIds.length > 0 ||
-                                    appliedFilters.roles.length > 0 ||
+                                {(appliedFilters.roleIds.length > 0 ||
                                     appliedFilters.status) && (
                                         <Badge bg="primary" pill className="ms-2">
-                                            {appliedFilters.userIds.length +
-                                                appliedFilters.roles.length +
+                                            {appliedFilters.roleIds.length +
                                                 (appliedFilters.status ? 1 : 0)}
                                         </Badge>
                                     )}
@@ -524,14 +534,14 @@ const UsersPage = () => {
                                         </td>
                                     </tr>
                                 )}
-                                {!loading && filteredUsers.length === 0 && (
+                                {!loading && users.length === 0 && (
                                     <tr>
                                         <td colSpan={columns.filter((c) => c.visible).length} className="text-center py-4">
                                             No users found
                                         </td>
                                     </tr>
                                 )}
-                                {filteredUsers.map((user) => {
+                                {users.map((user) => {
                                     const isAdmin = user.role === 'Admin / Owner';
 
                                     return (
@@ -583,6 +593,15 @@ const UsersPage = () => {
                                             )}
                                             {columns.find((c) => c.key === 'actions')?.visible && (
                                                 <td>
+                                                    <Button
+                                                        variant="white"
+                                                        size="sm"
+                                                        className="btn-icon rounded-circle me-2"
+                                                        onClick={() => openDetail(user)}
+                                                        title="View Details"
+                                                    >
+                                                        <Icon name="eye" />
+                                                    </Button>
                                                     <Button
                                                         variant="white"
                                                         size="sm"
@@ -982,6 +1001,116 @@ const UsersPage = () => {
                 </Form>
             </Modal>
 
+            {/* ---- User Detail Modal ---- */}
+            <Modal show={showDetail} onHide={() => setShowDetail(false)} centered size="lg">
+                <Modal.Header closeButton className="border-0 p-4 pb-3">
+                    <h4 className="modal-title">User Details</h4>
+                </Modal.Header>
+                {currentUser && (
+                    <Modal.Body className="p-4 pt-1">
+                        <div className="d-flex align-items-center gap-4 mb-4">
+                            <div className="avatar avatar-4xl border bg-light d-flex align-items-center justify-content-center overflow-hidden rounded-circle">
+                                {currentUser.avatarPath ? (
+                                    <img
+                                        src={`http://localhost:8080/restaurant-pos${currentUser.avatarPath}`}
+                                        alt={currentUser.fullName}
+                                        className="img-fluid w-100 h-100 object-fit-cover"
+                                    />
+                                ) : (
+                                    <Icon name="user" className="fs-32 text-dark" />
+                                )}
+                            </div>
+                            <div>
+                                <h5 className="fw-bold mb-1">{currentUser.fullName}</h5>
+                                <p className="text-muted mb-1">{currentUser.email}</p>
+                                <Badge
+                                    bg=""
+                                    className={currentUser.status === 'active' ? 'badge-soft-success' : 'badge-soft-danger'}
+                                >
+                                    {currentUser.status === 'active' ? 'Active' : 'Inactive'}
+                                </Badge>
+                            </div>
+                        </div>
+
+                        <div className="row g-3">
+                            <div className="col-md-6">
+                                <div className="p-3 rounded-3 bg-light">
+                                    <small className="text-muted d-block mb-1">First Name</small>
+                                    <span className="fw-medium">{currentUser.firstName}</span>
+                                </div>
+                            </div>
+                            <div className="col-md-6">
+                                <div className="p-3 rounded-3 bg-light">
+                                    <small className="text-muted d-block mb-1">Last Name</small>
+                                    <span className="fw-medium">{currentUser.lastName}</span>
+                                </div>
+                            </div>
+                            <div className="col-md-6">
+                                <div className="p-3 rounded-3 bg-light">
+                                    <small className="text-muted d-block mb-1">Phone Number</small>
+                                    <span className="fw-medium">{currentUser.phoneNumber}</span>
+                                </div>
+                            </div>
+                            <div className="col-md-6">
+                                <div className="p-3 rounded-3 bg-light">
+                                    <small className="text-muted d-block mb-1">Role</small>
+                                    <span className="fw-medium">{currentUser.role}</span>
+                                </div>
+                            </div>
+                            <div className="col-md-6">
+                                <div className="p-3 rounded-3 bg-light">
+                                    <small className="text-muted d-block mb-1">Email</small>
+                                    <span className="fw-medium">{currentUser.email}</span>
+                                </div>
+                            </div>
+                            <div className="col-md-6">
+                                <div className="p-3 rounded-3 bg-light">
+                                    <small className="text-muted d-block mb-1">Status</small>
+                                    <span className="fw-medium">
+                                        <Badge
+                                            bg=""
+                                            className={currentUser.status === 'active' ? 'badge-soft-success' : 'badge-soft-danger'}
+                                        >
+                                            {currentUser.status === 'active' ? 'Active' : 'Inactive'}
+                                        </Badge>
+                                    </span>
+                                </div>
+                            </div>
+                            <div className="col-md-6">
+                                <div className="p-3 rounded-3 bg-light">
+                                    <small className="text-muted d-block mb-1">Created At</small>
+                                    <span className="fw-medium">
+                                        {new Date(currentUser.createdAt).toLocaleDateString('en-US', {
+                                            year: 'numeric',
+                                            month: 'long',
+                                            day: 'numeric',
+                                        })}
+                                    </span>
+                                </div>
+                            </div>
+                            <div className="col-md-6">
+                                <div className="p-3 rounded-3 bg-light">
+                                    <small className="text-muted d-block mb-1">Last Updated</small>
+                                    <span className="fw-medium">
+                                        {new Date(currentUser.updatedAt).toLocaleDateString('en-US', {
+                                            year: 'numeric',
+                                            month: 'long',
+                                            day: 'numeric',
+                                        })}
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="d-flex justify-content-end mt-4">
+                            <Button variant="light" onClick={() => setShowDetail(false)}>
+                                Close
+                            </Button>
+                        </div>
+                    </Modal.Body>
+                )}
+            </Modal>
+
             {/* ---- Permissions Modal ---- */}
             <Modal show={showPermission} onHide={() => setShowPermission(false)} centered size="lg">
                 <Modal.Header closeButton className="border-0 p-4 pb-3">
@@ -990,59 +1119,70 @@ const UsersPage = () => {
                 <Form
                     onSubmit={(e) => {
                         e.preventDefault();
-                        setShowPermission(false);
+                        handleSavePermissions();
                     }}
                 >
                     <Modal.Body className="p-4 pt-1">
-                        <div className="d-flex justify-content-end mb-3">
-                            <Form.Check type="checkbox" id="select-all" label="Revert All" />
-                        </div>
                         <div className="table-responsive mb-3">
-                            <Table className="m-0 table-nowrap bg-white border">
-                                <thead>
-                                    <tr>
-                                        <th>Module</th>
-                                        <th>View</th>
-                                        <th>Add</th>
-                                        <th>Edit</th>
-                                        <th>Delete</th>
-                                        <th>Export</th>
-                                        <th>Approved/Void</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {permissions.map((mod, idx) => (
-                                        <tr key={mod.module}>
-                                            <td className="text-dark fw-medium">{mod.module}</td>
-                                            {(
-                                                [
-                                                    'view',
-                                                    'add',
-                                                    'edit',
-                                                    'delete_',
-                                                    'export_',
-                                                    'approvedVoid',
-                                                ] as (keyof Omit<PermissionModule, 'module'>)[]
-                                            ).map((field) => (
-                                                <td key={field}>
-                                                    <Form.Check
-                                                        type="checkbox"
-                                                        checked={Boolean(mod[field])}
-                                                        onChange={() => togglePermission(idx, field)}
-                                                    />
-                                                </td>
-                                            ))}
+                            {loadingPerms ? (
+                                <div className="text-center py-4">
+                                    <Spinner animation="border" size="sm" className="me-2" />
+                                    Loading permissions...
+                                </div>
+                            ) : (
+                                <Table className="m-0 table-nowrap bg-white border">
+                                    <thead>
+                                        <tr>
+                                            <th>Module</th>
+                                            <th>View</th>
+                                            <th>Add</th>
+                                            <th>Edit</th>
+                                            <th>Delete</th>
+                                            <th>Export</th>
+                                            <th>Approved/Void</th>
                                         </tr>
-                                    ))}
-                                </tbody>
-                            </Table>
+                                    </thead>
+                                    <tbody>
+                                        {permissions.map((mod, idx) => (
+                                            <tr key={mod.module}>
+                                                <td className="text-dark fw-medium">{mod.module}</td>
+                                                {(
+                                                    [
+                                                        'view',
+                                                        'add',
+                                                        'edit',
+                                                        'delete_',
+                                                        'export_',
+                                                        'approvedVoid',
+                                                    ] as (keyof Omit<PermissionModule, 'module'>)[]
+                                                ).map((field) => (
+                                                    <td key={field}>
+                                                        <Form.Check
+                                                            type="checkbox"
+                                                            checked={Boolean(mod[field])}
+                                                            onChange={() => togglePermission(idx, field)}
+                                                        />
+                                                    </td>
+                                                ))}
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </Table>
+                            )}
                         </div>
                         <div className="d-flex align-items-center justify-content-end gap-2 pt-1">
                             <Button variant="light" onClick={() => setShowPermission(false)}>
                                 Cancel
                             </Button>
-                            <Button variant="primary" type="submit">
-                                Save Permission
+                            <Button variant="primary" type="submit" disabled={savingPerms || loadingPerms}>
+                                {savingPerms ? (
+                                    <>
+                                        <Spinner animation="border" size="sm" className="me-1" />
+                                        Saving...
+                                    </>
+                                ) : (
+                                    'Save Permission'
+                                )}
                             </Button>
                         </div>
                     </Modal.Body>
@@ -1088,45 +1228,6 @@ const UsersPage = () => {
                 <Offcanvas.Body className="d-flex flex-column pt-3">
                     <div>
                         <Form.Group className="mb-3">
-                            <Form.Label>Name</Form.Label>
-                            <Dropdown autoClose="outside">
-                                <Dropdown.Toggle
-                                    as={Button}
-                                    variant="white"
-                                    className="d-flex align-items-center justify-content-between w-100"
-                                >
-                                    {draftUserIds.length > 0 ? `${draftUserIds.length} selected` : 'Select'}
-                                </Dropdown.Toggle>
-                                <Dropdown.Menu className="p-3 w-100">
-                                    <h6 className="fs-14 fw-semibold mb-3">Name</h6>
-                                    <InputGroup className="mb-3 position-relative">
-                                        <Form.Control
-                                            type="text"
-                                            placeholder="Search"
-                                            value={filterNameSearch}
-                                            onChange={(e) => setFilterNameSearch(e.target.value)}
-                                        />
-                                        <InputGroup.Text>
-                                            <Icon name="search" className="text-dark" />
-                                        </InputGroup.Text>
-                                    </InputGroup>
-                                    <div className="vstack gap-2">
-                                        {filteredNameOptions.map((u) => (
-                                            <Form.Check
-                                                key={u.id}
-                                                type="checkbox"
-                                                label={u.fullName}
-                                                id={`filter-name-${u.id}`}
-                                                checked={draftUserIds.includes(u.id)}
-                                                onChange={() => toggleDraftUserId(u.id)}
-                                            />
-                                        ))}
-                                    </div>
-                                </Dropdown.Menu>
-                            </Dropdown>
-                        </Form.Group>
-
-                        <Form.Group className="mb-3">
                             <Form.Label>Role</Form.Label>
                             <Dropdown autoClose="outside">
                                 <Dropdown.Toggle
@@ -1152,12 +1253,12 @@ const UsersPage = () => {
                                     <div className="vstack gap-2">
                                         {filteredRoleOptions.map((r) => (
                                             <Form.Check
-                                                key={r}
+                                                key={r.id}
                                                 type="checkbox"
-                                                label={r}
-                                                id={`filter-role-${r}`}
-                                                checked={draftRoles.includes(r)}
-                                                onChange={() => toggleDraftRole(r)}
+                                                label={r.name}
+                                                id={`filter-role-${r.id}`}
+                                                checked={draftRoles.includes(r.id)}
+                                                onChange={() => toggleDraftRole(r.id)}
                                             />
                                         ))}
                                     </div>
