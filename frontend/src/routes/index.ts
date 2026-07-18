@@ -6,6 +6,7 @@ import CategoriesPage from '@/pages/Categories';
 import DashboardIndex from '@/pages/Dashboard';
 import EmailVerify from '@/pages/EmailVerify';
 import ForgotPassword from '@/pages/ForgotPassword';
+import Items from '@/pages/Items';
 import Kitchen from '@/pages/Kitchen';
 import Login from '@/pages/Login';
 import Orders from '@/pages/Orders';
@@ -29,7 +30,7 @@ export const publicRoutes = [
     { path: configs.routes.kitchen, component: Kitchen, layout: AppLayout },
     { path: configs.routes.reservation, component: Reservation, layout: AppLayout },
     { path: configs.routes.categories, component: CategoriesPage, layout: AppLayout },
-    { path: configs.routes.items, component: Reservation, layout: AppLayout },
+    { path: configs.routes.items, component: Items, layout: AppLayout },
     { path: configs.routes.addons, component: Reservation, layout: AppLayout },
     { path: configs.routes.coupons, component: Reservation, layout: AppLayout },
     { path: configs.routes.tables, component: Reservation, layout: AppLayout },

@@ -35,6 +35,10 @@ public enum ErrorCode {
         INVALID_IMAGE_FILE(1018, HttpStatus.BAD_REQUEST, "Invalid image file"),
         IMAGE_TOO_LARGE(1019, HttpStatus.BAD_REQUEST, "Image must not exceed 5 MB"),
         FILE_UPLOAD_FAILED(1020, HttpStatus.INTERNAL_SERVER_ERROR, "Failed to upload file"),
+        
+        ITEM_NOT_FOUND(1021, HttpStatus.NOT_FOUND, "Item not found"),
+        TAX_NOT_FOUND(1022, HttpStatus.NOT_FOUND, "Tax not found"),
+        INVALID_VARIATION_OR_ADDON_DATA(1023, HttpStatus.BAD_REQUEST, "Invalid variation or addon data"),
         ;
 
         int code;
