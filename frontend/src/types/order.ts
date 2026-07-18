@@ -62,6 +62,7 @@ export type OrderSummary = {
 
 export type OrderUpdateStatus = {
     status: string;
+    orderNumber: string;
     id: number;
 };
 

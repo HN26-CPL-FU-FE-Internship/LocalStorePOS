@@ -14,12 +14,15 @@ import TopProgressBar from '@/components/common/TopProgressBar';
 import PayOrderModal from './components/PayOrderModal';
 import { useUpdateStatus } from '@/hooks/order/';
 import HeaderOrders from '@/components/headers/HeaderOrders';
+import ConfirmModal from '@/components/common/ConfirmModal';
 
 const Orders = () => {
     const [showOrderModal, setShowOrderModal] = useState(false);
     const [showOrderPay, setShowOrderPay] = useState(false);
+    const [showConfirmModal, setShowConfirmModal] = useState(false);
     const [isGrid, setIsGrid] = useState(true);
     const [orderContent, setOrderContent] = useState<OrderSummary | null>(null);
+    const [orderUpdateStatus, setOrderUpdateStatus] = useState<OrderUpdateStatus>();
     const [orderQuery, setOrderQuery] = useState<OrderQuery>(() => ({
         page: 0,
         size: 10,
@@ -67,8 +70,6 @@ const Orders = () => {
     }, []);
 
     const handleDateRangeChange = useCallback((from: Date, to: Date) => {
-        console.log('from', formatDateFilter(from.getTime()));
-        console.log('to', formatDateFilter(to.getTime()));
         setOrderQuery((prev) => ({
             ...prev,
             fromDate: formatDateFilter(from.getTime()),
@@ -76,17 +77,25 @@ const Orders = () => {
         }));
     }, []);
 
-    const handleComplete = (value: OrderUpdateStatus) => {
-        updateStatusMutate.mutate(value);
-    };
-    const handleCancel = (value: OrderUpdateStatus) => {
-        updateStatusMutate.mutate(value);
-    };
-    const handlePay = (value: OrderSummary) => {
+    const handleConfirm = useCallback(() => {
+        if (orderUpdateStatus) updateStatusMutate.mutate(orderUpdateStatus);
+    }, [orderUpdateStatus, updateStatusMutate]);
+
+    const handleComplete = useCallback((value: OrderUpdateStatus) => {
+        setOrderUpdateStatus(value);
+    }, []);
+
+    const handleCancel = useCallback((value: OrderUpdateStatus) => {
+        setShowConfirmModal(true);
+        setOrderUpdateStatus(value);
+    }, []);
+
+    const handlePay = useCallback((value: OrderSummary) => {
         setShowOrderPay(true);
         setOrderContent(value);
-    };
-    const handlePrint = () => {};
+    }, []);
+
+    const handlePrint = useCallback(() => {}, []);
 
     const isInitialLoading = isStatsInitialLoading || isSummariesInitialLoading;
     const isBackgroundFetching = (isStatsFetching || isSummariesFetching) && !isInitialLoading;
@@ -98,7 +107,6 @@ const Orders = () => {
     return (
         <>
             <TopProgressBar active={isBackgroundFetching} />
-            {/* <PageHeader title="Orders" onDateRangeChange={handleDateRangeChange} /> */}
             <PageHeader title="Orders" action={<HeaderOrders onDateRangeChange={handleDateRangeChange} />} />
 
             <div style={{ position: 'relative' }}>
@@ -200,6 +208,13 @@ const Orders = () => {
 
             <OrderModal onHide={handleCloseOrderModal} show={showOrderModal} orderContent={orderContent} />
             <PayOrderModal show={showOrderPay} handleClose={() => setShowOrderPay(false)} order={orderContent} />
+            <ConfirmModal
+                action={handleConfirm}
+                data={`${orderUpdateStatus?.orderNumber}`}
+                handleClose={() => setShowConfirmModal(false)}
+                type="cancel"
+                show={showConfirmModal}
+            />
         </>
     );
 };

@@ -13,6 +13,7 @@ function OrderActionDropdown({ actions, order }: { actions: OrderActionDropdownP
         // gọi API complete order
         const update = {
             status: statuses[4],
+            orderNumber: order.orderNumber,
             id: order.id,
         };
         actions.onComplete(update);
@@ -22,6 +23,7 @@ function OrderActionDropdown({ actions, order }: { actions: OrderActionDropdownP
         // mở modal xác nhận
         const update = {
             status: statuses[5],
+            orderNumber: order.orderNumber,
             id: order.id,
         };
         actions.onCancel(update);
