@@ -74,7 +74,7 @@ const ToastItemView = ({ toast, onClose }: { toast: ToastItem; onClose: (id: num
             >
                 <Toast.Body className="d-flex align-items-center gap-2 text-white">
                     <Icon name={config.icon} className="fs-5 flex-shrink-0" />
-                    <span className="flex-grow-1 fs-14">{toast.message}</span>
+                    <span className="flex-grow-1 fs-14 fw-bold">{toast.message}</span>
                     <button
                         type="button"
                         className="btn-close btn-close-white ms-2"

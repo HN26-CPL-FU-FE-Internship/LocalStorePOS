@@ -48,4 +48,13 @@ export const CONFIRM_CONFIG: Record<
         buttonText: 'Complete',
         buttonVariant: 'success',
     },
+    pay: {
+        icon: 'wallet',
+        iconColor: 'text-primary',
+        backgroundColor: 'bg-primary-subtle',
+        title: 'Payment Confirmation',
+        message: 'Are you sure you want to process payment for',
+        buttonText: 'Pay Now',
+        buttonVariant: 'primary',
+    },
 };

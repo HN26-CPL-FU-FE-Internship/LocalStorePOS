@@ -12,7 +12,7 @@ type OrderActionDropdownProps = ModalActionProps & {
 
 function OrderActionDropdown({ actions, order }: { actions: OrderActionDropdownProps; order: OrderSummary }) {
     const handleCancel = () => {
-        actions.onUpdateStatus(statuses[5]);
+        actions.onUpdateStatus(statuses[4]);
     };
 
     const handlePay = () => {

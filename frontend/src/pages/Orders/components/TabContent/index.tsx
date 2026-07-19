@@ -6,9 +6,10 @@ import { useCallback, useMemo, useState } from 'react';
 import styles from './TabContent.module.scss';
 import { bindCx, formatHourAndMinute, formatString, orderUtils, toTitleCase } from '@/utils';
 import type { ConfirmType, ModalActionProps, OrderStatus, OrderSummary, OrderUpdateStatus } from '@/types';
+import type { PaymentRequest } from '@/services/orderService';
 import OrderActionDropdown from '../OrderActionDropdown';
 import { ORDER_STATUS_ERROR_TITLE, statuses } from '@/constants';
-import { useUpdateStatus } from '@/hooks/order/';
+import { useUpdateStatus, usePayOrder } from '@/hooks/order/';
 import useContextData from '@/hooks/useContextData';
 import { ToastContext } from '@/provider/ToastProvider/ToastContext';
 import ConfirmModal from '@/components/common/ConfirmModal';
@@ -33,6 +34,7 @@ const TabContent = ({ order }: { order: OrderSummary }) => {
     const [confirmType, setConfirmType] = useState<ConfirmType>('update');
 
     const updateStatusMutate = useUpdateStatus();
+    const payOrderMutate = usePayOrder();
 
     // Replaces the `if (index <= 2) return (...)` pattern, which silently returns
     // `undefined` for the other array slots on every render
@@ -61,6 +63,8 @@ const TabContent = ({ order }: { order: OrderSummary }) => {
         [order.id, order.orderNumber, order.status, showToast],
     );
 
+    const handleCloseOrderPay = useCallback(() => setShowOrderPay(false), []);
+
     const handleConfirm = useCallback(() => {
         if (updateStatus) {
             // The useUpdateStatus hook's onSuccess/onError already shows toasts.
@@ -69,6 +73,15 @@ const TabContent = ({ order }: { order: OrderSummary }) => {
         }
         setShowConfirmModal(false);
     }, [updateStatus, updateStatusMutate]);
+
+    const handlePaymentComplete = useCallback(
+        (paymentData: PaymentRequest) =>
+            payOrderMutate.mutate({
+                id: order.id,
+                paymentData,
+            }),
+        [order.id, payOrderMutate],
+    );
 
     return (
         <>
@@ -164,7 +177,13 @@ const TabContent = ({ order }: { order: OrderSummary }) => {
             </Col>
 
             <OrderModal onHide={handleCloseOrderModal} show={showOrderModal} orderContent={order || null} />
-            <PayOrderModal show={showOrderPay} handleClose={() => setShowOrderPay(false)} order={order} />
+            <PayOrderModal
+                show={showOrderPay}
+                handleClose={handleCloseOrderPay}
+                order={order}
+                onPaymentComplete={handlePaymentComplete}
+                isPaymentProcessing={payOrderMutate.isPending}
+            />
 
             <ConfirmModal
                 action={handleConfirm}

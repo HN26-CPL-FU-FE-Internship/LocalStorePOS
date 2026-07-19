@@ -27,13 +27,21 @@ interface OrderItemAddon {
     quantity: number;
 }
 
-interface OrderItem {
+export interface OrderItem {
     id: number;
     itemName: string;
     quantity: number;
     kitchenNote: string | null;
     sizeName: string | null;
+    unitPrice: number;
     addons: OrderItemAddon[];
+}
+
+export type DiscountType = 'percentage' | 'fixed_amount';
+export interface CouponOrder {
+    code: string;
+    discountAmount: number;
+    discountType: DiscountType;
 }
 
 export type OrderSummary = {
@@ -44,8 +52,11 @@ export type OrderSummary = {
     tableNumber: string;
     orderedAt: string;
 
+    coupon: CouponOrder;
+
     status: OrderStatus;
-    paymentStatus: string;
+    paymentStatus: 'unpaid' | 'partial' | 'paid' | 'refunded';
+    paymentType?: string;
 
     subtotal: number;
     taxAmount: number;
@@ -53,6 +64,7 @@ export type OrderSummary = {
     deliveryCharge: number;
     tipAmount: number;
     discountAmount: number;
+    discountType?: string;
 
     grandTotal: number;
     paidAmount: number;

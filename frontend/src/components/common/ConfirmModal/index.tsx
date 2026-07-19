@@ -1,10 +1,10 @@
 import { CONFIRM_CONFIG } from '@/constants';
-import { Button, Modal } from 'react-bootstrap';
+import { Button, Modal, Spinner } from 'react-bootstrap';
 import Icon from '../Icon';
 import type { ConfirmModalProps } from '@/types';
 import { memo } from 'react';
 
-const ConfirmModal = ({ show, handleClose, type, action, data }: ConfirmModalProps) => {
+const ConfirmModal = ({ show, handleClose, type, action, data, actionDisabled }: ConfirmModalProps) => {
     const config = CONFIRM_CONFIG[type];
 
     return (
@@ -25,12 +25,19 @@ const ConfirmModal = ({ show, handleClose, type, action, data }: ConfirmModalPro
                 </p>
 
                 <div className="d-flex justify-content-center gap-2">
-                    <Button variant="light" className="w-100" onClick={handleClose}>
+                    <Button variant="light" className="w-100" onClick={handleClose} disabled={actionDisabled}>
                         Cancel
                     </Button>
 
-                    <Button variant={config.buttonVariant} className="w-100" onClick={action}>
-                        {config.buttonText}
+                    <Button variant={config.buttonVariant} className="w-100" onClick={action} disabled={actionDisabled}>
+                        {actionDisabled ? (
+                            <>
+                                <Spinner animation="border" size="sm" className="me-2" />
+                                Processing...
+                            </>
+                        ) : (
+                            config.buttonText
+                        )}
                     </Button>
                 </div>
             </Modal.Body>

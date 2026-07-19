@@ -1,4 +1,4 @@
-export type ConfirmType = 'delete' | 'update' | 'cancel' | 'complete';
+export type ConfirmType = 'delete' | 'update' | 'cancel' | 'complete' | 'pay';
 
 export type ConfirmModalProps = {
     show: boolean;
@@ -6,4 +6,5 @@ export type ConfirmModalProps = {
     type: ConfirmType;
     action: () => void;
     data: string;
+    actionDisabled?: boolean;
 };
