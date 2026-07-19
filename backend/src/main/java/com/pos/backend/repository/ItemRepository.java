@@ -14,6 +14,8 @@ import com.pos.backend.entity.Item;
 
 public interface ItemRepository extends JpaRepository<Item, Long> {
 
+    List<Item> findAllByOrderByNameAsc();
+
     boolean existsByCategory_Id(Long categoryId);
 
     long countByCategory_Id(Long categoryId);
