@@ -23,12 +23,16 @@ import com.pos.backend.service.JWT.JwtService;
 import com.pos.backend.util.GenerateRefreshTokenUtil;
 import com.pos.backend.util.HashUtil;
 
+import jakarta.transaction.Transactional;
+
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
+import lombok.extern.slf4j.Slf4j;
 
 @Service
 @RequiredArgsConstructor
 @FieldDefaults(level = lombok.AccessLevel.PRIVATE)
+@Slf4j
 public class LoginService {
 
     final UserRepository userRepository;
@@ -68,6 +72,7 @@ public class LoginService {
         return buildLoginResponse(accessToken, refreshToken, user);
     }
 
+    @Transactional
     public LoginResponse refreshToken(String refreshToken) {
 
         UserSession session = userSessionService.getSession(refreshToken);
@@ -91,6 +96,7 @@ public class LoginService {
 
         session.setRefreshTokenHash(HashUtil.sha256(newRefreshToken));
         session.setExpiresAt(Instant.now().plus(refreshTokenExpiration, ChronoUnit.MINUTES));
+        session.setLastUsedAt(Instant.now());
 
         userSessionRepository.save(session);
         userSessionRepository.cleanup(Instant.now());

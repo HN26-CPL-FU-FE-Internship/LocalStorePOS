@@ -39,6 +39,11 @@ public enum ErrorCode {
         ORDER_HAS_BEEN_SERVED(1023, HttpStatus.BAD_REQUEST, "Order has been served"),
         INVALID_ORDER_STATUS_TRANSITION(1024, HttpStatus.BAD_REQUEST, "Invalid order status transition"),
         USER_INACTIVE(1025, HttpStatus.FORBIDDEN, "Your account has been deactivated. Please contact administrator."),
+        ORDER_ALREADY_COMPLETED_OR_CANCELLED(1026, HttpStatus.BAD_REQUEST, "Order is already completed or cancelled"),
+        INSUFFICIENT_PAYMENT(1027, HttpStatus.BAD_REQUEST, "Given amount must be at least the final total"),
+        ZERO_TOTAL(1028, HttpStatus.BAD_REQUEST, "Order total cannot be zero. Please adjust discount or coupon before payment."),
+        TABLE_NOT_FOUND(1029, HttpStatus.NOT_FOUND, "Table not found."),
+
         ;
 
         int code;
