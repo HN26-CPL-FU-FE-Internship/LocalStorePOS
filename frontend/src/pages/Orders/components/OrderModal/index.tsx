@@ -1,6 +1,7 @@
 import Icon from '@/components/common/Icon';
 import type { OrderSummary } from '@/types';
 import { formatDateTimeOrder, formatHourAndMinute, toTitleCase } from '@/utils';
+import { memo } from 'react';
 import { Button } from 'react-bootstrap';
 import Offcanvas from 'react-bootstrap/Offcanvas';
 
@@ -137,4 +138,4 @@ function OrderModal({
     );
 }
 
-export default OrderModal;
+export default memo(OrderModal);

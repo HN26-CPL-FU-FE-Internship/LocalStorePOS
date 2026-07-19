@@ -3,26 +3,18 @@ import PageHeader from '@/components/common/PageHeader';
 import { Button, Card, Col, Nav, Row } from 'react-bootstrap';
 import TabContent from './components/TabContent';
 import useStatsStatus from '@/hooks/order/useStatsStatus';
-import type { OrderQuery, OrderSummary, OrderUpdateStatus } from '@/types';
+import type { OrderQuery, OrderStatus } from '@/types';
 import useOrderSummary from '@/hooks/order/useOrderSummary';
 import { formatDateFilter, formatString } from '@/utils';
 import { statsBackgrounds, statsIcons } from '@/constants';
 import { useCallback, useMemo, useState } from 'react';
-import OrderModal from './components/OrderModal';
 import Loading from '@/components/common/Loading';
 import TopProgressBar from '@/components/common/TopProgressBar';
-import PayOrderModal from './components/PayOrderModal';
-import { useUpdateStatus } from '@/hooks/order/';
 import HeaderOrders from '@/components/headers/HeaderOrders';
-import ConfirmModal from '@/components/common/ConfirmModal';
 
 const Orders = () => {
-    const [showOrderModal, setShowOrderModal] = useState(false);
-    const [showOrderPay, setShowOrderPay] = useState(false);
-    const [showConfirmModal, setShowConfirmModal] = useState(false);
     const [isGrid, setIsGrid] = useState(true);
-    const [orderContent, setOrderContent] = useState<OrderSummary | null>(null);
-    const [orderUpdateStatus, setOrderUpdateStatus] = useState<OrderUpdateStatus>();
+
     const [orderQuery, setOrderQuery] = useState<OrderQuery>(() => ({
         page: 0,
         size: 10,
@@ -47,22 +39,13 @@ const Orders = () => {
         isError,
     } = useOrderSummary(orderQuery);
 
-    const updateStatusMutate = useUpdateStatus();
-
     const statsEntries = useMemo(() => Object.entries(stats?.result ?? {}), [stats]);
 
     const handleActiveButton = useCallback(() => {
         setIsGrid((prev) => !prev);
     }, []);
 
-    const handleOpenOrderModal = useCallback((value: OrderSummary) => {
-        setShowOrderModal(true);
-        setOrderContent(value);
-    }, []);
-
-    const handleCloseOrderModal = useCallback(() => setShowOrderModal(false), []);
-
-    const handleFilterByStatus = useCallback((status: string) => {
+    const handleFilterByStatus = useCallback((status: OrderStatus | string) => {
         setOrderQuery((prev) => ({
             ...prev,
             status: status === 'total' ? '' : status,
@@ -76,26 +59,6 @@ const Orders = () => {
             toDate: formatDateFilter(to.getTime()),
         }));
     }, []);
-
-    const handleConfirm = useCallback(() => {
-        if (orderUpdateStatus) updateStatusMutate.mutate(orderUpdateStatus);
-    }, [orderUpdateStatus, updateStatusMutate]);
-
-    const handleComplete = useCallback((value: OrderUpdateStatus) => {
-        setOrderUpdateStatus(value);
-    }, []);
-
-    const handleCancel = useCallback((value: OrderUpdateStatus) => {
-        setShowConfirmModal(true);
-        setOrderUpdateStatus(value);
-    }, []);
-
-    const handlePay = useCallback((value: OrderSummary) => {
-        setShowOrderPay(true);
-        setOrderContent(value);
-    }, []);
-
-    const handlePrint = useCallback(() => {}, []);
 
     const isInitialLoading = isStatsInitialLoading || isSummariesInitialLoading;
     const isBackgroundFetching = (isStatsFetching || isSummariesFetching) && !isInitialLoading;
@@ -186,35 +149,13 @@ const Orders = () => {
                         <div className="tab-pane show active" id="order-tab1">
                             <Row>
                                 {summaries?.result?.content.map((order) => {
-                                    return (
-                                        <TabContent
-                                            key={order.id}
-                                            order={order}
-                                            actions={{
-                                                onClick: handleOpenOrderModal,
-                                                onCancel: handleCancel,
-                                                onComplete: handleComplete,
-                                                onPay: handlePay,
-                                                onPrint: handlePrint,
-                                            }}
-                                        />
-                                    );
+                                    return <TabContent key={order.id} order={order} />;
                                 })}
                             </Row>
                         </div>
                     </div>
                 </div>
             </div>
-
-            <OrderModal onHide={handleCloseOrderModal} show={showOrderModal} orderContent={orderContent} />
-            <PayOrderModal show={showOrderPay} handleClose={() => setShowOrderPay(false)} order={orderContent} />
-            <ConfirmModal
-                action={handleConfirm}
-                data={`${orderUpdateStatus?.orderNumber}`}
-                handleClose={() => setShowConfirmModal(false)}
-                type="cancel"
-                show={showConfirmModal}
-            />
         </>
     );
 };

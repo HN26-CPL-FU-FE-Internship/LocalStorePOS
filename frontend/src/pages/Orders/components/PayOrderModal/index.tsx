@@ -4,6 +4,7 @@ import { Button, Col, Modal, Nav, Row, Tab } from 'react-bootstrap';
 import { CardPaymentTab, CashPaymentTab, ScanPaymentTab } from '../Payment';
 import type { OrderSummary } from '@/types';
 import { toTitleCase } from '@/utils';
+import { memo } from 'react';
 
 const PayOrderModal = ({
     show,
@@ -137,4 +138,4 @@ const PayOrderModal = ({
     );
 };
 
-export default PayOrderModal;
+export default memo(PayOrderModal);

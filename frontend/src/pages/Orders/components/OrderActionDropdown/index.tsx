@@ -1,36 +1,23 @@
 import Icon from '@/components/common/Icon';
 import { Dropdown, DropdownButton } from 'react-bootstrap';
 import { Link } from 'react-router-dom';
-import type { ModalActionProps, OrderSummary } from '@/types';
+import type { ModalActionProps, OrderStatus, OrderSummary } from '@/types';
 import { statuses } from '@/constants';
 
 type OrderActionDropdownProps = ModalActionProps & {
     cx: (value: string) => string;
+    onUpdateStatus: (status: OrderStatus) => void;
+    onOpenModal: (value: boolean) => void;
 };
 
 function OrderActionDropdown({ actions, order }: { actions: OrderActionDropdownProps; order: OrderSummary }) {
-    const handleComplete = () => {
-        // gọi API complete order
-        const update = {
-            status: statuses[4],
-            orderNumber: order.orderNumber,
-            id: order.id,
-        };
-        actions.onComplete(update);
-    };
-
     const handleCancel = () => {
-        // mở modal xác nhận
-        const update = {
-            status: statuses[5],
-            orderNumber: order.orderNumber,
-            id: order.id,
-        };
-        actions.onCancel(update);
+        actions.onUpdateStatus(statuses[5]);
     };
 
     const handlePay = () => {
         // mở modal thanh toán
+        actions.onOpenModal(true);
         actions.onPay(order);
     };
 
@@ -45,12 +32,6 @@ function OrderActionDropdown({ actions, order }: { actions: OrderActionDropdownP
             icon: 'pencil-line',
             label: 'Edit Order',
             to: '/pos',
-        },
-        {
-            key: 'complete',
-            icon: 'check-check',
-            label: 'Complete',
-            onClick: handleComplete,
         },
         {
             key: 'cancel',

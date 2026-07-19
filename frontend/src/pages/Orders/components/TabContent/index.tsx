@@ -1,28 +1,74 @@
 import Icon from '@/components/common/Icon';
 import { Card, Col, Dropdown } from 'react-bootstrap';
 import { Link } from 'react-router-dom';
-import { Fragment, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 
 import styles from './TabContent.module.scss';
-import { bindCx, formatHourAndMinute, formatString, toTitleCase } from '@/utils';
-import type { ModalActionProps, OrderSummary } from '@/types';
+import { bindCx, formatHourAndMinute, formatString, orderUtils, toTitleCase } from '@/utils';
+import type { ConfirmType, ModalActionProps, OrderStatus, OrderSummary, OrderUpdateStatus } from '@/types';
 import OrderActionDropdown from '../OrderActionDropdown';
-import { statuses } from '@/constants';
+import { ORDER_STATUS_ERROR_TITLE, statuses } from '@/constants';
 import { useUpdateStatus } from '@/hooks/order/';
+import useContextData from '@/hooks/useContextData';
+import { ToastContext } from '@/provider/ToastProvider/ToastContext';
+import ConfirmModal from '@/components/common/ConfirmModal';
+import OrderModal from '../OrderModal';
+import PayOrderModal from '../PayOrderModal';
+import OrderItemRow from '../OrderItemRow';
 
 const cx = bindCx(styles);
 
-export type TabContentProps = ModalActionProps & {
-    onClick: (value: OrderSummary) => void;
-};
+const VISIBLE_ITEMS_COUNT = 3;
 
-const TabContent = ({ actions, order }: { actions: TabContentProps; order: OrderSummary }) => {
-    const [show, setShow] = useState(false);
+export type TabContentProps = ModalActionProps;
+
+const TabContent = ({ order }: { order: OrderSummary }) => {
+    const { showToast } = useContextData(ToastContext);
+
+    const [showItems, setShowItems] = useState(false);
+    const [showConfirmModal, setShowConfirmModal] = useState(false);
+    const [showOrderModal, setShowOrderModal] = useState(false);
+    const [showOrderPay, setShowOrderPay] = useState(false);
+    const [updateStatus, setUpdateStatus] = useState<OrderUpdateStatus>();
+    const [confirmType, setConfirmType] = useState<ConfirmType>('update');
 
     const updateStatusMutate = useUpdateStatus();
-    const handleUpdateStatus = (status: string) => {
-        updateStatusMutate.mutate({ status, id: order.id }, {});
-    };
+
+    // Replaces the `if (index <= 2) return (...)` pattern, which silently returns
+    // `undefined` for the other array slots on every render
+    const visibleItems = useMemo(() => order.items.slice(0, VISIBLE_ITEMS_COUNT), [order.items]);
+    const hiddenItems = useMemo(() => order.items.slice(VISIBLE_ITEMS_COUNT), [order.items]);
+    const hiddenCount = hiddenItems.length;
+
+    const handleOpenOrderModal = useCallback(() => setShowOrderModal(true), []);
+    const handleCloseOrderModal = useCallback(() => setShowOrderModal(false), []);
+
+    const handleRequestStatusUpdate = useCallback(
+        (status: OrderStatus) => {
+            if (!orderUtils.canTransition(order.status, status)) {
+                showToast('error', ORDER_STATUS_ERROR_TITLE[order.status]);
+                return;
+            }
+
+            setUpdateStatus({
+                id: order.id,
+                orderNumber: order.orderNumber,
+                status,
+            });
+            setConfirmType(status === 'cancelled' ? 'cancel' : status === 'completed' ? 'complete' : 'update');
+            setShowConfirmModal(true);
+        },
+        [order.id, order.orderNumber, order.status, showToast],
+    );
+
+    const handleConfirm = useCallback(() => {
+        if (updateStatus) {
+            // The useUpdateStatus hook's onSuccess/onError already shows toasts.
+            // No need to duplicate feedback handling here.
+            updateStatusMutate.mutate(updateStatus);
+        }
+        setShowConfirmModal(false);
+    }, [updateStatus, updateStatusMutate]);
 
     return (
         <>
@@ -36,7 +82,7 @@ const TabContent = ({ actions, order }: { actions: TabContentProps; order: Order
                                 </div>
                                 <div>
                                     <h6 className="mb-1 fs-14 fw-semibold">
-                                        <Link to={''} onClick={() => actions.onClick(order)}>
+                                        <Link to={''} onClick={handleOpenOrderModal}>
                                             {order.orderNumber}
                                         </Link>
                                     </h6>
@@ -49,8 +95,11 @@ const TabContent = ({ actions, order }: { actions: TabContentProps; order: Order
                             </div>
                             <OrderActionDropdown
                                 actions={{
-                                    ...actions,
                                     cx,
+                                    onUpdateStatus: handleRequestStatusUpdate,
+                                    onPay: orderUtils.onPay,
+                                    onPrint: orderUtils.onPrint,
+                                    onOpenModal: setShowOrderPay,
                                 }}
                                 order={order}
                             />
@@ -66,65 +115,25 @@ const TabContent = ({ actions, order }: { actions: TabContentProps; order: Order
                         </div>
                         <div className="mb-3 pb-3 border-bottom">
                             <div className="orders-list">
-                                {order.items.map((o, index) => {
-                                    if (index <= 2)
-                                        return (
-                                            <Fragment key={o.id}>
-                                                <div className={`orders text-dark mb-${o.kitchenNote ? '2' : '3'}`}>
-                                                    <p>
-                                                        <span className="dot"></span>
-                                                        {`${o.itemName} ${o.sizeName ? ` - ${o.sizeName}` : ''}`}
-                                                    </p>
-                                                    <span className="line"></span>
-                                                    <p className="text-dark">x{o.quantity}</p>
-                                                </div>
+                                {visibleItems.map((item) => (
+                                    <OrderItemRow key={item.id} item={item} />
+                                ))}
 
-                                                {o.kitchenNote && (
-                                                    <div className="bg-light rounded py-1 px-2 mb-3">
-                                                        <p className="mb-0 fw-medium d-flex align-items-center text-dark">
-                                                            <Icon name="icon-badge-info" className="me-1" />
-                                                            Notes : {`${o.kitchenNote}`}
-                                                        </p>
-                                                    </div>
-                                                )}
-                                            </Fragment>
-                                        );
-                                })}
+                                {showItems && (
+                                    <div className="more-menu">
+                                        {hiddenItems.map((item) => (
+                                            <OrderItemRow key={item.id} item={item} />
+                                        ))}
+                                    </div>
+                                )}
 
-                                <div className={`more-menu ${show ? '' : 'd-none'}`}>
-                                    {order.items.map((o, index) => {
-                                        if (index > 2)
-                                            return (
-                                                <Fragment key={o.id}>
-                                                    <div className={`orders text-dark mb-${o.kitchenNote ? '2' : '3'}`}>
-                                                        <p>
-                                                            <span className="dot"></span>
-                                                            {`${o.itemName} ${o.sizeName ? `'-'${o.sizeName}` : ''}`}
-                                                        </p>
-                                                        <span className="line"></span>
-                                                        <p className="text-dark">x{o.quantity}</p>
-                                                    </div>
-
-                                                    {o.kitchenNote && (
-                                                        <div className="bg-light rounded py-1 px-2 mb-3">
-                                                            <p className="mb-0 fw-medium d-flex align-items-center text-dark">
-                                                                <Icon name="icon-badge-info" className="me-1" />
-                                                                Notes : {o.kitchenNote}
-                                                            </p>
-                                                        </div>
-                                                    )}
-                                                </Fragment>
-                                            );
-                                    })}
-                                </div>
-
-                                {order.items.length - 3 > 0 && (
+                                {hiddenCount > 0 && (
                                     <div className="view-all mt-1">
                                         <button
                                             className="fw-semibold fs-14 mb-0 text-primary viewall-button"
-                                            onClick={() => setShow(!show)}
+                                            onClick={() => setShowItems((prev) => !prev)}
                                         >
-                                            {show ? 'Show less' : `+${order.items.length - 3} More Items`}
+                                            {showItems ? 'Show less' : `+${hiddenCount} More Items`}
                                         </button>
                                     </div>
                                 )}
@@ -137,17 +146,33 @@ const TabContent = ({ actions, order }: { actions: TabContentProps; order: Order
                                     {formatString(order.status)}
                                 </Dropdown.Toggle>
                                 <Dropdown.Menu>
-                                    {statuses.map((status) => (
-                                        <Dropdown.Item key={status} onClick={() => handleUpdateStatus(status)}>
-                                            {formatString(status)}
-                                        </Dropdown.Item>
-                                    ))}
+                                    {statuses
+                                        .filter((status) => status !== order.status)
+                                        .map((status) => (
+                                            <Dropdown.Item
+                                                key={status}
+                                                onClick={() => handleRequestStatusUpdate(status)}
+                                            >
+                                                {formatString(status)}
+                                            </Dropdown.Item>
+                                        ))}
                                 </Dropdown.Menu>
                             </Dropdown>
                         </div>
                     </Card.Body>
                 </Card>
             </Col>
+
+            <OrderModal onHide={handleCloseOrderModal} show={showOrderModal} orderContent={order || null} />
+            <PayOrderModal show={showOrderPay} handleClose={() => setShowOrderPay(false)} order={order} />
+
+            <ConfirmModal
+                action={handleConfirm}
+                data={`${updateStatus?.orderNumber}`}
+                handleClose={() => setShowConfirmModal(false)}
+                type={confirmType}
+                show={showConfirmModal}
+            />
         </>
     );
 };

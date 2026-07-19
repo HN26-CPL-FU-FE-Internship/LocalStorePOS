@@ -1,11 +1,14 @@
+import type { ORDER_STATUS } from '@/constants';
 import type { Time } from '@/types';
 
 export type OrderQuery = Time & {
-    status: string;
+    status: OrderStatus | string;
     page: number;
     size: number;
     orderNumber: string;
 };
+
+export type OrderStatus = (typeof ORDER_STATUS)[keyof typeof ORDER_STATUS];
 
 export type OrderStat = {
     cancelled: number;
@@ -41,7 +44,7 @@ export type OrderSummary = {
     tableNumber: string;
     orderedAt: string;
 
-    status: string;
+    status: OrderStatus;
     paymentStatus: string;
 
     subtotal: number;
@@ -61,14 +64,12 @@ export type OrderSummary = {
 };
 
 export type OrderUpdateStatus = {
-    status: string;
+    status: OrderStatus;
     orderNumber: string;
     id: number;
 };
 
 export type ModalActionProps = {
-    onComplete: (value: OrderUpdateStatus) => void;
-    onCancel: (value: OrderUpdateStatus) => void;
     onPay: (value: OrderSummary) => void;
     onPrint: () => void;
 };
