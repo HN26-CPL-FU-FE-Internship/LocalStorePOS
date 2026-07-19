@@ -7,10 +7,11 @@ import type { OrderQuery, OrderStatus } from '@/types';
 import useOrderSummary from '@/hooks/order/useOrderSummary';
 import { formatDateFilter, formatString } from '@/utils';
 import { statsBackgrounds, statsIcons } from '@/constants';
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useMemo, useState, type ChangeEvent } from 'react';
 import Loading from '@/components/common/Loading';
 import TopProgressBar from '@/components/common/TopProgressBar';
 import HeaderOrders from '@/components/headers/HeaderOrders';
+import useDebounce from '@/hooks/useDebounce';
 
 const Orders = () => {
     const [isGrid, setIsGrid] = useState(true);
@@ -23,6 +24,12 @@ const Orders = () => {
         fromDate: '2026-01-01',
         toDate: formatDateFilter(Date.now()),
     }));
+
+    const debounce = useDebounce(orderQuery.orderNumber, 800);
+    const debounceQuery = {
+        ...orderQuery,
+        orderNumber: debounce,
+    };
 
     const {
         data: stats,
@@ -37,7 +44,7 @@ const Orders = () => {
         isLoading: isSummariesInitialLoading,
         isFetching: isSummariesFetching,
         isError,
-    } = useOrderSummary(orderQuery);
+    } = useOrderSummary(debounceQuery);
 
     const statsEntries = useMemo(() => Object.entries(stats?.result ?? {}), [stats]);
 
@@ -59,6 +66,14 @@ const Orders = () => {
             toDate: formatDateFilter(to.getTime()),
         }));
     }, []);
+
+    const handleSearch = (e: ChangeEvent<HTMLInputElement>) => {
+        const value = e.target.value.trim();
+        setOrderQuery((prev) => ({
+            ...prev,
+            orderNumber: value,
+        }));
+    };
 
     const isInitialLoading = isStatsInitialLoading || isSummariesInitialLoading;
     const isBackgroundFetching = (isStatsFetching || isSummariesFetching) && !isInitialLoading;
@@ -138,7 +153,13 @@ const Orders = () => {
                                 <Icon name="square-kanban" />
                             </Button>
                             <div className="input-group input-group-flat w-auto">
-                                <input className="form-control" placeholder="Search" type="text" />
+                                <input
+                                    className="form-control"
+                                    placeholder="Search"
+                                    type="text"
+                                    value={orderQuery.orderNumber}
+                                    onChange={handleSearch}
+                                />
                                 <span className="input-group-text">
                                     <Icon name="search" className="text-dark" />
                                 </span>
