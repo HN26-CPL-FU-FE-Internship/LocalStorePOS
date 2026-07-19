@@ -2,28 +2,32 @@ package com.pos.backend.service.Coupon;
 
 import java.util.List;
 
-import org.springframework.stereotype.Service;
-
 import com.pos.backend.constant.enums.CouponStatus;
 import com.pos.backend.dto.response.Coupon.CouponResponse;
-import com.pos.backend.entity.Coupon;
-import com.pos.backend.mapper.CouponMapper;
-import com.pos.backend.repository.CouponRepository;
+import com.pos.backend.dto.request.Coupon.CouponRequest;
+import com.pos.backend.dto.response.Coupon.CouponListItemResponse;
+import com.pos.backend.service.Common.PageResponse;
 
-import lombok.RequiredArgsConstructor;
-import lombok.experimental.FieldDefaults;
+public interface CouponService {
 
-@Service
-@RequiredArgsConstructor
-@FieldDefaults(level = lombok.AccessLevel.PRIVATE, makeFinal = true)
-public class CouponService {
+    PageResponse<CouponListItemResponse> getCoupons(
+            int page,
+            int size,
+            String sortBy,
+            String sortDir,
+            String search,
+            CouponStatus status);
+
+    CouponListItemResponse getCoupon(Long id);
+
+    void deleteCoupon(Long id);
     
-    CouponRepository couponRepository;
-    CouponMapper couponMapper;
-    public List<CouponResponse> getActiveCoupons() {
-        
-        List<Coupon> coupons = couponRepository.findByStatus(CouponStatus.active);
+    CouponListItemResponse createCoupon(CouponRequest request);
 
-        return coupons.stream().map(coupon -> couponMapper.toCouponResponse(coupon)).toList();
-    }
+    CouponListItemResponse updateCoupon(Long id, CouponRequest request);
+
+    CouponListItemResponse updateStatus(Long id, CouponStatus status);
+
+    List<CouponResponse> getActiveCoupons();
+
 }

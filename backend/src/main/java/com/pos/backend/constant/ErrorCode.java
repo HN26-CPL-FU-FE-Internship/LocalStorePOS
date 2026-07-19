@@ -39,11 +39,19 @@ public enum ErrorCode {
         ORDER_HAS_BEEN_SERVED(1023, HttpStatus.BAD_REQUEST, "Order has been served"),
         INVALID_ORDER_STATUS_TRANSITION(1024, HttpStatus.BAD_REQUEST, "Invalid order status transition"),
         USER_INACTIVE(1025, HttpStatus.FORBIDDEN, "Your account has been deactivated. Please contact administrator."),
-        ORDER_ALREADY_COMPLETED_OR_CANCELLED(1026, HttpStatus.BAD_REQUEST, "Order is already completed or cancelled"),
-        INSUFFICIENT_PAYMENT(1027, HttpStatus.BAD_REQUEST, "Given amount must be at least the final total"),
-        ZERO_TOTAL(1028, HttpStatus.BAD_REQUEST, "Order total cannot be zero. Please adjust discount or coupon before payment."),
-        TABLE_NOT_FOUND(1029, HttpStatus.NOT_FOUND, "Table not found."),
+        ITEM_NOT_FOUND(1026, HttpStatus.NOT_FOUND, "Item not found"),
+        TAX_NOT_FOUND(1027, HttpStatus.NOT_FOUND, "Tax not found"),
+        INVALID_VARIATION_OR_ADDON_DATA(1028, HttpStatus.BAD_REQUEST, "Invalid variation or addon data"),
 
+        ADDON_NOT_FOUND(1029, HttpStatus.NOT_FOUND, "Addon not found"),
+
+        COUPON_NOT_FOUND(1030, HttpStatus.NOT_FOUND, "Coupon not found"),
+        COUPON_CODE_ALREADY_EXISTS(1031, HttpStatus.BAD_REQUEST, "Coupon code already exists"),
+        INVALID_COUPON_DATE_RANGE(1032, HttpStatus.BAD_REQUEST, "Expiry date must not be before start date"),
+        ORDER_ALREADY_COMPLETED_OR_CANCELLED(1033, HttpStatus.BAD_REQUEST, "Order is already completed or cancelled"),
+        INSUFFICIENT_PAYMENT(1034, HttpStatus.BAD_REQUEST, "Given amount must be at least the final total"),
+        ZERO_TOTAL(1035, HttpStatus.BAD_REQUEST, "Order total cannot be zero. Please adjust discount or coupon before payment."),
+        TABLE_NOT_FOUND(1036, HttpStatus.NOT_FOUND, "Table not found."),
         ;
 
         int code;

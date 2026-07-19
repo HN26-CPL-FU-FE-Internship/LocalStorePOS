@@ -1,5 +1,7 @@
 package com.pos.backend.controller.Category;
 
+import java.util.List;
+
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -19,6 +21,7 @@ import com.pos.backend.constant.enums.CommonStatus;
 import com.pos.backend.dto.request.Category.CategoryRequest;
 import com.pos.backend.dto.response.ApiResponse;
 import com.pos.backend.dto.response.Category.CategoryListItemResponse;
+import com.pos.backend.dto.response.Common.OptionResponse;
 import com.pos.backend.service.Category.CategoryService;
 import com.pos.backend.service.Common.PageResponse;
 
@@ -31,6 +34,15 @@ import lombok.RequiredArgsConstructor;
 public class CategoryController {
 
     private final CategoryService categoryService;
+
+    @GetMapping("/options")
+    public ApiResponse<List<OptionResponse>> getCategoryOptions() {
+        return ApiResponse.<List<OptionResponse>>builder()
+                .message("Success")
+                .result(categoryService.getCategoryOptions())
+                .build();
+    }
+
 
     @GetMapping
     @PreAuthorize("@perm.hasPermission(authentication, 'Categories', 'view')")
