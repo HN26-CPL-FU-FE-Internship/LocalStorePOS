@@ -39,6 +39,16 @@ public enum ErrorCode {
         ORDER_HAS_BEEN_SERVED(1023, HttpStatus.BAD_REQUEST, "Order has been served"),
         INVALID_ORDER_STATUS_TRANSITION(1024, HttpStatus.BAD_REQUEST, "Invalid order status transition"),
         USER_INACTIVE(1025, HttpStatus.FORBIDDEN, "Your account has been deactivated. Please contact administrator."),
+        
+        ITEM_NOT_FOUND(1026, HttpStatus.NOT_FOUND, "Item not found"),
+        TAX_NOT_FOUND(1027, HttpStatus.NOT_FOUND, "Tax not found"),
+        INVALID_VARIATION_OR_ADDON_DATA(1028, HttpStatus.BAD_REQUEST, "Invalid variation or addon data"),
+
+        ADDON_NOT_FOUND(1029, HttpStatus.NOT_FOUND, "Addon not found"),
+
+        COUPON_NOT_FOUND(1030, HttpStatus.NOT_FOUND, "Coupon not found"),
+        COUPON_CODE_ALREADY_EXISTS(1031, HttpStatus.BAD_REQUEST, "Coupon code already exists"),
+        INVALID_COUPON_DATE_RANGE(1032, HttpStatus.BAD_REQUEST, "Expiry date must not be before start date"),
         ;
 
         int code;

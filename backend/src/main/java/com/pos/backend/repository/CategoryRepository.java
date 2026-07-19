@@ -1,5 +1,7 @@
 package com.pos.backend.repository;
 
+import java.util.List;
+
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -17,12 +19,14 @@ public interface CategoryRepository extends JpaRepository<Category, Long> {
                 AND (:status IS NULL OR c.status = :status)
             """)
     Page<Category> search(
-        @Param("search") String search,
-        @Param("status") CommonStatus status,
-        Pageable pageable
-    );
+            @Param("search") String search,
+            @Param("status") CommonStatus status,
+            Pageable pageable);
 
     boolean existsByNameIgnoreCase(String name);
 
     boolean existsByNameIgnoreCaseAndIdNot(String name, Long id);
+
+    List<Category> findByStatusOrderByNameAsc(CommonStatus status);
+
 }
