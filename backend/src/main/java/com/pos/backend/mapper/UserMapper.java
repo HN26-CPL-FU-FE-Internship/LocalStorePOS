@@ -9,7 +9,6 @@ import org.mapstruct.NullValuePropertyMappingStrategy;
 import com.pos.backend.dto.request.User.UserCreationRequest;
 import com.pos.backend.dto.request.User.UserUpdateRequest;
 import com.pos.backend.dto.response.User.UserCreationResponse;
-import com.pos.backend.dto.response.User.UserResponse;
 import com.pos.backend.entity.User;
 
 @Mapper(componentModel = "spring")

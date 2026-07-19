@@ -22,8 +22,11 @@ import org.springframework.data.domain.Sort.Direction;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.PathVariable;
+
+import com.pos.backend.dto.request.Order.OrderPaymentRequest;
 
 @RestController
 @RequiredArgsConstructor
@@ -60,6 +63,18 @@ public class OrderController {
 
         return ApiResponse.<OrderResponse>builder()
                 .message("Updated status successfully")
+                .result(response)
+                .build();
+    }
+
+    @PostMapping("/{id}/pay")
+    public ApiResponse<OrderResponse> payOrder(@PathVariable Long id,
+            @RequestBody OrderPaymentRequest request) {
+
+        OrderResponse response = orderService.processPayment(request, id);
+
+        return ApiResponse.<OrderResponse>builder()
+                .message("Payment processed successfully")
                 .result(response)
                 .build();
     }

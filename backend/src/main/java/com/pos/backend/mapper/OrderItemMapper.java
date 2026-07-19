@@ -10,5 +10,6 @@ import com.pos.backend.entity.OrderItem;
 public interface OrderItemMapper {
 
     @Mapping(target = "addons", ignore = true)
+    @Mapping(target = "sizeName", ignore = true)
     OrderItemResponse tOrderItemResponse(OrderItem orderItem);
 }

@@ -31,7 +31,7 @@ public interface OrderRepository extends JpaRepository<Order, Long>, JpaSpecific
             @Param("toDate") LocalDateTime toDate);
 
     @Override
-    @EntityGraph(attributePaths = { "table" })
+    @EntityGraph(attributePaths = { "table", "coupon" })
     Page<Order> findAll(Specification<Order> spec, Pageable pageable);
 
 }

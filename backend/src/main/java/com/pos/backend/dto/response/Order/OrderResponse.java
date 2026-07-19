@@ -4,6 +4,7 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
 
+import com.pos.backend.dto.response.Coupon.CouponResponse;
 import com.pos.backend.dto.response.OrderItem.OrderItemResponse;
 
 import lombok.AccessLevel;
@@ -27,8 +28,10 @@ public class OrderResponse {
     String orderType;
     String tableNumber;
     String status;
+    CouponResponse coupon;
     BigDecimal subtotal;
     BigDecimal discountAmount;
+    String discountType;
     BigDecimal taxAmount;
     BigDecimal serviceCharge;
     BigDecimal deliveryCharge;
@@ -37,6 +40,7 @@ public class OrderResponse {
     BigDecimal paidAmount;
     BigDecimal balanceAmount;
     String paymentStatus;
+    String paymentType;
     String note;
     LocalDateTime orderedAt;
     List<OrderItemResponse> items;
