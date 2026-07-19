@@ -10,7 +10,8 @@ import { queryClient } from '@/lib/queryClient.ts';
 import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
 import GlobalStyles from './components/GlobalStyles/index.tsx';
 import ThemeProvider from './provider/ThemeProvider/index.tsx';
-import { ToastProvider } from './provider/ToastProvider';
+import AuthProvider from './provider/AuthProvider/index.tsx';
+import { ToastProvider } from './provider/ToastProvider/index.tsx';
 
 createRoot(document.getElementById('root')!).render(
     <StrictMode>
@@ -19,7 +20,9 @@ createRoot(document.getElementById('root')!).render(
             <GlobalStyles>
                 <ToastProvider>
                     <ThemeProvider>
-                        <App />
+                        <AuthProvider>
+                            <App />
+                        </AuthProvider>
                     </ThemeProvider>
                 </ToastProvider>
             </GlobalStyles>
