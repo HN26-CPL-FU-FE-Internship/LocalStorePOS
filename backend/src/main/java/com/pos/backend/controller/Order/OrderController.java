@@ -34,49 +34,49 @@ import com.pos.backend.dto.request.Order.OrderPaymentRequest;
 @RequestMapping("/api/orders")
 public class OrderController {
 
-    OrderService orderService;
+        OrderService orderService;
 
-    @GetMapping("/stats")
-    public ApiResponse<Map<String, Long>> getCountOrderByStatus(DateFilter filter) {
-        return ApiResponse.<Map<String, Long>>builder()
-                .result(orderService.getOrderCountByStatus(filter))
-                .build();
-    }
+        @GetMapping("/stats")
+        public ApiResponse<Map<String, Long>> getCountOrderByStatus(DateFilter filter) {
+                return ApiResponse.<Map<String, Long>>builder()
+                                .result(orderService.getOrderCountByStatus(filter))
+                                .build();
+        }
 
-    @GetMapping("/order-list")
-    public ApiResponse<Page<OrderResponse>> getListOrders(
-            @PageableDefault(page = 0, size = 10, sort = "orderedAt", direction = Direction.DESC) Pageable pageable,
-            OrderFilter filter
+        @GetMapping("/order-list")
+        public ApiResponse<Page<OrderResponse>> getListOrders(
+                        @PageableDefault(page = 0, size = 10, sort = "orderedAt", direction = Direction.DESC) Pageable pageable,
+                        OrderFilter filter
 
-    ) {
-        Page<OrderResponse> responses = orderService.getListOrders(pageable, filter);
-        return ApiResponse.<Page<OrderResponse>>builder()
-                .result(responses)
-                .build();
-    }
+        ) {
+                Page<OrderResponse> responses = orderService.getListOrders(pageable, filter);
+                return ApiResponse.<Page<OrderResponse>>builder()
+                                .result(responses)
+                                .build();
+        }
 
-    @PatchMapping("/{id}/status")
-    public ApiResponse<OrderResponse> updateStatus(@PathVariable Long id,
-            @RequestBody OrderUpdateStatusRequest request) {
+        @PatchMapping("/{id}/status")
+        public ApiResponse<OrderResponse> updateStatus(@PathVariable Long id,
+                        @RequestBody OrderUpdateStatusRequest request) {
 
-        OrderResponse response = orderService.updateStatus(request, id);
+                OrderResponse response = orderService.updateStatus(request, id);
 
-        return ApiResponse.<OrderResponse>builder()
-                .message("Updated status successfully")
-                .result(response)
-                .build();
-    }
+                return ApiResponse.<OrderResponse>builder()
+                                .message("Updated status successfully")
+                                .result(response)
+                                .build();
+        }
 
-    @PostMapping("/{id}/pay")
-    public ApiResponse<OrderResponse> payOrder(@PathVariable Long id,
-            @RequestBody OrderPaymentRequest request) {
+        @PostMapping("/{id}/pay")
+        public ApiResponse<OrderResponse> payOrder(@PathVariable Long id,
+                        @RequestBody OrderPaymentRequest request) {
 
-        OrderResponse response = orderService.processPayment(request, id);
+                OrderResponse response = orderService.processPayment(request, id);
 
-        return ApiResponse.<OrderResponse>builder()
-                .message("Payment processed successfully")
-                .result(response)
-                .build();
-    }
+                return ApiResponse.<OrderResponse>builder()
+                                .message("Payment processed successfully")
+                                .result(response)
+                                .build();
+        }
 
 }

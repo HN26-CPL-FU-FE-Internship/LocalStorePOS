@@ -35,11 +35,11 @@ public interface OrderRepository extends JpaRepository<Order, Long>, JpaSpecific
     @EntityGraph(attributePaths = { "table", "coupon" })
     Page<Order> findAll(Specification<Order> spec, Pageable pageable);
 
-    @EntityGraph(attributePaths = {"customer"})
+    @EntityGraph(attributePaths = { "customer" })
     Page<Order> findAll(Pageable pageable);
 
     @Query("""
-            SELECT 
+            SELECT
             o.kitchenStatus as kitchenStatus,
             COUNT(o) as totalOrder
             FROM Order o
