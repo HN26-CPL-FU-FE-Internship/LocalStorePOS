@@ -1,5 +1,5 @@
 import type { ORDER_STATUS } from '@/constants';
-import type { Time } from '@/types';
+import type { KitchenStatus, Time } from '@/types';
 
 export type OrderQuery = Time & {
     status: OrderStatus | string;
@@ -66,6 +66,11 @@ export type OrderSummary = {
     discountAmount: number;
     discountType?: string;
 
+    estimatedMinutes: number;
+    cookingStartedAt: string;
+    customerName: string;
+    kitchenStatus: KitchenStatus;
+
     grandTotal: number;
     paidAmount: number;
     balanceAmount: number;
@@ -85,3 +90,5 @@ export type ModalActionProps = {
     onPay: (value: OrderSummary) => void;
     onPrint: () => void;
 };
+
+export type OrderItemType = OrderSummary['items'][number];

@@ -1,24 +1,25 @@
 import { useMemo, useState } from "react";
-import { useNavigate, useLocation } from "react-router-dom";
 import type { PaginationProps } from "./props";
-import '@/components/common/Pagination/style.css'
+import styles from './Pagination.module.scss';
+import { bindCx } from '@/utils';
+
+const cx = bindCx(styles);
+
 export default function Pagination({
     totalItems,
+    currentPage,
+    onPageChange,
     pageSize = 10,
 }: PaginationProps) {
-    const navigate = useNavigate();
-    const location = useLocation();
-
     const totalPages = Math.max(1, Math.ceil(totalItems / pageSize));
 
-    const match = location.pathname.match(/\/pages\/(\d+)/);
-
-    const currentPage = match ? Number(match[1]) : 1;
+    // Clamp current page to valid range so filters that reduce results don't show an out-of-range page
+    const clampedPage = Math.min(currentPage, totalPages);
 
     const [input, setInput] = useState("");
 
     const pages = useMemo(() => {
-        let start = Math.max(1, currentPage - 2);
+        let start = Math.max(1, clampedPage - 2);
         let end = start + 4;
 
         if (end > totalPages) {
@@ -30,15 +31,11 @@ export default function Pagination({
             { length: end - start + 1 },
             (_, i) => start + i
         );
-    }, [currentPage, totalPages]);
+    }, [clampedPage, totalPages]);
 
     const goTo = (page: number) => {
         page = Math.max(1, Math.min(page, totalPages));
-
-        if (page === 1)
-            navigate(location.pathname);
-        else
-            navigate(`/pages/${page}`);
+        onPageChange(page);
     };
 
     const jump = () => {
@@ -58,57 +55,63 @@ export default function Pagination({
         setInput("");
     };
 
-    return (
-        <div className="pagination">
+    // If only one page or no items, don't show pagination
+    if (totalPages <= 1) return null;
 
-            <div className="page-size">
+    return (
+        <div className={cx('pagination')}>
+
+            <div className={cx('page-size')}>
                 Records / page :
                 <input value={pageSize} readOnly />
             </div>
 
-            <button
-                onClick={() => goTo(1)}
-                disabled={currentPage === 1}
-            >
-                {"<<"}
-            </button>
-
-            <button
-                onClick={() => goTo(currentPage - 1)}
-                disabled={currentPage === 1}
-            >
-                {"<"}
-            </button>
-
-            {pages.map(page => (
+            <div className={cx('nav-center')}>
                 <button
-                    key={page}
-                    disabled={page === currentPage}
-                    className={page === currentPage ? "active" : ""}
-                    onClick={() => goTo(page)}
+                    className={cx('nav-btn')}
+                    onClick={() => goTo(1)}
+                    disabled={clampedPage === 1}
                 >
-                    {page}
+                    {'<<'}
                 </button>
-            ))}
 
-            <button
-                onClick={() => goTo(currentPage + 1)}
-                disabled={currentPage === totalPages}
-            >
-                {">"}
-            </button>
+                <button
+                    className={cx('nav-btn')}
+                    onClick={() => goTo(clampedPage - 1)}
+                    disabled={clampedPage === 1}
+                >
+                    {'<'}
+                </button>
 
-            <button
-                onClick={() => goTo(totalPages)}
-                disabled={currentPage === totalPages}
-            >
-                {">>"}
-            </button>
+                {pages.map(page => (
+                    <button
+                        key={page}
+                        className={cx('nav-btn', page === clampedPage ? 'active' : '')}
+                        onClick={() => goTo(page)}
+                    >
+                        {page}
+                    </button>
+                ))}
 
-            <div className="jump">
+                <button
+                    className={cx('nav-btn')}
+                    onClick={() => goTo(clampedPage + 1)}
+                    disabled={clampedPage === totalPages}
+                >
+                    {'>'}
+                </button>
 
+                <button
+                    className={cx('nav-btn')}
+                    onClick={() => goTo(totalPages)}
+                    disabled={clampedPage === totalPages}
+                >
+                    {'>>'}
+                </button>
+            </div>
+
+            <div className={cx('jump')}>
                 <span>Go to</span>
-
                 <input
                     value={input}
                     type="number"
@@ -120,11 +123,9 @@ export default function Pagination({
                             jump();
                     }}
                 />
-
-                <button onClick={jump}>
+                <button className={cx('go-btn')} onClick={jump}>
                     Go
                 </button>
-
             </div>
 
         </div>

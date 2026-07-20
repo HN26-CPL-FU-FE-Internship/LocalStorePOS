@@ -31,7 +31,6 @@ import userImages from '@/assets/img/users';
 import { api } from '@/lib/axios';
 import type { ApiResponse } from '@/types/auth';
 import Pagination from '@/components/common/Pagination';
-import { useLocation } from 'react-router-dom';
 
 /* ------------------------------------------------------------------ */
 /*  Static demo data                                                  */
@@ -98,11 +97,13 @@ const sortConfigMap: Record<SortOption, { sortBy: string; sortDir: string }> = {
 /*  Component                                                         */
 /* ------------------------------------------------------------------ */
 const UsersPage = () => {
-    /* ---------- Pagination ---------- */
-    const location = useLocation();
+    const [currentPage, setCurrentPage] = useState(1);
     const PAGE_SIZE = 10;
-    const match = location.pathname.match(/\/pages\/(\d+)/);
-    const currentPage = match ? Number(match[1]) : 1;
+
+    const handlePageChange = useCallback((page: number) => {
+        setCurrentPage(page);
+    }, []);
+
     /* ---------- state ---------- */
     const [users, setUsers] = useState<UserEntry[]>([]);
     const [roles, setRoles] = useState<RoleOption[]>([]);
@@ -640,7 +641,7 @@ const UsersPage = () => {
                             </tbody>
                         </Table>
                     </div>
-                    <Pagination totalItems={totalItems} pageSize={PAGE_SIZE} />
+                    <Pagination totalItems={totalItems} currentPage={currentPage} onPageChange={handlePageChange} pageSize={PAGE_SIZE} />
                 </Card.Body>
             </Card>
 

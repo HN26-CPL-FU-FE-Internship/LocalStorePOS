@@ -7,7 +7,7 @@ const useOrderSummary = (query: OrderQuery) => {
     return useQuery({
         queryKey: orderKeys.summaryList(query),
         queryFn: () => orderService.getOrderSummary(query),
-        staleTime: 30000,
+        staleTime: 1000 * 60 * 5,
         placeholderData: keepPreviousData,
     });
 };

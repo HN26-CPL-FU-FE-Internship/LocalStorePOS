@@ -1,11 +1,9 @@
 // Was previously duplicated verbatim for the "visible" and "collapsed" item lists,
 
 import Icon from '@/components/common/Icon';
-import type { OrderSummary } from '@/types';
+import type { OrderItemType } from '@/types';
 import { memo } from 'react';
 import { Fragment } from 'react/jsx-runtime';
-
-type OrderItemType = OrderSummary['items'][number];
 
 // with a copy/paste bug in the collapsed version (`'-'${o.sizeName}` instead of ` - ${o.sizeName}`).
 const OrderItemRow = ({ item }: { item: OrderItemType }) => (

@@ -215,6 +215,7 @@ export type {
     OrderStatus,
     DiscountType,
     CouponOrder,
+    OrderItemType,
 } from './order';
 
 export type { Time } from './time';

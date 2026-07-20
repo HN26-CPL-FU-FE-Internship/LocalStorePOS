@@ -1,20 +1,27 @@
 package com.pos.backend.service.Kitchen;
 
+import java.time.LocalDateTime;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
+import com.pos.backend.constant.ErrorCode;
 import com.pos.backend.constant.enums.KitchenStatus;
+import com.pos.backend.constant.enums.OrderStatus;
+import com.pos.backend.dto.request.Kitchen.StartCookingRequest;
 import com.pos.backend.dto.response.Order.OrderResponse;
 import com.pos.backend.dto.response.OrderItem.OrderItemResponse;
 import com.pos.backend.dto.response.OrderItemAddons.OrderItemAddonResponse;
 import com.pos.backend.entity.Order;
 import com.pos.backend.entity.OrderItem;
 import com.pos.backend.entity.OrderItemAddon;
+import com.pos.backend.exception.AppException;
 import com.pos.backend.repository.OrderItemAddonRepository;
 import com.pos.backend.repository.OrderItemRepository;
 import com.pos.backend.repository.OrderRepository;
@@ -50,7 +57,7 @@ public class KitchenService {
 		return result;
 	}
 
-	public List<OrderResponse> getKitchenOrders(Pageable pageable) {
+	public Page<OrderResponse> getKitchenOrders(Pageable pageable) {
 
 		Page<Order> orders = orderRepository.findAll(pageable);
 		List<Long> orderIds = orders.stream().map(order -> order.getId()).toList();
@@ -65,7 +72,7 @@ public class KitchenService {
 		Map<Long, List<OrderItemResponse>> orderItemsByOrderId = orderCommonService.groupItemsByOrderId(orderItems,
 				addonsByOrderItemId);
 
-		return orders.stream().map(order -> OrderResponse.builder()
+		List<OrderResponse> orderResponses = orders.stream().map(order -> OrderResponse.builder()
 				.id(order.getId())
 				.kitchenStatus(order.getKitchenStatus().toString())
 				.tokenNo(order.getTokenNo())
@@ -78,5 +85,59 @@ public class KitchenService {
 				.customerName(order.getCustomer() != null ? order.getCustomer().getName()
 						: "Walk In Customer")
 				.build()).toList();
+
+		return new PageImpl<>(orderResponses, pageable, orders.getTotalElements());
+	}
+
+	@Transactional
+	public OrderResponse startCooking(Long id, StartCookingRequest request) {
+		Order order = orderRepository.findById(id)
+				.orElseThrow(() -> new AppException(ErrorCode.ORDER_NOT_FOUND));
+
+		order.setKitchenStatus(KitchenStatus.in_kitchen);
+		order.setEstimatedMinutes(request.getEstimatedMinutes());
+		order.setCookingStartedAt(LocalDateTime.now());
+		order.setStatus(OrderStatus.preparing);
+		order = orderRepository.save(order);
+
+		return buildOrderResponse(order);
+	}
+
+	@Transactional
+	public OrderResponse markComplete(Long id) {
+		Order order = orderRepository.findById(id)
+				.orElseThrow(() -> new AppException(ErrorCode.ORDER_NOT_FOUND));
+
+		order.setKitchenStatus(KitchenStatus.completed);
+		order = orderRepository.save(order);
+
+		return buildOrderResponse(order);
+	}
+
+	@Transactional
+	public OrderResponse markDelayed(Long id) {
+		Order order = orderRepository.findById(id)
+				.orElseThrow(() -> new AppException(ErrorCode.ORDER_NOT_FOUND));
+
+		order.setKitchenStatus(KitchenStatus.delayed);
+
+		order = orderRepository.save(order);
+
+		return buildOrderResponse(order);
+	}
+
+	private OrderResponse buildOrderResponse(Order order) {
+		return OrderResponse.builder()
+				.id(order.getId())
+				.kitchenStatus(order.getKitchenStatus().toString())
+				.tokenNo(order.getTokenNo())
+				.items(List.of())
+				.estimatedMinutes(order.getEstimatedMinutes())
+				.cookingStartedAt(order.getCookingStartedAt())
+				.orderNumber(order.getOrderNumber())
+				.orderedAt(order.getOrderedAt())
+				.orderType(order.getOrderType().toString())
+				.customerName(order.getCustomer() != null ? order.getCustomer().getName() : "Walk In Customer")
+				.build();
 	}
 }

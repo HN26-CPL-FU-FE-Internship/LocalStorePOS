@@ -12,5 +12,6 @@ public interface OrderMapper {
     @Mapping(target = "tableNumber", source = "table.tableNumber")
     @Mapping(target = "items", ignore = true)
     @Mapping(target = "coupon", ignore = true)
+    @Mapping(target = "customerName", ignore = true)
     OrderResponse toOrderResponse(Order order);
 }

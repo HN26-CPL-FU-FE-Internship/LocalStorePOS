@@ -7,7 +7,7 @@ function useStatsStatus(query: Time) {
     return useQuery({
         queryKey: orderKeys.stats(query),
         queryFn: () => orderService.getOrderStats(query),
-        staleTime: 30000,
+        staleTime: 1000 * 60 * 5,
         placeholderData: keepPreviousData,
     });
 }

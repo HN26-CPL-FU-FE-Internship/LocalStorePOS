@@ -12,4 +12,4 @@ export {
 
 export { FEEDBACK_CONFIG } from './feedback';
 export { CONFIRM_CONFIG } from './modal';
-export { KITCHEN_STATUSES } from './kitchen';
+export { KITCHEN_STATUSES, KITCHEN_QUERY_KEYS } from './kitchen';

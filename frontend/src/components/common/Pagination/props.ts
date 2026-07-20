@@ -1,4 +1,6 @@
 export interface PaginationProps {
     totalItems: number;
-    pageSize?: number; // mặc định 10
+    currentPage: number;
+    onPageChange: (page: number) => void;
+    pageSize?: number;
 }
