@@ -131,8 +131,8 @@ public class Order extends BaseEntity {
     private LocalDateTime orderedAt;
 
     @Column(name = "estimated_minutes", nullable = true)
-private Integer estimatedMinutes;
+    private Integer estimatedMinutes;
 
-@Column(name = "cooking_started_at", nullable = true)
-private LocalDateTime cookingStartedAt;
+    @Column(name = "cooking_started_at", nullable = true)
+    private LocalDateTime cookingStartedAt;
 }

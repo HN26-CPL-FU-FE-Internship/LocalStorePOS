@@ -28,6 +28,8 @@ public class OrderResponse {
     String orderType;
     String tableNumber;
     String status;
+    String kitchenStatus;
+    String customerName;
     CouponResponse coupon;
     BigDecimal subtotal;
     BigDecimal discountAmount;
@@ -42,6 +44,8 @@ public class OrderResponse {
     String paymentStatus;
     String paymentType;
     String note;
+    Integer estimatedMinutes;
+    LocalDateTime cookingStartedAt;
     LocalDateTime orderedAt;
     List<OrderItemResponse> items;
 }
