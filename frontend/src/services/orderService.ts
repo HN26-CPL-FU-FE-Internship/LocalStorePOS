@@ -17,7 +17,7 @@ export interface PaymentRequest {
 
 const orderService = {
     getOrderStats: async (query: Time) => {
-        const res = await api.get<ApiResponse<OrderStat[]>>('/orders/stats', {
+        const res = await api.get<ApiResponse<OrderStat>>('/orders/stats', {
             params: query,
         });
         return res.data;

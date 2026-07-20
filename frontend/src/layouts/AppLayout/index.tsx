@@ -34,7 +34,7 @@ const AppLayout = ({ children }: PropsWithChildren) => {
             <Sidebar onClose={() => setMobileSidebarOpen(false)} />
 
             <div className="page-wrapper">
-                <div className="content pb-0">{children}</div>
+                <div className="content">{children}</div>
             </div>
         </div>
     );

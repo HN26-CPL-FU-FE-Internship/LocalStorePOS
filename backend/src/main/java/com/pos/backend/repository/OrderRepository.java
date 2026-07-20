@@ -1,6 +1,7 @@
 package com.pos.backend.repository;
 
 import com.pos.backend.entity.Order;
+import com.pos.backend.service.Kitchen.KitchenStatusCount;
 import com.pos.backend.service.Order.OrderStatusCount;
 
 import java.time.LocalDateTime;
@@ -34,4 +35,12 @@ public interface OrderRepository extends JpaRepository<Order, Long>, JpaSpecific
     @EntityGraph(attributePaths = { "table", "coupon" })
     Page<Order> findAll(Specification<Order> spec, Pageable pageable);
 
+    @Query("""
+            SELECT 
+            o.kitchenStatus as kitchenStatus,
+            COUNT(o) as totalOrder
+            FROM Order o
+            GROUP BY o.kitchenStatus
+            """)
+    List<KitchenStatusCount> countOrderByKitchenStatus();
 }

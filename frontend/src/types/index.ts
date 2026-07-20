@@ -227,3 +227,5 @@ export type { ConfirmType, ConfirmModalProps } from './modal';
 
 export type { UserInfo, PermissionModule as PermissionModuleType } from './permission';
 export { ROUTE_PERMISSION_MAP, PUBLIC_ROUTES } from './permission';
+
+export type { KitchenOrderStat, KitchenStatus } from './kitchen';

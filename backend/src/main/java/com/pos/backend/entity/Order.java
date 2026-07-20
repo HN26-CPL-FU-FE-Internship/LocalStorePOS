@@ -129,4 +129,10 @@ public class Order extends BaseEntity {
 
     @Column(name = "ordered_at", nullable = false)
     private LocalDateTime orderedAt;
+
+    @Column(name = "estimated_minutes", nullable = true)
+private Integer estimatedMinutes;
+
+@Column(name = "cooking_started_at", nullable = true)
+private LocalDateTime cookingStartedAt;
 }
