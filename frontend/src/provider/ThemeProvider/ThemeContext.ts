@@ -5,6 +5,6 @@ export type ThemeContextType = {
     toggleTheme: () => void;
 };
 
-const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
+const ThemeContext = createContext<ThemeContextType | null>(null);
 
 export default ThemeContext;

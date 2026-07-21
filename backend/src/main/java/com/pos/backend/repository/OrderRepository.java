@@ -1,7 +1,49 @@
 package com.pos.backend.repository;
 
 import com.pos.backend.entity.Order;
-import org.springframework.data.jpa.repository.JpaRepository;
+import com.pos.backend.service.Kitchen.KitchenStatusCount;
+import com.pos.backend.service.Order.OrderStatusCount;
 
-public interface OrderRepository extends JpaRepository<Order, Long> {
+import java.time.LocalDateTime;
+import java.util.List;
+
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
+import org.springframework.data.jpa.repository.EntityGraph;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
+
+public interface OrderRepository extends JpaRepository<Order, Long>, JpaSpecificationExecutor<Order> {
+
+    @Query("""
+            SELECT
+                o.status AS status,
+                COUNT(o) AS totalOrder
+            FROM Order o
+            WHERE (:fromDate IS NULL OR o.orderedAt >= :fromDate)
+            AND (:toDate IS NULL OR o.orderedAt <= :toDate)
+            GROUP BY o.status
+
+            """)
+    List<OrderStatusCount> countOrderByStatus(@Param("fromDate") LocalDateTime fromDate,
+            @Param("toDate") LocalDateTime toDate);
+
+    @Override
+    @EntityGraph(attributePaths = { "table", "coupon" })
+    Page<Order> findAll(Specification<Order> spec, Pageable pageable);
+
+    @EntityGraph(attributePaths = { "customer" })
+    Page<Order> findAll(Pageable pageable);
+
+    @Query("""
+            SELECT
+            o.kitchenStatus as kitchenStatus,
+            COUNT(o) as totalOrder
+            FROM Order o
+            GROUP BY o.kitchenStatus
+            """)
+    List<KitchenStatusCount> countOrderByKitchenStatus();
 }

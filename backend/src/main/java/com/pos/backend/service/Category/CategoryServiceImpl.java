@@ -15,6 +15,7 @@ import com.pos.backend.constant.ErrorCode;
 import com.pos.backend.constant.enums.CommonStatus;
 import com.pos.backend.dto.request.Category.CategoryRequest;
 import com.pos.backend.dto.response.Category.CategoryListItemResponse;
+import com.pos.backend.dto.response.Common.OptionResponse;
 import com.pos.backend.entity.Category;
 import com.pos.backend.exception.AppException;
 import com.pos.backend.repository.CategoryRepository;
@@ -70,6 +71,15 @@ public class CategoryServiceImpl implements CategoryService {
                 .first(categoryPage.isFirst())
                 .last(categoryPage.isLast())
                 .build();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<OptionResponse> getCategoryOptions() {
+        return categoryRepository.findByStatusOrderByNameAsc(CommonStatus.active)
+                .stream()
+                .map(category -> OptionResponse.builder().id(category.getId()).name(category.getName()).build())
+                .toList();
     }
 
     @Override

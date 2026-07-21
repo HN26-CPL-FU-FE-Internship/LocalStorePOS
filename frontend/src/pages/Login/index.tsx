@@ -5,8 +5,7 @@ import { EyeOff, Eye } from 'lucide-react';
 import configs from '@/configs';
 
 import { useState } from 'react';
-import { toggleHidePassword } from '@/utils';
-import { tokenUtils } from '@/utils/token';
+import { toggleHidePassword, tokenUtils } from '@/utils';
 import { useLogin } from '@/hooks/auth';
 import { loginSchema, type LoginForm } from './login.schema';
 import { useForm } from 'react-hook-form';
@@ -42,35 +41,34 @@ function Login() {
                     setUser(result.user);
                 }
                 switch (result.user?.role) {
-                    case "Admin / Owner":
+                    case 'Admin / Owner':
                         navigate(routes.dashboard);
                         break;
-                    case "Supervisor":
+                    case 'Supervisor':
                         navigate(routes.dashboard);
                         break;
-                    case "Cashier":
+                    case 'Cashier':
                         navigate(routes.pos);
                         break;
-                    case "Chef":
+                    case 'Chef':
                         navigate(routes.kitchen);
                         break;
-                    case "Waiter":
+                    case 'Waiter':
                         navigate(routes.pos);
                         break;
-                    case "Delivery":
+                    case 'Delivery':
                         navigate(routes.orders);
                         break;
-                    case "Accountant":
+                    case 'Accountant':
                         navigate(routes['earning-reports']);
                         break;
-                    case "System Operator":
+                    case 'System Operator':
                         navigate(routes['store-settings']);
                         break;
                     default:
                         navigate(routes.dashboard);
                         break;
                 }
-
             },
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             onError: (error: any) => {

@@ -3,6 +3,7 @@ package com.pos.backend.entity;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
+import com.pos.backend.constant.enums.DiscountType;
 import com.pos.backend.constant.enums.KitchenStatus;
 import com.pos.backend.constant.enums.OrderPaymentStatus;
 import com.pos.backend.constant.enums.OrderStatus;
@@ -81,6 +82,10 @@ public class Order extends BaseEntity {
     @Column(name = "discount_amount", nullable = false, precision = 12, scale = 2)
     private BigDecimal discountAmount = BigDecimal.ZERO;
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "discount_type", length = 20)
+    private DiscountType discountType;
+
     @Builder.Default
     @Column(name = "tax_amount", nullable = false, precision = 12, scale = 2)
     private BigDecimal taxAmount = BigDecimal.ZERO;
@@ -111,6 +116,9 @@ public class Order extends BaseEntity {
     @Column(name = "balance_amount", nullable = false, precision = 12, scale = 2)
     private BigDecimal balanceAmount = BigDecimal.ZERO;
 
+    @Column(name = "payment_type", length = 20)
+    private String paymentType;
+
     @Builder.Default
     @Enumerated(EnumType.STRING)
     @Column(name = "payment_status", nullable = false)
@@ -121,4 +129,10 @@ public class Order extends BaseEntity {
 
     @Column(name = "ordered_at", nullable = false)
     private LocalDateTime orderedAt;
+
+    @Column(name = "estimated_minutes", nullable = true)
+    private Integer estimatedMinutes;
+
+    @Column(name = "cooking_started_at", nullable = true)
+    private LocalDateTime cookingStartedAt;
 }

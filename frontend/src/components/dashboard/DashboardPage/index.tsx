@@ -33,10 +33,10 @@ import HeaderDashboard from '@/components/headers/HeaderDashboard';
  * Mount inside <AppLayout> (which already renders <div class="content pb-0">
  * as its content slot) — see pages/DashboardIndex.tsx for the composition.
  */
-const DashboardPage = () => {
+const DashboardPage = ({ onDateRangeChange }: { onDateRangeChange?: (from: Date, to: Date) => void }) => {
     return (
         <>
-            <PageHeader title="Dashboard" action={HeaderDashboard()} />
+            <PageHeader title="Dashboard" action={<HeaderDashboard onDateRangeChange={onDateRangeChange} />} />
 
             <StatsRow stats={dashboardStats} />
 

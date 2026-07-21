@@ -1,12 +1,88 @@
 import Icon from '@/components/common/Icon';
-import { Card, Col, Dropdown, DropdownButton } from 'react-bootstrap';
+import { Card, Col, Dropdown } from 'react-bootstrap';
 import { Link } from 'react-router-dom';
+import { useCallback, useMemo, useState } from 'react';
+
 import styles from './TabContent.module.scss';
-import { bindCx } from '@/utils';
+import { bindCx, formatHourAndMinute, formatString, orderUtils, toTitleCase } from '@/utils';
+import type { ConfirmType, ModalActionProps, OrderStatus, OrderSummary, OrderUpdateStatus } from '@/types';
+import type { PaymentRequest } from '@/services/orderService';
+import OrderActionDropdown from '../OrderActionDropdown';
+import { ORDER_STATUS_ERROR_TITLE, statuses } from '@/constants';
+import { useUpdateStatus, usePayOrder } from '@/hooks/order/';
+import useContextData from '@/hooks/useContextData';
+import { ToastContext } from '@/provider/ToastProvider/ToastContext';
+import ConfirmModal from '@/components/common/ConfirmModal';
+import OrderModal from '../OrderModal';
+import PayOrderModal from '../PayOrderModal';
+import OrderItemRow from '../OrderItemRow';
 
 const cx = bindCx(styles);
 
-const TabContent = () => {
+const VISIBLE_ITEMS_COUNT = 3;
+
+export type TabContentProps = ModalActionProps;
+
+const TabContent = ({ order }: { order: OrderSummary }) => {
+    const { showToast } = useContextData(ToastContext);
+
+    const [showItems, setShowItems] = useState(false);
+    const [showConfirmModal, setShowConfirmModal] = useState(false);
+    const [showOrderModal, setShowOrderModal] = useState(false);
+    const [showOrderPay, setShowOrderPay] = useState(false);
+    const [updateStatus, setUpdateStatus] = useState<OrderUpdateStatus>();
+    const [confirmType, setConfirmType] = useState<ConfirmType>('update');
+
+    const updateStatusMutate = useUpdateStatus();
+    const payOrderMutate = usePayOrder();
+
+    // Replaces the `if (index <= 2) return (...)` pattern, which silently returns
+    // `undefined` for the other array slots on every render
+    const visibleItems = useMemo(() => order.items.slice(0, VISIBLE_ITEMS_COUNT), [order.items]);
+    const hiddenItems = useMemo(() => order.items.slice(VISIBLE_ITEMS_COUNT), [order.items]);
+    const hiddenCount = hiddenItems.length;
+
+    const handleOpenOrderModal = useCallback(() => setShowOrderModal(true), []);
+    const handleCloseOrderModal = useCallback(() => setShowOrderModal(false), []);
+
+    const handleRequestStatusUpdate = useCallback(
+        (status: OrderStatus) => {
+            if (!orderUtils.canTransition(order.status, status)) {
+                showToast('error', ORDER_STATUS_ERROR_TITLE[order.status]);
+                return;
+            }
+
+            setUpdateStatus({
+                id: order.id,
+                orderNumber: order.orderNumber,
+                status,
+            });
+            setConfirmType(status === 'cancelled' ? 'cancel' : status === 'completed' ? 'complete' : 'update');
+            setShowConfirmModal(true);
+        },
+        [order.id, order.orderNumber, order.status, showToast],
+    );
+
+    const handleCloseOrderPay = useCallback(() => setShowOrderPay(false), []);
+
+    const handleConfirm = useCallback(() => {
+        if (updateStatus) {
+            // The useUpdateStatus hook's onSuccess/onError already shows toasts.
+            // No need to duplicate feedback handling here.
+            updateStatusMutate.mutate(updateStatus);
+        }
+        setShowConfirmModal(false);
+    }, [updateStatus, updateStatusMutate]);
+
+    const handlePaymentComplete = useCallback(
+        (paymentData: PaymentRequest) =>
+            payOrderMutate.mutate({
+                id: order.id,
+                paymentData,
+            }),
+        [order.id, payOrderMutate],
+    );
+
     return (
         <>
             <Col xxl={4} xl={6} md={6} className="d-flex">
@@ -19,106 +95,103 @@ const TabContent = () => {
                                 </div>
                                 <div>
                                     <h6 className="mb-1 fs-14 fw-semibold">
-                                        <Link to={''}>#56998</Link>
+                                        <Link to={''} onClick={handleOpenOrderModal}>
+                                            {order.orderNumber}
+                                        </Link>
                                     </h6>
                                     <p className="mb-0 d-flex align-items-center gap-2">
-                                        Dine In
+                                        {toTitleCase(order.orderType)}
                                         <span>|</span>
-                                        Table No : 3
+                                        Table No : {order.tableNumber || '-'}
                                     </p>
                                 </div>
                             </div>
-
-                            <DropdownButton title as={'div'} drop={'start'} variant="" className={cx('dropstart')}>
-                                <Dropdown.Item eventKey="1">Action</Dropdown.Item>
-                                <Dropdown.Item eventKey="2">Another action</Dropdown.Item>
-                                <Dropdown.Item eventKey="3">Something else here</Dropdown.Item>
-                                <Dropdown.Divider />
-                                <Dropdown.Item eventKey="4">Separated link</Dropdown.Item>
-                            </DropdownButton>
+                            <OrderActionDropdown
+                                actions={{
+                                    cx,
+                                    onUpdateStatus: handleRequestStatusUpdate,
+                                    onPay: orderUtils.onPay,
+                                    onPrint: orderUtils.onPrint,
+                                    onOpenModal: setShowOrderPay,
+                                }}
+                                order={order}
+                            />
                         </div>
                         <div className="d-flex align-items-center justify-content-between mb-3">
                             <p className="mb-0 fs-14 fw-semibold text-dark">
-                                <span className="fw-normal">Token No :</span> 24
+                                <span className="fw-normal">Token No :</span> {order.tokenNo || '-'}
                             </p>
                             <h6 className="mb-0 fw-semibold d-flex align-items-center gap-1">
                                 <Icon name="clock" className="fs-14" />
-                                06:24 PM
+                                {formatHourAndMinute(order.orderedAt)}
                             </h6>
                         </div>
                         <div className="mb-3 pb-3 border-bottom">
                             <div className="orders-list">
-                                <div className="orders text-dark mb-3">
-                                    <p>
-                                        <span className="dot"></span>Grilled Chicken
-                                    </p>
-                                    <span className="line"></span>
-                                    <p className="text-dark">×1</p>
-                                </div>
-                                <div className="orders text-dark mb-2">
-                                    <p>
-                                        <span className="dot"></span>Grilled Chicken
-                                    </p>
-                                    <span className="line"></span>
-                                    <p className="text-dark">×1</p>
-                                </div>
-                                <div className="bg-light rounded py-1 px-2 mb-3">
-                                    <p className="mb-0 fw-medium d-flex align-items-center text-dark">
-                                        <Icon name="icon-badge-info" className="me-1" />
-                                        Notes : Extra Spicy
-                                    </p>
-                                </div>
-                                <div className="orders text-dark mb-3">
-                                    <p>
-                                        <span className="dot"></span>Grilled Chicken
-                                    </p>
-                                    <span className="line"></span>
-                                    <p className="text-dark">×1</p>
-                                </div>
-                                <div className="more-menu d-none">
-                                    <div className="orders text-dark mb-3">
-                                        <p>
-                                            <span className="dot"></span>Grilled Chicken
-                                        </p>
-                                        <span className="line"></span>
-                                        <p className="text-dark">×1</p>
+                                {visibleItems.map((item) => (
+                                    <OrderItemRow key={item.id} item={item} />
+                                ))}
+
+                                {showItems && (
+                                    <div className="more-menu">
+                                        {hiddenItems.map((item) => (
+                                            <OrderItemRow key={item.id} item={item} />
+                                        ))}
                                     </div>
-                                    <div className="orders text-dark mb-3">
-                                        <p>
-                                            <span className="dot"></span>Grilled Chicken
-                                        </p>
-                                        <span className="line"></span>
-                                        <p className="text-dark">×1</p>
+                                )}
+
+                                {hiddenCount > 0 && (
+                                    <div className="view-all mt-1">
+                                        <button
+                                            className="fw-semibold fs-14 mb-0 text-primary viewall-button"
+                                            onClick={() => setShowItems((prev) => !prev)}
+                                        >
+                                            {showItems ? 'Show less' : `+${hiddenCount} More Items`}
+                                        </button>
                                     </div>
-                                </div>
-                                <div className="view-all mt-1">
-                                    <button className="fw-semibold fs-14 mb-0 text-primary viewall-button">
-                                        +2 More Items
-                                    </button>
-                                </div>
+                                )}
                             </div>
                         </div>
                         <div className="d-flex align-items-center justify-content-between flex-wrap gap-3">
-                            <p className="badge badge-soft-success mb-0">Billed</p>
+                            <p className="badge badge-soft-success mb-0">{formatString(order.paymentStatus)}</p>
                             <Dropdown>
                                 <Dropdown.Toggle variant="" className=" btn btn-white d-inline-flex align-items-center">
-                                    Pending
+                                    {formatString(order.status)}
                                 </Dropdown.Toggle>
-                                <Dropdown.Menu as={'ul'}>
-                                    <li>
-                                        <Dropdown.Item className="rounded">Pending</Dropdown.Item>
-                                        <Dropdown.Item className="rounded">Preparing</Dropdown.Item>
-                                        <Dropdown.Item className="rounded">Served</Dropdown.Item>
-                                        <Dropdown.Item className="rounded">Delivered</Dropdown.Item>
-                                        <Dropdown.Item className="rounded">Completed</Dropdown.Item>
-                                        <Dropdown.Item className="rounded">Cancel</Dropdown.Item>
-                                    </li>
+                                <Dropdown.Menu>
+                                    {statuses
+                                        .filter((status) => status !== order.status)
+                                        .map((status) => (
+                                            <Dropdown.Item
+                                                key={status}
+                                                onClick={() => handleRequestStatusUpdate(status)}
+                                            >
+                                                {formatString(status)}
+                                            </Dropdown.Item>
+                                        ))}
                                 </Dropdown.Menu>
                             </Dropdown>
                         </div>
                     </Card.Body>
                 </Card>
             </Col>
+
+            <OrderModal onHide={handleCloseOrderModal} show={showOrderModal} orderContent={order || null} />
+            <PayOrderModal
+                show={showOrderPay}
+                handleClose={handleCloseOrderPay}
+                order={order}
+                onPaymentComplete={handlePaymentComplete}
+                isPaymentProcessing={payOrderMutate.isPending}
+            />
+
+            <ConfirmModal
+                action={handleConfirm}
+                data={`${updateStatus?.orderNumber}`}
+                handleClose={() => setShowConfirmModal(false)}
+                type={confirmType}
+                show={showConfirmModal}
+            />
         </>
     );
 };

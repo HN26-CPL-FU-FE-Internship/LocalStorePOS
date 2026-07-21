@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { tokenUtils } from '@/utils/token';
+import { tokenUtils } from '@/utils';
 import type { ApiResponse, LoginResponse } from '@/types/auth';
 
 const BASE_URL = 'http://localhost:8080/restaurant-pos/api';

@@ -1,0 +1,15 @@
+import { orderKeys } from '@/constants';
+import orderService from '@/services/orderService';
+import type { Time } from '@/types';
+import { keepPreviousData, useQuery } from '@tanstack/react-query';
+
+function useStatsStatus(query: Time) {
+    return useQuery({
+        queryKey: orderKeys.stats(query),
+        queryFn: () => orderService.getOrderStats(query),
+        staleTime: 1000 * 60 * 5,
+        placeholderData: keepPreviousData,
+    });
+}
+
+export default useStatsStatus;

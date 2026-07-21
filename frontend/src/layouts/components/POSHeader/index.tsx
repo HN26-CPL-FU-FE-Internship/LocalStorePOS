@@ -11,7 +11,7 @@ import QuickLinkHeader from '../QuickLinkHeader';
 import NotificationsDropdown from '../Sidebar/NotificationsDropdown';
 import { notificationGroups } from '@/data/dashboardData';
 import ProfileDropdown from '../Sidebar/ProfileDropdown';
-import { currentUser, logoutHref, profileMenuItems } from '@/data/navigationData';
+import { logoutHref, profileMenuItems } from '@/data/navigationData';
 import useContextData from '@/hooks/useContextData';
 import type { ThemeContextType } from '@/provider/ThemeProvider/ThemeContext';
 import ThemeContext from '@/provider/ThemeProvider/ThemeContext';
@@ -81,7 +81,6 @@ const POSHeader = () => {
                             <li>
                                 <div>
                                     <ProfileDropdown
-                                        user={currentUser}
                                         menuItems={profileMenuItems}
                                         logoutHref={logoutHref}
                                     />

@@ -1,11 +1,10 @@
 import Dropdown from 'react-bootstrap/Dropdown';
-import Badge from 'react-bootstrap/Badge';
 import Button from 'react-bootstrap/Button';
 import Icon from '@/components/common/Icon';
 import type { ProfileMenuItem } from '@/types';
-import { Link } from 'react-router-dom';
 import useAuth from '@/hooks/useAuth';
 import { ROUTE_PERMISSION_MAP } from '@/types/permission';
+import { Link } from 'react-router-dom';
 
 export interface ProfileDropdownProps {
     menuItems: ProfileMenuItem[];
@@ -27,7 +26,7 @@ const ProfileDropdown = ({ menuItems }: ProfileDropdownProps) => {
                 {user?.avatarPath ? (
                     <img src={user.avatarPath} alt="user" className="img-fluid rounded-circle" />
                 ) : (
-                    <div className="avatar-letter rounded-circle d-flex align-items-center justify-content-center bg-primary text-white">
+                    <div className="avatar-letter rounded-circle d-flex align-items-center justify-content-center bg-primary text-white w-100">
                         {user?.firstName?.charAt(0)?.toUpperCase()}
                     </div>
                 )}
@@ -40,7 +39,7 @@ const ProfileDropdown = ({ menuItems }: ProfileDropdownProps) => {
                                 {user?.avatarPath ? (
                                     <img src={user.avatarPath} className="rounded-circle" alt="user" />
                                 ) : (
-                                    <div className="avatar-letter rounded-circle d-flex align-items-center justify-content-center bg-primary text-white fs-5">
+                                    <div className="avatar-letter rounded-circle d-flex align-items-center justify-content-center bg-primary text-white fs-5 w-100">
                                         {user?.firstName?.charAt(0)?.toUpperCase()}
                                     </div>
                                 )}
