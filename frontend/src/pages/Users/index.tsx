@@ -29,6 +29,7 @@ import PageHeader from '@/components/common/PageHeader';
 import HeaderUsers from '@/components/headers/HeaderUsers';
 import userImages from '@/assets/img/users';
 import { api } from '@/lib/axios';
+import type { AxiosError } from 'axios';
 import type { ApiResponse } from '@/types/auth';
 import Pagination from '@/components/common/Pagination';
 
@@ -247,9 +248,9 @@ const UsersPage = () => {
             setAddForm(addEmptyForm);
             clearAvatar();
             await loadUsers();
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        } catch (err: any) {
-            const msg = err?.response?.data?.message || 'Failed to create user';
+            } catch (err: unknown) {
+            const msg =
+                (err as AxiosError<{ message?: string }>)?.response?.data?.message || 'Failed to create user';
             alert(msg);
         }
     };
@@ -297,9 +298,9 @@ const UsersPage = () => {
             setEditForm(editEmptyForm);
             clearAvatar();
             await loadUsers();
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        } catch (err: any) {
-            const msg = err?.response?.data?.message || 'Failed to update user';
+            } catch (err: unknown) {
+            const msg =
+                (err as AxiosError<{ message?: string }>)?.response?.data?.message || 'Failed to update user';
             alert(msg);
         }
     };
@@ -317,9 +318,9 @@ const UsersPage = () => {
             setCurrentUser(null);
             setShowDelete(false);
             await loadUsers();
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        } catch (err: any) {
-            const msg = err?.response?.data?.message || 'Failed to delete user';
+            } catch (err: unknown) {
+            const msg =
+                (err as AxiosError<{ message?: string }>)?.response?.data?.message || 'Failed to delete user';
             alert(msg);
         }
     };

@@ -46,4 +46,48 @@ public interface OrderRepository extends JpaRepository<Order, Long>, JpaSpecific
             GROUP BY o.kitchenStatus
             """)
     List<KitchenStatusCount> countOrderByKitchenStatus();
+
+    @Query("""
+            SELECT o FROM Order o
+            LEFT JOIN FETCH o.customer
+            WHERE o.orderedAt >= :fromDate
+            AND o.orderedAt <= :toDate
+            AND o.status = 'completed'
+            AND o.paymentStatus = 'paid'
+            ORDER BY o.orderedAt DESC
+            """)
+    List<Order> findCompletedOrdersInRange(
+            @Param("fromDate") LocalDateTime fromDate,
+            @Param("toDate") LocalDateTime toDate);
+
+    @Query("""
+            SELECT o FROM Order o
+            LEFT JOIN FETCH o.customer
+            WHERE o.orderedAt >= :fromDate
+            AND o.orderedAt <= :toDate
+            ORDER BY o.orderedAt DESC
+            """)
+    List<Order> findOrdersInRange(
+            @Param("fromDate") LocalDateTime fromDate,
+            @Param("toDate") LocalDateTime toDate);
+
+    @Query("""
+            SELECT
+                c.id AS customerId,
+                COALESCE(c.name, 'Walk-in Customer') AS customerName,
+                c.avatarPath AS avatar,
+                COUNT(DISTINCT o.id) AS totalOrders,
+                COALESCE(SUM(o.grandTotal), 0) AS grandTotal
+            FROM Order o
+            LEFT JOIN Customer c ON o.customer.id = c.id
+            WHERE o.orderedAt >= :fromDate
+            AND o.orderedAt <= :toDate
+            AND o.status = 'completed'
+            GROUP BY c.id, c.name, c.avatarPath
+            ORDER BY totalOrders DESC
+            """)
+    List<Object[]> findCustomerSalesInRange(
+            @Param("fromDate") LocalDateTime fromDate,
+            @Param("toDate") LocalDateTime toDate);
 }
+

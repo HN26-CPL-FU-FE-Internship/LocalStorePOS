@@ -6,6 +6,7 @@ import configs from '@/configs';
 
 import { useState } from 'react';
 import { toggleHidePassword, tokenUtils } from '@/utils';
+import type { AxiosError } from 'axios';
 import { useLogin } from '@/hooks/auth';
 import { loginSchema, type LoginForm } from './login.schema';
 import { useForm } from 'react-hook-form';
@@ -70,10 +71,10 @@ function Login() {
                         break;
                 }
             },
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            onError: (error: any) => {
-                const backendCode = error?.response?.data?.code;
-                const backendMessage = error?.response?.data?.message;
+            onError: (error: unknown) => {
+                const axiosError = error as AxiosError<{ code?: number; message?: string }>;
+                const backendCode = axiosError?.response?.data?.code;
+                const backendMessage = axiosError?.response?.data?.message;
                 if (backendCode === 1021) {
                     setError(backendMessage || 'Your account has been deactivated. Please contact administrator.');
                 } else {

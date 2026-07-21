@@ -14,6 +14,7 @@ import OTP from '@/pages/OTP';
 import POS from '@/pages/POS';
 import Register from '@/pages/Register';
 import Reservation from '@/pages/Reservation';
+import Reports from '@/pages/Reports';
 import ResetPassword from '@/pages/ResetPassword';
 import Users from '@/pages/Users';
 import Permissions from '@/pages/Permissions';
@@ -42,11 +43,11 @@ export const publicRoutes = [
     { path: configs.routes.payments, component: Reservation, layout: AppLayout },
     { path: configs.routes.users, component: Users, layout: AppLayout },
     { path: configs.routes['role-permissions'], component: Permissions, layout: AppLayout },
-    { path: configs.routes['earning-reports'], component: Reservation, layout: AppLayout },
-    { path: configs.routes['order-reports'], component: Reservation, layout: AppLayout },
-    { path: configs.routes['sale-reports'], component: Reservation, layout: AppLayout },
-    { path: configs.routes['customer-reports'], component: Reservation, layout: AppLayout },
-    { path: configs.routes['audit-reports'], component: Reservation, layout: AppLayout },
+    { path: configs.routes['earning-reports'], component: Reports, layout: AppLayout },
+    { path: configs.routes['order-reports'], component: Reports, layout: AppLayout },
+    { path: configs.routes['sale-reports'], component: Reports, layout: AppLayout },
+    { path: configs.routes['customer-reports'], component: Reports, layout: AppLayout },
+    { path: configs.routes['audit-reports'], component: Reports, layout: AppLayout },
     { path: configs.routes['store-settings'], component: Reservation, layout: AppLayout },
     { path: configs.routes['tax-settings'], component: Reservation, layout: AppLayout },
     { path: configs.routes['print-settings'], component: Reservation, layout: AppLayout },
