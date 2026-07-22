@@ -1,4 +1,5 @@
 package com.pos.backend.service.Category;
+
 import java.util.List;
 
 import com.pos.backend.constant.enums.CommonStatus;
@@ -8,15 +9,16 @@ import com.pos.backend.dto.response.Common.OptionResponse;
 import com.pos.backend.service.Common.PageResponse;
 
 public interface CategoryService {
-    
+
     PageResponse<CategoryListItemResponse> getCategories(
             int page,
             int size,
             String sortBy,
             String sortDir,
             String search,
-            CommonStatus status
-    );
+            CommonStatus status);
+
+    List<CategoryListItemResponse> getAllCategory();
 
     List<OptionResponse> getCategoryOptions();
 

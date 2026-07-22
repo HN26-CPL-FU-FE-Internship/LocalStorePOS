@@ -59,8 +59,7 @@ const useCookingTimer = (options: UseCookingTimerOptions = {}): UseCookingTimerR
 
     // Wall-clock progress tick — only setState inside the interval callback
     useEffect(() => {
-        if (timerState !== 'running' || !cookingStartedAt || !estimatedMinutes || estimatedMinutes <= 0)
-            return;
+        if (timerState !== 'running' || !cookingStartedAt || !estimatedMinutes || estimatedMinutes <= 0) return;
 
         const totalSec = estimatedMinutes * 60;
         const id = setInterval(() => {
@@ -91,6 +90,7 @@ const useCookingTimer = (options: UseCookingTimerOptions = {}): UseCookingTimerR
             const total = estimatedMinutes * 60;
             const remaining = Math.max(0, total - elapsedSeconds);
 
+            // eslint-disable-next-line react-hooks/set-state-in-effect
             setTotalSeconds(total);
             setRemainingSeconds(remaining);
 

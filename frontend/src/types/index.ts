@@ -230,3 +230,5 @@ export type { UserInfo, PermissionModule as PermissionModuleType } from './permi
 export { ROUTE_PERMISSION_MAP, PUBLIC_ROUTES } from './permission';
 
 export type { KitchenOrderStat, KitchenStatus } from './kitchen';
+
+export type { RecentOrder, PageContent, POSCategory, POSItem, ItemVariation, ItemAddon, CartItem } from './pos';

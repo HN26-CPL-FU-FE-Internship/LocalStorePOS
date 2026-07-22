@@ -201,6 +201,14 @@
     .food-items {
         position: relative;
         margin-bottom: 12px;
+        aspect-ratio: 4 / 3;
+        overflow: hidden;
+        border-radius: 5px;
+        img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
         .badge {
             padding: 2px 8px 2px 8px !important;
             display: flex;
@@ -211,6 +219,48 @@
             top: 13px;
             left: 0;
         }
+    }
+}
+
+/* ---- Image skeleton shimmer ---- */
+.image-skeleton {
+    width: 100%;
+    height: 100%;
+    position: absolute;
+    inset: 0;
+    background: #e9ecef;
+    overflow: hidden;
+    &::after {
+        content: '';
+        position: absolute;
+        inset: 0;
+        background: linear-gradient(
+            90deg,
+            transparent 0%,
+            rgba(255, 255, 255, 0.5) 50%,
+            transparent 100%
+        );
+        animation: shimmer 1.5s infinite;
+    }
+}
+
+@keyframes shimmer {
+    0% {
+        transform: translateX(-100%);
+    }
+    100% {
+        transform: translateX(100%);
+    }
+}
+
+.food-items .food-image-loaded {
+    opacity: 0;
+    animation: fadeIn 0.3s ease forwards;
+}
+
+@keyframes fadeIn {
+    to {
+        opacity: 1;
     }
 }
 .food-items {
@@ -624,6 +674,45 @@
     display: flex;
     align-items: center;
     justify-content: center;
+}
+
+/* ---- Cart item expand/collapse animation ---- */
+.cart-item-details {
+    display: grid;
+    grid-template-rows: 0fr;
+    opacity: 0;
+    overflow: hidden;
+    transition:
+        grid-template-rows 0.35s ease,
+        opacity 0.25s ease 0.05s;
+
+    &.open {
+        grid-template-rows: 1fr;
+        opacity: 1;
+    }
+
+    .cart-item-details-inner {
+        overflow: hidden;
+    }
+}
+
+/* ---- Cart badge pop animation ---- */
+@keyframes badge-pop {
+    0% {
+        transform: scale(1);
+        background-color: var(--bs-primary);
+        color: white;
+    }
+    40% {
+        transform: scale(1.35);
+    }
+    100% {
+        transform: scale(1);
+    }
+}
+
+.cart-badge-pulse {
+    animation: badge-pop 0.4s ease-out;
 }
 
 .partner-dot {

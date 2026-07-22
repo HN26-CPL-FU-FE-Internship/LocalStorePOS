@@ -38,22 +38,21 @@ const PayOrderModal = ({
     const [paymentNote, setPaymentNote] = useState(order?.note ?? '');
     const [showConfirmPay, setShowConfirmPay] = useState(false);
 
-    const handleGivenAmountChange = useCallback(
-        (e: React.ChangeEvent<HTMLInputElement>) => {
-            const raw = e.target.value;
-            // Allow only digits and one decimal point
-            if (/^\d*\.?\d{0,2}$/.test(raw)) {
-                setGivenAmount(raw);
-            }
-        },
-        [],
-    );
+    const handleGivenAmountChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+        const raw = e.target.value;
+        // Allow only digits and one decimal point
+        if (/^\d*\.?\d{0,2}$/.test(raw)) {
+            setGivenAmount(raw);
+        }
+    }, []);
 
     // Track previous processing state to detect completion
     const prevProcessingRef = useRef(isPaymentProcessing);
     // Keep a ref to the current processing value so callbacks can read it without deps
     const processingRef = useRef(isPaymentProcessing);
-    processingRef.current = isPaymentProcessing;
+    useEffect(() => {
+        processingRef.current = isPaymentProcessing;
+    }, [isPaymentProcessing]);
 
     // Reset modifier state when modal opens/closes or order changes
     const handleModalClose = useCallback(() => {
@@ -95,7 +94,7 @@ const PayOrderModal = ({
             serviceCharge: order?.serviceCharge ?? 0,
             tipAmount: effectiveTip,
         });
-    }, [discountAmount, discountType, tipAmount, selectedCoupon, order, subtotal, calculateOrderTotals]);
+    }, [discountAmount, discountType, tipAmount, selectedCoupon, order, subtotal]);
 
     const handleConfirmPayment = useCallback(() => {
         if (!order) return;
@@ -115,9 +114,7 @@ const PayOrderModal = ({
 
         // For card/scan, given amount is not applicable — always send 0
         const parsedGiven = parseFloat(givenAmount);
-        const givenToSend = activePaymentType === 'cash' && !isNaN(parsedGiven) && parsedGiven > 0
-            ? parsedGiven
-            : 0;
+        const givenToSend = activePaymentType === 'cash' && !isNaN(parsedGiven) && parsedGiven > 0 ? parsedGiven : 0;
 
         const paymentData: PaymentRequest = {
             discountAmount,
@@ -131,7 +128,19 @@ const PayOrderModal = ({
 
         // Trigger mutation but keep modals open during processing
         onPaymentComplete?.(paymentData);
-    }, [order, discountAmount, discountType, tipAmount, selectedCoupon, activePaymentType, givenAmount, finalTotal, paymentNote, onPaymentComplete, showToast]);
+    }, [
+        order,
+        discountAmount,
+        discountType,
+        tipAmount,
+        selectedCoupon,
+        activePaymentType,
+        givenAmount,
+        finalTotal,
+        paymentNote,
+        onPaymentComplete,
+        showToast,
+    ]);
 
     const handleRequestPay = useCallback(() => {
         setShowConfirmPay(true);
@@ -192,8 +201,7 @@ const PayOrderModal = ({
                         />
                         <span className="fs-14">
                             This order has been{' '}
-                            <strong>{order.status === 'cancelled' ? 'cancelled' : 'completed'}</strong>.
-                            View-only mode.
+                            <strong>{order.status === 'cancelled' ? 'cancelled' : 'completed'}</strong>. View-only mode.
                         </span>
                     </Alert>
                 )}

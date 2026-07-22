@@ -33,86 +33,97 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public class CategoryController {
 
-    private final CategoryService categoryService;
+        private final CategoryService categoryService;
 
-    @GetMapping("/options")
-    public ApiResponse<List<OptionResponse>> getCategoryOptions() {
-        return ApiResponse.<List<OptionResponse>>builder()
-                .message("Success")
-                .result(categoryService.getCategoryOptions())
-                .build();
-    }
+        @GetMapping("/options")
+        public ApiResponse<List<OptionResponse>> getCategoryOptions() {
+                return ApiResponse.<List<OptionResponse>>builder()
+                                .message("Success")
+                                .result(categoryService.getCategoryOptions())
+                                .build();
+        }
 
+        @GetMapping
+        @PreAuthorize("@perm.hasPermission(authentication, 'Categories', 'view')")
+        public ApiResponse<PageResponse<CategoryListItemResponse>> getCategories(
+                        @RequestParam(defaultValue = "1") int page,
+                        @RequestParam(defaultValue = "10") int size,
+                        @RequestParam(defaultValue = "createdAt") String sortBy,
+                        @RequestParam(defaultValue = "desc") String sortDir,
+                        @RequestParam(required = false) String search,
+                        @RequestParam(required = false) CommonStatus status) {
 
-    @GetMapping
-    @PreAuthorize("@perm.hasPermission(authentication, 'Categories', 'view')")
-    public ApiResponse<PageResponse<CategoryListItemResponse>> getCategories(
-            @RequestParam(defaultValue = "1") int page,
-            @RequestParam(defaultValue = "10") int size,
-            @RequestParam(defaultValue = "createdAt") String sortBy,
-            @RequestParam(defaultValue = "desc") String sortDir,
-            @RequestParam(required = false) String search,
-            @RequestParam(required = false) CommonStatus status) {
+                PageResponse<CategoryListItemResponse> response = categoryService.getCategories(
+                                page, size, sortBy, sortDir, search, status);
 
-        PageResponse<CategoryListItemResponse> response = categoryService.getCategories(
-                page, size, sortBy, sortDir, search, status);
+                return ApiResponse.<PageResponse<CategoryListItemResponse>>builder()
+                                .message("Success")
+                                .result(response)
+                                .build();
+        }
 
-        return ApiResponse.<PageResponse<CategoryListItemResponse>>builder()
-                .message("Success")
-                .result(response)
-                .build();
-    }
+        @GetMapping("/all")
+        @PreAuthorize("@perm.hasPermission(authentication, 'Categories', 'view')")
+        public ApiResponse<List<CategoryListItemResponse>> getAllCategory() {
 
-    @GetMapping("/{id}")
-    @PreAuthorize("@perm.hasPermission(authentication, 'Categories', 'view')")
-    public ApiResponse<CategoryListItemResponse> getCategory(@PathVariable Long id) {
-        return ApiResponse.<CategoryListItemResponse>builder()
-                .message("Success")
-                .result(categoryService.getCategory(id))
-                .build();
-    }
+                List<CategoryListItemResponse> response = categoryService.getAllCategory();
 
-    @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    @PreAuthorize("@perm.hasPermission(authentication, 'Categories', 'add')")
-    public ApiResponse<CategoryListItemResponse> createCategory(@Valid @ModelAttribute CategoryRequest request) {
-        return ApiResponse.<CategoryListItemResponse>builder()
-                .message("Category created successfully")
-                .result(categoryService.createCategory(request))
-                .build();
-    }
+                return ApiResponse.<List<CategoryListItemResponse>>builder()
+                                .message("Success")
+                                .result(response)
+                                .build();
+        }
 
-    @PutMapping(value = "/{id}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    @PreAuthorize("@perm.hasPermission(authentication, 'Categories', 'edit')")
-    public ApiResponse<CategoryListItemResponse> updateCategory(
-            @PathVariable Long id,
-            @Valid @ModelAttribute CategoryRequest request) {
+        @GetMapping("/{id}")
+        @PreAuthorize("@perm.hasPermission(authentication, 'Categories', 'view')")
+        public ApiResponse<CategoryListItemResponse> getCategory(@PathVariable Long id) {
+                return ApiResponse.<CategoryListItemResponse>builder()
+                                .message("Success")
+                                .result(categoryService.getCategory(id))
+                                .build();
+        }
 
-        return ApiResponse.<CategoryListItemResponse>builder()
-                .message("Category updated successfully")
-                .result(categoryService.updateCategory(id, request))
-                .build();
-    }
+        @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+        @PreAuthorize("@perm.hasPermission(authentication, 'Categories', 'add')")
+        public ApiResponse<CategoryListItemResponse> createCategory(@Valid @ModelAttribute CategoryRequest request) {
+                return ApiResponse.<CategoryListItemResponse>builder()
+                                .message("Category created successfully")
+                                .result(categoryService.createCategory(request))
+                                .build();
+        }
 
-    @PatchMapping("/{id}/status")
-    @PreAuthorize("@perm.hasPermission(authentication, 'Categories', 'edit')")
-    public ApiResponse<CategoryListItemResponse> updateStatus(
-            @PathVariable Long id,
-            @RequestParam CommonStatus status) {
+        @PutMapping(value = "/{id}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+        @PreAuthorize("@perm.hasPermission(authentication, 'Categories', 'edit')")
+        public ApiResponse<CategoryListItemResponse> updateCategory(
+                        @PathVariable Long id,
+                        @Valid @ModelAttribute CategoryRequest request) {
 
-        return ApiResponse.<CategoryListItemResponse>builder()
-                .message("Category status updated successfully")
-                .result(categoryService.updateStatus(id, status))
-                .build();
-    }
+                return ApiResponse.<CategoryListItemResponse>builder()
+                                .message("Category updated successfully")
+                                .result(categoryService.updateCategory(id, request))
+                                .build();
+        }
 
-    @DeleteMapping("/{id}")
-    @PreAuthorize("@perm.hasPermission(authentication, 'Categories', 'delete')")
-    @ResponseStatus(HttpStatus.OK)
-    public ApiResponse<Void> deleteCategory(@PathVariable Long id) {
-        categoryService.deleteCategory(id);
+        @PatchMapping("/{id}/status")
+        @PreAuthorize("@perm.hasPermission(authentication, 'Categories', 'edit')")
+        public ApiResponse<CategoryListItemResponse> updateStatus(
+                        @PathVariable Long id,
+                        @RequestParam CommonStatus status) {
 
-        return ApiResponse.<Void>builder()
-                .message("Category deleted successfully")
-                .build();
-    }
+                return ApiResponse.<CategoryListItemResponse>builder()
+                                .message("Category status updated successfully")
+                                .result(categoryService.updateStatus(id, status))
+                                .build();
+        }
+
+        @DeleteMapping("/{id}")
+        @PreAuthorize("@perm.hasPermission(authentication, 'Categories', 'delete')")
+        @ResponseStatus(HttpStatus.OK)
+        public ApiResponse<Void> deleteCategory(@PathVariable Long id) {
+                categoryService.deleteCategory(id);
+
+                return ApiResponse.<Void>builder()
+                                .message("Category deleted successfully")
+                                .build();
+        }
 }

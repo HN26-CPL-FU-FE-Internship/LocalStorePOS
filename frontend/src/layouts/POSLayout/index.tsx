@@ -6,7 +6,9 @@ const POSLayout = ({ children }: { children: ReactNode }) => {
         <div className="pos-page">
             <div className="main-wrapper pos-wrapper">
                 <POSHeader />
-                <div className="page-wrapper">{children}</div>
+                <div className="page-wrapper">
+                    <div className="content">{children}</div>
+                </div>
             </div>
         </div>
     );

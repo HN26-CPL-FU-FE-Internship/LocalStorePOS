@@ -43,6 +43,7 @@ const OrderKitchenCard = ({ order }: { order: OrderSummary }) => {
         start: startTimer,
         pause: pauseTimer,
         resume: resumeTimer,
+        reset: resetTimer,
     } = useCookingTimer({
         estimatedMinutes: order.estimatedMinutes,
         cookingStartedAt: order.cookingStartedAt,
@@ -110,6 +111,7 @@ const OrderKitchenCard = ({ order }: { order: OrderSummary }) => {
         try {
             await kitchenService.markKitchenComplete(order.id);
             showToast('success', 'Order marked as completed!');
+            resetTimer();
             queryClient.invalidateQueries({ queryKey: KITCHEN_QUERY_KEYS.all });
         } catch (error) {
             const message =
@@ -119,7 +121,7 @@ const OrderKitchenCard = ({ order }: { order: OrderSummary }) => {
         } finally {
             setIsMarkingDone(false);
         }
-    }, [order.id, showToast]);
+    }, [order.id, resetTimer, showToast]);
 
     // ── Derived UI state ───────────────────────────────────────────────
 

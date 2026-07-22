@@ -5,6 +5,7 @@ import { QueryClientProvider } from '@tanstack/react-query';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import 'simplebar-react/dist/simplebar.min.css';
 import 'react-day-picker/style.css';
+import 'swiper/css';
 import App from './App.tsx';
 import { queryClient } from '@/lib/queryClient.ts';
 import { ReactQueryDevtools } from '@tanstack/react-query-devtools';

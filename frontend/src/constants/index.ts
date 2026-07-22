@@ -13,3 +13,4 @@ export {
 export { FEEDBACK_CONFIG } from './feedback';
 export { CONFIRM_CONFIG } from './modal';
 export { KITCHEN_STATUSES, KITCHEN_QUERY_KEYS } from './kitchen';
+export { ORDER_TYPES, POS_QUERY_KEYS } from './pos';

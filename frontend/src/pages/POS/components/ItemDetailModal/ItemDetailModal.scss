@@ -1,0 +1,87 @@
+@use '../../../../assets/styles/abstracts' as *;
+
+/* ------------------------------------------------------------------ */
+/*  Item Detail Modal                                                 */
+/* ------------------------------------------------------------------ */
+.item-detail-modal-dialog {
+    max-width: 820px;
+    margin: 1.75rem auto;
+}
+
+/* Image wrapper — fill column height */
+.items-img {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    min-height: 320px;
+    border-radius: 10px;
+    padding: 16px !important;
+
+    .img-1 {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        border-radius: 6px;
+    }
+}
+
+/* Content — scrollable area + pinned actions */
+.items-content-scroll {
+    flex: 1;
+    overflow-y: auto;
+    min-height: 0;
+
+    .items-info {
+        .size-group {
+            .size-tab {
+                cursor: pointer;
+            }
+        }
+    }
+}
+
+.items-content-actions {
+    flex-shrink: 0;
+    padding-top: 12px;
+    border-top: 1px solid $border-color;
+    margin-top: 12px;
+}
+
+/* Add-on slider item */
+.upgrade-slider-wrap {
+    .slider-item {
+        cursor: pointer;
+        user-select: none;
+        transition: transform 0.1s ease;
+
+        .avatar {
+            width: 40px;
+            height: 40px;
+            flex-shrink: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+
+            .img-1 {
+                width: 100%;
+                height: 100%;
+                object-fit: cover;
+            }
+        }
+
+        .border-primary {
+            border-color: $primary !important;
+        }
+    }
+}
+
+/* Quantity control — reuse existing .quantity-control styles from _menus.scss */
+
+/* Responsive */
+@include respond-below(md) {
+    .items-img {
+        min-height: 200px;
+    }
+}

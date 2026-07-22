@@ -202,4 +202,17 @@ public class CategoryServiceImpl implements CategoryService {
                 .updatedAt(category.getUpdatedAt())
                 .build();
     }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<CategoryListItemResponse> getAllCategory() {
+
+        List<Category> categories = categoryRepository.findAll();
+
+        Map<Long, Long> itemCountByCategoryId = countItemsByCategory(categories);
+
+        return categories.stream()
+                .map(category -> toResponse(category, itemCountByCategoryId.getOrDefault(category.getId(), 0L)))
+                .toList();
+    }
 }

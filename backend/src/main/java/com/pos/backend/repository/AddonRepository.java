@@ -15,6 +15,8 @@ public interface AddonRepository extends JpaRepository<Addon, Long> {
 
     List<Addon> findByItem_IdOrderByIdAsc(Long itemId);
 
+    List<Addon> findByItem_IdInOrderByItem_IdAscIdAsc(List<Long> itemIds);
+
     void deleteByItem_Id(Long itemId);
 
     @Query("""

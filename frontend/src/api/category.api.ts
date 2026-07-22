@@ -51,6 +51,12 @@ export const getCategories = async (
     return data.result;
 }
 
+/** Fetch all categories (unpaginated) for POS / selection dropdowns */
+export const getAllCategory = async (): Promise<CategoryEntry[]> => {
+    const { data } = await api.get<ApiResponse<CategoryEntry[]>>('/categories/all');
+    return data.result;
+}
+
 const toFormData = (payload: CategoryFormData): FormData => {
     const formData = new FormData()
     formData.append('name',payload.name)

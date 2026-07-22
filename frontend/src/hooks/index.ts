@@ -1,1 +1,1 @@
-// import all hooks here then export them
+export { useRecentOrders, usePOSCategories, usePOSItems, useWaiters, useCustomers, useTables } from './pos';

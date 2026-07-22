@@ -4,6 +4,15 @@ import type { CouponOrder, DiscountType, OrderStatus, OrderSummary } from '@/typ
 // ── Standalone pure functions ───────────────────────────────────────────
 
 /**
+ * Calculate the price including tax.
+ * If no tax rate or tax rate <= 0, returns the original price.
+ */
+export function calcPriceWithTax(price: number, taxRate: number | null): number {
+    if (!taxRate || taxRate <= 0) return price;
+    return Math.round(price * (1 + taxRate / 100));
+}
+
+/**
  * Calculate the monetary value of a discount/tax based on discount type.
  * For 'percentage': returns (subTotal / 100) * discount, capped at 100%.
  * For 'fixed_amount': returns discount, capped at subTotal.
@@ -12,7 +21,7 @@ export function calculateDiscount(subTotal: number = 0, discount: number = 0, ty
     if (discount < 0) discount = 0;
     switch (type) {
         case 'percentage':
-            return Math.round((subTotal / 100) * Math.min(100, discount));
+            return Math.ceil((subTotal / 100) * Math.min(100, discount));
         case 'fixed_amount':
             return Math.round(Math.min(discount, subTotal));
         default:

@@ -4,7 +4,7 @@ import type { ApiResponse } from '@/types/auth';
 
 const couponService = {
     getActiveCoupons: async () => {
-        const res = await api.get<ApiResponse<CouponOrder[]>>('/coupons/coupons-list');
+        const res = await api.get<ApiResponse<CouponOrder[]>>('/coupons/active');
         return res.data;
     },
 };

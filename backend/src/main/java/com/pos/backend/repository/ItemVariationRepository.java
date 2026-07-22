@@ -10,5 +10,7 @@ public interface ItemVariationRepository extends JpaRepository<ItemVariation, Lo
 
     List<ItemVariation> findByItem_IdOrderByIdAsc(Long itemId);
 
+    List<ItemVariation> findByItem_IdInOrderByItem_IdAscIdAsc(List<Long> itemIds);
+
     void deleteByItem_Id(Long itemId);
 }

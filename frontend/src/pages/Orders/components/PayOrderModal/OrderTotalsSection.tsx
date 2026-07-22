@@ -56,8 +56,7 @@ const OrderTotalsSection = ({
                 Coupon
                 <span className="fw-medium text-danger">
                     -${couponDiscount}
-                    {(selectedCoupon || order.coupon) &&
-                        ` (${(selectedCoupon ?? order.coupon!).code})`}
+                    {(selectedCoupon || order.coupon) && ` (${(selectedCoupon ?? order.coupon!).code})`}
                 </span>
             </h6>
         )}

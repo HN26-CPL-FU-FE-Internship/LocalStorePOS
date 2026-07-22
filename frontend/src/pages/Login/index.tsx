@@ -138,14 +138,14 @@ function Login() {
                 </div>
 
                 <div className="d-flex align-items-center justify-content-between mb-4">
-                    <div className="d-flex align-items-center">
+                    {/* <div className="d-flex align-items-center">
                         <div className="form-check form-check-md mb-0">
                             <input className="form-check-input" id="remember_me" type="checkbox" />
                             <label htmlFor="remember_me" className="form-check-label text-dark mt-0">
                                 Remember Me
                             </label>
                         </div>
-                    </div>
+                    </div> */}
                     <div className="text-end">
                         <Link to={routes.forgotPassword} className="link-primary">
                             Forgot Password?

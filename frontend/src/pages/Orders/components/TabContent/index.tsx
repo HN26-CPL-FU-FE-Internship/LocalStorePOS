@@ -126,7 +126,12 @@ const TabContent = ({ order }: { order: OrderSummary }) => {
                                 {formatHourAndMinute(order.orderedAt)}
                             </h6>
                         </div>
-                        <div className="mb-3 pb-3 border-bottom">
+                        <div
+                            className="mb-3 pb-3 border-bottom"
+                            style={{
+                                minHeight: '250px',
+                            }}
+                        >
                             <div className="orders-list">
                                 {visibleItems.map((item) => (
                                     <OrderItemRow key={item.id} item={item} />

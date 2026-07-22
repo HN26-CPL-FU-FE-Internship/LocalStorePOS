@@ -16,6 +16,8 @@ public interface ItemRepository extends JpaRepository<Item, Long> {
 
     List<Item> findAllByOrderByNameAsc();
 
+    List<Item> findByCategory_Id(Long categoryId);
+
     boolean existsByCategory_Id(Long categoryId);
 
     long countByCategory_Id(Long categoryId);
