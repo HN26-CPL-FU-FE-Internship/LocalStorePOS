@@ -1,5 +1,5 @@
 import { type PropsWithChildren } from 'react';
-import { Navigate, useLocation } from 'react-router-dom';
+import { Navigate, useLocation, useNavigate } from 'react-router-dom';
 import useAuth from '@/hooks/useAuth';
 import { ROUTE_PERMISSION_MAP } from '@/types/permission';
 
@@ -52,6 +52,7 @@ const AuthGuard = ({ children, publicRoute = false }: AuthGuardProps) => {
 
 /** Simple 403 Forbidden page */
 const ForbiddenPage = () => {
+    const navigate = useNavigate();
     return (
         <div className="d-flex flex-column justify-content-center align-items-center vh-100 text-center px-3">
             <h1 className="display-1 fw-bold text-danger">403</h1>
@@ -62,9 +63,9 @@ const ForbiddenPage = () => {
             </p>
             <button
                 className="btn btn-primary"
-                onClick={() => (window.location.href = '/restaurant-pos/dashboard')}
+                onClick={() => navigate(-1)}
             >
-                Go to Dashboard
+                Go back to previous page
             </button>
         </div>
     );
