@@ -17,6 +17,7 @@ export function useEarningReport(filter: ReportFilter, enabled = true) {
         staleTime: 1000 * 60 * 5,
         placeholderData: keepPreviousData,
         enabled,
+        select: (data) => data.result,
     });
 }
 
@@ -27,6 +28,7 @@ export function useOrderReport(filter: ReportFilter, enabled = true) {
         staleTime: 1000 * 60 * 5,
         placeholderData: keepPreviousData,
         enabled,
+        select: (data) => data.result,
     });
 }
 
@@ -37,6 +39,7 @@ export function useSalesReport(filter: ReportFilter, enabled = true) {
         staleTime: 1000 * 60 * 5,
         placeholderData: keepPreviousData,
         enabled,
+        select: (data) => data.result,
     });
 }
 
@@ -47,5 +50,6 @@ export function useCustomerReport(filter: ReportFilter, enabled = true) {
         staleTime: 1000 * 60 * 5,
         placeholderData: keepPreviousData,
         enabled,
+        select: (data) => data.result,
     });
 }

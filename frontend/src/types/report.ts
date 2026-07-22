@@ -46,4 +46,6 @@ export interface ReportFilter {
     customerName?: string;
     paymentMethod?: string;
     categoryName?: string;
+    page?: number;
+    size?: number;
 }

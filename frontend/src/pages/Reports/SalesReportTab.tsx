@@ -6,11 +6,10 @@ import TopProgressBar from '@/components/common/TopProgressBar';
 import Pagination from '@/components/common/Pagination';
 import { useSalesReport } from '@/hooks/report/useReportData';
 import useDebounce from '@/hooks/useDebounce';
-import { PAGE_SIZE, sortOptions, type SortValue, formatDate, formatCurrency, getStatusBadge } from './report-utils';
+import { PAGE_SIZE, formatDate, formatCurrency, getStatusBadge } from './report-utils';
 
 const SalesReportTab = () => {
     const [searchQuery, setSearchQuery] = useState('');
-    const [sortBy, setSortBy] = useState<SortValue>('newest');
     const [page, setPage] = useState(1);
     const [draftFromDate, setDraftFromDate] = useState('');
     const [draftToDate, setDraftToDate] = useState('');
@@ -27,37 +26,14 @@ const SalesReportTab = () => {
         fromDate: filter.fromDate,
         toDate: filter.toDate,
         categoryName: debouncedSearch || filter.categoryName || undefined,
-    }), [filter, debouncedSearch]);
+        page: page - 1,
+        size: PAGE_SIZE,
+    }), [filter, debouncedSearch, page]);
 
     const { data, isLoading, isFetching } = useSalesReport(queryFilter);
 
-    const sortedData = useMemo(() => {
-        const items = data?.result ?? [];
-        if (items.length === 0) return [];
-
-        const sorted = [...items];
-        switch (sortBy) {
-            case 'oldest':
-                sorted.sort((a, b) => (a.date > b.date ? 1 : -1));
-                break;
-            case 'asc':
-                sorted.sort((a, b) => (a.grandTotal ?? 0) - (b.grandTotal ?? 0));
-                break;
-            case 'desc':
-                sorted.sort((a, b) => (b.grandTotal ?? 0) - (a.grandTotal ?? 0));
-                break;
-            case 'newest':
-            default:
-                sorted.sort((a, b) => (a.date < b.date ? 1 : -1));
-                break;
-        }
-        return sorted;
-    }, [data, sortBy]);
-
-    const paginatedData = useMemo(() => {
-        const start = (page - 1) * PAGE_SIZE;
-        return sortedData.slice(start, start + PAGE_SIZE);
-    }, [sortedData, page]);
+    const items = data?.items ?? [];
+    const totalElements = data?.totalElements ?? 0;
 
     const handleSubmitFilter = useCallback(() => {
         setFilter({
@@ -100,18 +76,6 @@ const SalesReportTab = () => {
                             onChange={(e) => { setSearchQuery(e.target.value); setPage(1); }} />
                         <span className="input-group-text"><Icon name="search" className="text-dark" /></span>
                     </div>
-                    <div className="dropdown">
-                        <a href="#" className="dropdown-toggle btn btn-white d-inline-flex align-items-center" data-bs-toggle="dropdown">
-                            Sort by: {sortOptions.find(o => o.value === sortBy)?.label ?? 'Newest'}
-                        </a>
-                        <ul className="dropdown-menu dropdown-menu-end p-3">
-                            {sortOptions.map((opt) => (
-                                <li key={opt.value}>
-                                    <a href="#" className="dropdown-item" onClick={(e) => { e.preventDefault(); setSortBy(opt.value); }}>{opt.label}</a>
-                                </li>
-                            ))}
-                        </ul>
-                    </div>
                 </div>
 
                 {/* Table */}
@@ -129,10 +93,10 @@ const SalesReportTab = () => {
                             </tr>
                         </thead>
                         <tbody>
-                            {paginatedData.length === 0 ? (
+                            {items.length === 0 ? (
                                 <tr><td colSpan={7} className="text-center py-4">No sales records found</td></tr>
                             ) : (
-                                paginatedData.map((item, idx) => (
+                                items.map((item, idx) => (
                                     <tr key={idx}>
                                         <td>{item.salesId}</td>
                                         <td>{formatDate(item.date)}</td>
@@ -150,7 +114,7 @@ const SalesReportTab = () => {
 
                 {/* Pagination */}
                 <div className="mt-4">
-                    <Pagination totalItems={sortedData.length} currentPage={page} onPageChange={setPage} pageSize={PAGE_SIZE} />
+                    <Pagination totalItems={totalElements} currentPage={page} onPageChange={setPage} pageSize={PAGE_SIZE} />
                 </div>
             </Card.Body>
         </>

@@ -1,7 +1,6 @@
 package com.pos.backend.controller.Report;
 
 import java.time.LocalDate;
-import java.util.List;
 
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -14,6 +13,7 @@ import com.pos.backend.dto.response.Report.CustomerReportResponse;
 import com.pos.backend.dto.response.Report.EarningReportResponse;
 import com.pos.backend.dto.response.Report.OrderReportResponse;
 import com.pos.backend.dto.response.Report.SalesReportResponse;
+import com.pos.backend.service.Common.PageResponse;
 import com.pos.backend.service.Report.ReportService;
 
 import lombok.AccessLevel;
@@ -29,54 +29,62 @@ public class ReportController {
     ReportService reportService;
 
     @GetMapping("/earning")
-    public ApiResponse<List<EarningReportResponse>> getEarningReport(
+    public ApiResponse<PageResponse<EarningReportResponse>> getEarningReport(
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate fromDate,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate toDate,
             @RequestParam(required = false) String customerName,
-            @RequestParam(required = false) String paymentMethod) {
+            @RequestParam(required = false) String paymentMethod,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size) {
 
-        List<EarningReportResponse> result = reportService.getEarningReport(fromDate, toDate, customerName, paymentMethod);
+        PageResponse<EarningReportResponse> result = reportService.getEarningReport(fromDate, toDate, customerName, paymentMethod, page, size);
 
-        return ApiResponse.<List<EarningReportResponse>>builder()
+        return ApiResponse.<PageResponse<EarningReportResponse>>builder()
                 .result(result)
                 .build();
     }
 
     @GetMapping("/orders")
-    public ApiResponse<List<OrderReportResponse>> getOrderReport(
+    public ApiResponse<PageResponse<OrderReportResponse>> getOrderReport(
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate fromDate,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate toDate,
-            @RequestParam(required = false) String customerName) {
+            @RequestParam(required = false) String customerName,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size) {
 
-        List<OrderReportResponse> result = reportService.getOrderReport(fromDate, toDate, customerName);
+        PageResponse<OrderReportResponse> result = reportService.getOrderReport(fromDate, toDate, customerName, page, size);
 
-        return ApiResponse.<List<OrderReportResponse>>builder()
+        return ApiResponse.<PageResponse<OrderReportResponse>>builder()
                 .result(result)
                 .build();
     }
 
     @GetMapping("/sales")
-    public ApiResponse<List<SalesReportResponse>> getSalesReport(
+    public ApiResponse<PageResponse<SalesReportResponse>> getSalesReport(
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate fromDate,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate toDate,
-            @RequestParam(required = false) String categoryName) {
+            @RequestParam(required = false) String categoryName,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size) {
 
-        List<SalesReportResponse> result = reportService.getSalesReport(fromDate, toDate, categoryName);
+        PageResponse<SalesReportResponse> result = reportService.getSalesReport(fromDate, toDate, categoryName, page, size);
 
-        return ApiResponse.<List<SalesReportResponse>>builder()
+        return ApiResponse.<PageResponse<SalesReportResponse>>builder()
                 .result(result)
                 .build();
     }
 
     @GetMapping("/customers")
-    public ApiResponse<List<CustomerReportResponse>> getCustomerReport(
+    public ApiResponse<PageResponse<CustomerReportResponse>> getCustomerReport(
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate fromDate,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate toDate,
-            @RequestParam(required = false) String customerName) {
+            @RequestParam(required = false) String customerName,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size) {
 
-        List<CustomerReportResponse> result = reportService.getCustomerReport(fromDate, toDate, customerName);
+        PageResponse<CustomerReportResponse> result = reportService.getCustomerReport(fromDate, toDate, customerName, page, size);
 
-        return ApiResponse.<List<CustomerReportResponse>>builder()
+        return ApiResponse.<PageResponse<CustomerReportResponse>>builder()
                 .result(result)
                 .build();
     }

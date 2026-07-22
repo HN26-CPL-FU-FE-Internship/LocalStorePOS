@@ -4,14 +4,6 @@ import { formatString } from '@/utils';
 
 export const PAGE_SIZE = 10;
 
-export const sortOptions = [
-    { label: 'Newest', value: 'newest' },
-    { label: 'Oldest', value: 'oldest' },
-    { label: 'Ascending', value: 'asc' },
-    { label: 'Descending', value: 'desc' },
-] as const;
-
-export type SortValue = (typeof sortOptions)[number]['value'];
 
 export const formatDate = (dateStr: string): string => {
     if (!dateStr) return '-';
