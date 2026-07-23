@@ -28,3 +28,13 @@ export const POS_QUERY_KEYS = {
     customers: () => ['pos', 'customers'] as const,
     tables: () => ['pos', 'tables'] as const,
 };
+
+export const ORDER_FILTERS = [
+    { key: 'all', label: 'All Orders' },
+    { key: 'dine_in', label: 'Dine In' },
+    { key: 'take_away', label: 'Take Away' },
+    { key: 'delivery', label: 'Delivery' },
+] as const;
+
+export const VAT_RATE = 0.1;
+export const SERVICE_TAX_RATE = 0.05;

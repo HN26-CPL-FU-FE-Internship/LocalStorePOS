@@ -7,3 +7,4 @@ export { formatHourAndMinute, formatDateTimeKitchen, formatDateTimeOrder, format
 export { default as orderUtils, calcPriceWithTax, calculateDiscount, calculateOrderTotals } from './order';
 export { notifyTimerExpired, warmUpAudio } from './notification';
 export type { CalculateOrderTotalsParams, CalculateOrderTotalsResult } from './order';
+export { getFoodImage, getItemImage } from './image';

@@ -1,14 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import {
-    Table,
-    Card,
-    Button,
-    Modal,
-    Form,
-    Nav,
-    Spinner,
-    Alert,
-} from 'react-bootstrap';
+import { Table, Card, Button, Modal, Form, Nav, Spinner, Alert } from 'react-bootstrap';
 import PageHeader from '@/components/common/PageHeader';
 import Icon from '@/components/common/Icon';
 import { api } from '@/lib/axios';
@@ -33,14 +24,7 @@ interface RolePermissionsResponse {
 /** Permission actions available per module */
 type PermissionAction = 'view' | 'add' | 'edit' | 'delete_' | 'export_' | 'approvedVoid';
 
-const allActions: PermissionAction[] = [
-    'view',
-    'add',
-    'edit',
-    'delete_',
-    'export_',
-    'approvedVoid',
-];
+const allActions: PermissionAction[] = ['view', 'add', 'edit', 'delete_', 'export_', 'approvedVoid'];
 
 const actionLabels: Record<PermissionAction, string> = {
     view: 'View',
@@ -61,9 +45,7 @@ const PermissionsPage = () => {
     const [permissionsMap, setPermissionsMap] = useState<Record<number, PermissionModule[]>>({});
 
     // Baseline snapshot of permissions as returned by the API
-    const [baselineMap, setBaselineMap] = useState<
-        Record<number, PermissionModule[]>
-    >({});
+    const [baselineMap, setBaselineMap] = useState<Record<number, PermissionModule[]>>({});
 
     // Whether the active role's current permissions differ from baseline
     const isDirty = useMemo(() => {
@@ -71,9 +53,7 @@ const PermissionsPage = () => {
         const current = permissionsMap[activeRoleId] ?? [];
         const baseline = baselineMap[activeRoleId] ?? [];
         if (current.length !== baseline.length) return true;
-        return current.some((mod, i) =>
-            allActions.some((a) => Boolean(mod[a]) !== Boolean(baseline[i]?.[a])),
-        );
+        return current.some((mod, i) => allActions.some((a) => Boolean(mod[a]) !== Boolean(baseline[i]?.[a])));
     }, [activeRoleId, permissionsMap, baselineMap]);
 
     // Loading & feedback
@@ -155,7 +135,7 @@ const PermissionsPage = () => {
                 const perms = data.result.permissions;
                 const permsClone = perms.map((m: PermissionModule) => ({ ...m }));
                 setPermissionsMap((prev) => ({ ...prev, [activeRoleId]: permsClone }));
-                setBaselineMap(prev => ({
+                setBaselineMap((prev) => ({
                     ...prev,
                     [activeRoleId]: permsClone,
                 }));
@@ -171,18 +151,12 @@ const PermissionsPage = () => {
     }, [activeRoleId]);
 
     /* ---------- active role ---------- */
-    const activeRole = useMemo(
-        () => roles.find((r) => r.id === activeRoleId) ?? null,
-        [roles, activeRoleId],
-    );
+    const activeRole = useMemo(() => roles.find((r) => r.id === activeRoleId) ?? null, [roles, activeRoleId]);
 
-    const activeRoleName = useMemo(
-        () => activeRole?.name ?? '',
-        [activeRole],
-    );
+    const activeRoleName = useMemo(() => activeRole?.name ?? '', [activeRole]);
 
     const activePermissions = useMemo(
-        () => (activeRoleId ? permissionsMap[activeRoleId] ?? [] : []),
+        () => (activeRoleId ? (permissionsMap[activeRoleId] ?? []) : []),
         [activeRoleId, permissionsMap],
     );
 
@@ -216,9 +190,7 @@ const PermissionsPage = () => {
         try {
             await api.post(`/roles/${activeRoleId}/permissions/reset`);
             // Re-fetch permissions from API to get the new default state
-            const { data } = await api.get<ApiResponse<RolePermissionsResponse>>(
-                `/roles/${activeRoleId}/permissions`,
-            );
+            const { data } = await api.get<ApiResponse<RolePermissionsResponse>>(`/roles/${activeRoleId}/permissions`);
             const perms = data.result.permissions;
             const permsClone = perms.map((m: PermissionModule) => ({ ...m }));
             setPermissionsMap((prev) => ({ ...prev, [activeRoleId]: permsClone }));
@@ -243,9 +215,9 @@ const PermissionsPage = () => {
             const payload = { permissions: activePermissions };
             await api.put(`/roles/${activeRoleId}/permissions`, payload);
             // Update baseline to reflect the saved state
-            setBaselineMap(prev => ({
+            setBaselineMap((prev) => ({
                 ...prev,
-                [activeRoleId]: activePermissions.map(m => ({ ...m })),
+                [activeRoleId]: activePermissions.map((m) => ({ ...m })),
             }));
             loadedRolesRef.current.add(activeRoleId);
             showFeedback('success', 'Permissions saved successfully');
@@ -329,12 +301,7 @@ const PermissionsPage = () => {
 
             {/* ---- Feedback Alert ---- */}
             {feedback && (
-                <Alert
-                    variant={feedback.type}
-                    dismissible
-                    onClose={() => setFeedback(null)}
-                    className="mb-3"
-                >
+                <Alert variant={feedback.type} dismissible onClose={() => setFeedback(null)} className="mb-3">
                     {feedback.message}
                 </Alert>
             )}
@@ -404,9 +371,7 @@ const PermissionsPage = () => {
                             {/* Role Header */}
                             <div className="d-flex align-items-sm-center flex-sm-row flex-column gap-2 mb-4">
                                 <div className="flex-grow-1">
-                                    <h5 className="fs-16 fw-bold mb-0">
-                                        Role : {activeRoleName}
-                                    </h5>
+                                    <h5 className="fs-16 fw-bold mb-0">Role : {activeRoleName}</h5>
                                 </div>
                                 <div className="d-flex align-items-center gap-2">
                                     <Form.Check
@@ -453,9 +418,7 @@ const PermissionsPage = () => {
                                                     <tbody>
                                                         {activePermissions.map((mod, idx) => (
                                                             <tr key={mod.module}>
-                                                                <td className="text-dark fw-medium">
-                                                                    {mod.module}
-                                                                </td>
+                                                                <td className="text-dark fw-medium">{mod.module}</td>
                                                                 {allActions.map((action) => (
                                                                     <td key={action}>
                                                                         <Form.Check
@@ -475,7 +438,7 @@ const PermissionsPage = () => {
 
                                             {/* Action buttons */}
                                             <div className="d-flex align-items-center justify-content-end flex-wrap row-gap-2 border-top mt-4 pt-4">
-                                                {(activeRole?.isSystemRole ?? false) && (
+                                                {
                                                     <Button
                                                         variant="outline-warning"
                                                         className="me-auto"
@@ -484,7 +447,7 @@ const PermissionsPage = () => {
                                                         <Icon name="rotate-ccw" className="me-1" />
                                                         Reset to Default
                                                     </Button>
-                                                )}
+                                                }
                                                 <Button
                                                     variant="light"
                                                     className="me-2"
@@ -493,11 +456,7 @@ const PermissionsPage = () => {
                                                 >
                                                     Revert All
                                                 </Button>
-                                                <Button
-                                                    variant="primary"
-                                                    onClick={handleSave}
-                                                    disabled={saving}
-                                                >
+                                                <Button variant="primary" onClick={handleSave} disabled={saving}>
                                                     {saving ? (
                                                         <>
                                                             <Spinner animation="border" size="sm" className="me-1" />
@@ -561,12 +520,7 @@ const PermissionsPage = () => {
                             >
                                 Cancel
                             </Button>
-                            <Button
-                                variant="primary"
-                                className="w-100"
-                                type="submit"
-                                disabled={addingRole}
-                            >
+                            <Button variant="primary" className="w-100" type="submit" disabled={addingRole}>
                                 {addingRole ? 'Saving...' : 'Save'}
                             </Button>
                         </div>
@@ -575,18 +529,13 @@ const PermissionsPage = () => {
             </Modal>
 
             {/* ---- Reset to Default Confirmation Modal ---- */}
-            <Modal
-                show={showResetConfirm}
-                onHide={() => setShowResetConfirm(false)}
-                centered
-            >
+            <Modal show={showResetConfirm} onHide={() => setShowResetConfirm(false)} centered>
                 <Modal.Header closeButton className="border-0 p-4 pb-3">
                     <h4 className="modal-title text-warning">Reset Permissions</h4>
                 </Modal.Header>
                 <Modal.Body className="p-4 pt-1">
                     <p>
-                        This will reset all permissions for{' '}
-                        <strong>{activeRoleName}</strong> to the factory default
+                        This will reset all permissions for <strong>{activeRoleName}</strong> to the factory default
                         values. This action cannot be undone.
                     </p>
                     <div className="d-flex align-items-center justify-content-between gap-2 pt-1">
@@ -598,12 +547,7 @@ const PermissionsPage = () => {
                         >
                             Cancel
                         </Button>
-                        <Button
-                            variant="warning"
-                            className="w-100"
-                            onClick={handleResetToDefault}
-                            disabled={resetting}
-                        >
+                        <Button variant="warning" className="w-100" onClick={handleResetToDefault} disabled={resetting}>
                             {resetting ? (
                                 <>
                                     <Spinner animation="border" size="sm" className="me-1" />
@@ -618,19 +562,13 @@ const PermissionsPage = () => {
             </Modal>
 
             {/* ---- Delete Role Confirmation Modal ---- */}
-            <Modal
-                show={showDeleteConfirm}
-                onHide={() => setShowDeleteConfirm(false)}
-                centered
-            >
+            <Modal show={showDeleteConfirm} onHide={() => setShowDeleteConfirm(false)} centered>
                 <Modal.Header closeButton className="border-0 p-4 pb-3">
                     <h4 className="modal-title text-danger">Delete Role</h4>
                 </Modal.Header>
                 <Modal.Body className="p-4 pt-1">
                     <p>
-                        Are you sure you want to delete{' '}
-                        <strong>{activeRoleName}</strong>? This action cannot be
-                        undone.
+                        Are you sure you want to delete <strong>{activeRoleName}</strong>? This action cannot be undone.
                     </p>
                     <div className="d-flex align-items-center justify-content-between gap-2 pt-1">
                         <Button
@@ -641,12 +579,7 @@ const PermissionsPage = () => {
                         >
                             Cancel
                         </Button>
-                        <Button
-                            variant="danger"
-                            className="w-100"
-                            onClick={handleDeleteRole}
-                            disabled={deletingRole}
-                        >
+                        <Button variant="danger" className="w-100" onClick={handleDeleteRole} disabled={deletingRole}>
                             {deletingRole ? 'Deleting...' : 'Delete'}
                         </Button>
                     </div>

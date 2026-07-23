@@ -7,6 +7,7 @@ import Icon from '@/components/common/Icon';
 import posService from '@/services/posService';
 import { queryClient } from '@/lib/queryClient';
 import { POS_QUERY_KEYS } from '@/constants/pos';
+import usePOSCreateOrder from '@/stores/pos.store';
 
 /* ------------------------------------------------------------------ */
 /*  Schema                                                             */
@@ -18,14 +19,8 @@ const genderOptions = [
 ] as const;
 
 const customerSchema = z.object({
-    name: z
-        .string()
-        .min(1, 'Name is required')
-        .max(150, 'Name must not exceed 150 characters'),
-    phone: z
-        .string()
-        .min(1, 'Phone is required')
-        .max(30, 'Phone must not exceed 30 characters'),
+    name: z.string().min(1, 'Name is required').max(150, 'Name must not exceed 150 characters'),
+    phone: z.string().min(1, 'Phone is required').max(30, 'Phone must not exceed 30 characters'),
     email: z
         .string()
         .max(150, 'Email must not exceed 150 characters')
@@ -43,13 +38,12 @@ type CustomerFormData = z.infer<typeof customerSchema>;
 interface AddCustomerModalProps {
     show: boolean;
     onHide: () => void;
-    onCreated: (customer: { id: number; name: string }) => void;
 }
 
 /* ------------------------------------------------------------------ */
 /*  Component                                                         */
 /* ------------------------------------------------------------------ */
-function AddCustomerModal({ show, onHide, onCreated }: AddCustomerModalProps) {
+function AddCustomerModal({ show, onHide }: AddCustomerModalProps) {
     const {
         register,
         handleSubmit,
@@ -61,6 +55,13 @@ function AddCustomerModal({ show, onHide, onCreated }: AddCustomerModalProps) {
         mode: 'onBlur',
         defaultValues: { name: '', phone: '', email: '', gender: null },
     });
+
+    const setCustomer = usePOSCreateOrder((s) => s.setCustomer);
+
+    const handleClose = useCallback(() => {
+        reset({ name: '', phone: '', email: '', gender: null });
+        onHide();
+    }, [reset, onHide]);
 
     const onSubmit = useCallback(
         async (data: CustomerFormData) => {
@@ -74,24 +75,19 @@ function AddCustomerModal({ show, onHide, onCreated }: AddCustomerModalProps) {
 
                 queryClient.invalidateQueries({ queryKey: POS_QUERY_KEYS.customers() });
 
-                onCreated(result);
+                setCustomer({ label: result.name, value: String(result.id) });
                 handleClose();
             } catch (err: unknown) {
                 const msg =
                     err && typeof err === 'object' && 'response' in err
                         ? ((err as { response: { data: { message?: string } } }).response.data?.message ??
-                              'Failed to create customer')
+                          'Failed to create customer')
                         : 'Failed to create customer';
                 setError('root', { message: msg });
             }
         },
-        [onCreated],
+        [handleClose, setCustomer, setError],
     );
-
-    const handleClose = useCallback(() => {
-        reset({ name: '', phone: '', email: '', gender: null });
-        onHide();
-    }, [reset, onHide]);
 
     return (
         <Modal show={show} onHide={handleClose} centered size="sm">
@@ -100,9 +96,7 @@ function AddCustomerModal({ show, onHide, onCreated }: AddCustomerModalProps) {
                     <Modal.Title className="fs-6 fw-semibold">New Customer</Modal.Title>
                 </Modal.Header>
                 <Modal.Body className="py-3">
-                    {errors.root && (
-                        <div className="alert alert-danger py-2 fs-13 mb-3">{errors.root.message}</div>
-                    )}
+                    {errors.root && <div className="alert alert-danger py-2 fs-13 mb-3">{errors.root.message}</div>}
                     <Form.Group className="mb-3">
                         <Form.Label className="fs-13 fw-medium text-dark">
                             Name <span className="text-danger">*</span>
@@ -114,9 +108,7 @@ function AddCustomerModal({ show, onHide, onCreated }: AddCustomerModalProps) {
                             isInvalid={!!errors.name}
                             {...register('name')}
                         />
-                        <Form.Control.Feedback type="invalid">
-                            {errors.name?.message}
-                        </Form.Control.Feedback>
+                        <Form.Control.Feedback type="invalid">{errors.name?.message}</Form.Control.Feedback>
                     </Form.Group>
                     <Form.Group className="mb-3">
                         <Form.Label className="fs-13 fw-medium text-dark">
@@ -129,9 +121,7 @@ function AddCustomerModal({ show, onHide, onCreated }: AddCustomerModalProps) {
                             isInvalid={!!errors.phone}
                             {...register('phone')}
                         />
-                        <Form.Control.Feedback type="invalid">
-                            {errors.phone?.message}
-                        </Form.Control.Feedback>
+                        <Form.Control.Feedback type="invalid">{errors.phone?.message}</Form.Control.Feedback>
                     </Form.Group>
                     <Form.Group className="mb-3">
                         <Form.Label className="fs-13 fw-medium text-dark">Email</Form.Label>
@@ -142,9 +132,7 @@ function AddCustomerModal({ show, onHide, onCreated }: AddCustomerModalProps) {
                             isInvalid={!!errors.email}
                             {...register('email')}
                         />
-                        <Form.Control.Feedback type="invalid">
-                            {errors.email?.message}
-                        </Form.Control.Feedback>
+                        <Form.Control.Feedback type="invalid">{errors.email?.message}</Form.Control.Feedback>
                     </Form.Group>
                     <Form.Group className="mb-0">
                         <Form.Label className="fs-13 fw-medium text-dark d-block">Gender</Form.Label>
@@ -161,9 +149,7 @@ function AddCustomerModal({ show, onHide, onCreated }: AddCustomerModalProps) {
                                 />
                             ))}
                         </div>
-                        <Form.Control.Feedback type="invalid">
-                            {errors.gender?.message}
-                        </Form.Control.Feedback>
+                        <Form.Control.Feedback type="invalid">{errors.gender?.message}</Form.Control.Feedback>
                     </Form.Group>
                 </Modal.Body>
                 <Modal.Footer className="pt-2">
@@ -177,11 +163,7 @@ function AddCustomerModal({ show, onHide, onCreated }: AddCustomerModalProps) {
                         disabled={isSubmitting || !isValid}
                         className="d-flex align-items-center gap-1"
                     >
-                        {isSubmitting ? (
-                            <span className="spinner-border spinner-border-sm" />
-                        ) : (
-                            <Icon name="plus" />
-                        )}
+                        {isSubmitting ? <span className="spinner-border spinner-border-sm" /> : <Icon name="plus" />}
                         {isSubmitting ? 'Creating...' : 'Create'}
                     </Button>
                 </Modal.Footer>

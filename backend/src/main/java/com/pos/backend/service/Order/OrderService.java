@@ -213,7 +213,7 @@ public class OrderService {
         }
 
         // Update table
-        if (order.getTable().getTableNumber() != null) {
+        if (order.getTable() != null) {
             RestaurantTable table = restaurantTableRepository
                     .findByTableNumber(order.getTable().getTableNumber())
                     .orElseThrow(() -> new AppException(ErrorCode.TABLE_NOT_FOUND));

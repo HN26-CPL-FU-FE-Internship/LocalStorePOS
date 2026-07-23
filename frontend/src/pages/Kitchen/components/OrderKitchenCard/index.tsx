@@ -1,10 +1,10 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import Icon from '@/components/common/Icon';
 import type { OrderSummary } from '@/types';
 import { formatDateTimeKitchen, notifyTimerExpired, toTitleCase, warmUpAudio } from '@/utils';
 import { Button, Card, Col, Spinner } from 'react-bootstrap';
 import KitchenOrderItemRow from '../KitchenOrderItemRow';
-import { KITCHEN_STATUSES, KITCHEN_QUERY_KEYS } from '@/constants';
+import { KITCHEN_STATUSES, KITCHEN_QUERY_KEYS, orderKeys } from '@/constants';
 import kitchenService from '@/services/kitchenService';
 import { queryClient } from '@/lib';
 import useCookingTimer from '@/hooks/kitchen/useCookingTimer';
@@ -113,6 +113,7 @@ const OrderKitchenCard = ({ order }: { order: OrderSummary }) => {
             showToast('success', 'Order marked as completed!');
             resetTimer();
             queryClient.invalidateQueries({ queryKey: KITCHEN_QUERY_KEYS.all });
+            queryClient.invalidateQueries({ queryKey: orderKeys.all });
         } catch (error) {
             const message =
                 (error as { response?: { data?: { message?: string } } })?.response?.data?.message ??
@@ -122,6 +123,10 @@ const OrderKitchenCard = ({ order }: { order: OrderSummary }) => {
             setIsMarkingDone(false);
         }
     }, [order.id, resetTimer, showToast]);
+
+    useEffect(() => {
+        if (order.kitchenStatus === 'completed') resetTimer();
+    }, [order.kitchenStatus, resetTimer]);
 
     // ── Derived UI state ───────────────────────────────────────────────
 

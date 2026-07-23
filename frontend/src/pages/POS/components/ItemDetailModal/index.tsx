@@ -3,52 +3,34 @@ import { Button, Col, Image, Modal, Row } from 'react-bootstrap';
 import { Swiper, SwiperSlide } from 'swiper/react';
 
 import Icon from '@/components/common/Icon';
-import type { POSItem } from '@/types';
+import type { ItemAddon, POSItem } from '@/types';
 import { getItemImageUrl } from '@/api/item.api';
 import foodImages from '@/assets/img/food';
 import { calcPriceWithTax } from '@/utils';
+import usePOSCreateOrder, { type CartPayLoad } from '@/stores/pos.store';
 
-/* ------------------------------------------------------------------ */
-/*  Props                                                             */
-/* ------------------------------------------------------------------ */
 interface ItemDetailModalProps {
     show: boolean;
     item: POSItem | null;
     onHide: () => void;
-    onAddToCart?: (payload: CartPayload) => void;
 }
-
-export interface CartPayload {
-    item: POSItem;
-    variationId: number | null;
-    variationName: string | null;
-    addonIds: number[];
-    quantity: number;
-    unitPrice: number;
-    totalPrice: number;
-}
-
-/* ------------------------------------------------------------------ */
-/*  Helpers                                                           */
-/* ------------------------------------------------------------------ */
 function getFoodImage(index: number): string {
     const keys = Object.keys(foodImages) as (keyof typeof foodImages)[];
     return foodImages[keys[index % keys.length]];
 }
 
-/* ------------------------------------------------------------------ */
-/*  Component                                                         */
-/* ------------------------------------------------------------------ */
-const ItemDetailModal = ({ show, item, onHide, onAddToCart }: ItemDetailModalProps) => {
+const ItemDetailModal = ({ show, item, onHide }: ItemDetailModalProps) => {
+    const addToCart = usePOSCreateOrder((s) => s.addToCart);
+
     /* ---- state ---- */
     const [selectedVariationId, setSelectedVariationId] = useState<number | null>(null);
-    const [selectedAddonIds, setSelectedAddonIds] = useState<Set<number>>(new Set());
+    const [selectedAddons, setSelectedAddons] = useState<Set<ItemAddon>>(new Set());
     const [quantity, setQuantity] = useState(1);
 
     /* ---- init / reset when item changes ---- */
     const resetSelection = useCallback(() => {
         setSelectedVariationId(item?.variations[0]?.id ?? null);
-        setSelectedAddonIds(new Set());
+        setSelectedAddons(new Set());
         setQuantity(1);
     }, [item]);
 
@@ -71,10 +53,8 @@ const ItemDetailModal = ({ show, item, onHide, onAddToCart }: ItemDetailModalPro
     /* ---- computed: selected add-ons total ---- */
     const addonsTotal = useMemo(() => {
         if (!item) return 0;
-        return item.addons
-            .filter((a) => selectedAddonIds.has(a.id))
-            .reduce((sum, a) => sum + Number(a.price), 0);
-    }, [item, selectedAddonIds]);
+        return item.addons.filter((a) => selectedAddons.has(a)).reduce((sum, a) => sum + Number(a.price), 0);
+    }, [item, selectedAddons]);
 
     /* ---- computed: final total ---- */
     const totalPrice = useMemo(() => {
@@ -82,13 +62,13 @@ const ItemDetailModal = ({ show, item, onHide, onAddToCart }: ItemDetailModalPro
     }, [basePrice, addonsTotal, quantity]);
 
     /* ---- handlers ---- */
-    const toggleAddon = useCallback((addonId: number) => {
-        setSelectedAddonIds((prev) => {
+    const toggleAddon = useCallback((addon: ItemAddon) => {
+        setSelectedAddons((prev) => {
             const next = new Set(prev);
-            if (next.has(addonId)) {
-                next.delete(addonId);
+            if (next.has(addon)) {
+                next.delete(addon);
             } else {
-                next.add(addonId);
+                next.add(addon);
             }
             return next;
         });
@@ -100,18 +80,29 @@ const ItemDetailModal = ({ show, item, onHide, onAddToCart }: ItemDetailModalPro
 
     const handleAddToCart = useCallback(() => {
         if (!item) return;
-        const payload: CartPayload = {
+        const payload: CartPayLoad = {
             item,
             variationId: selectedVariationId,
             variationName: selectedVariation?.sizeName ?? null,
-            addonIds: Array.from(selectedAddonIds),
+            addonIds: Array.from(selectedAddons),
             quantity,
             unitPrice: basePrice + addonsTotal,
             totalPrice,
         };
-        onAddToCart?.(payload);
+        addToCart(payload);
         onHide();
-    }, [item, selectedVariationId, selectedVariation, selectedAddonIds, quantity, basePrice, addonsTotal, totalPrice, onAddToCart, onHide]);
+    }, [
+        item,
+        selectedVariationId,
+        selectedVariation,
+        selectedAddons,
+        quantity,
+        basePrice,
+        addonsTotal,
+        totalPrice,
+        addToCart,
+        onHide,
+    ]);
 
     if (!item) return null;
 
@@ -143,9 +134,7 @@ const ItemDetailModal = ({ show, item, onHide, onAddToCart }: ItemDetailModalPro
                         <div className="items-content-scroll">
                             {/* ---- Item Info ---- */}
                             <h4 className="mb-2">{item.name}</h4>
-                            {item.description && (
-                                <p className="mb-3">{item.description}</p>
-                            )}
+                            {item.description && <p className="mb-3">{item.description}</p>}
 
                             {/* ---- Sizes ---- */}
                             {item.variations.length > 0 && (
@@ -163,7 +152,13 @@ const ItemDetailModal = ({ show, item, onHide, onAddToCart }: ItemDetailModalPro
                                                     className="tag d-flex align-items-center justify-content-between gap-3"
                                                 >
                                                     {v.sizeName}
-                                                    <span>${calcPriceWithTax(Number(v.price), item.taxRate).toLocaleString()}</span>
+                                                    <span>
+                                                        $
+                                                        {calcPriceWithTax(
+                                                            Number(v.price),
+                                                            item.taxRate,
+                                                        ).toLocaleString()}
+                                                    </span>
                                                 </button>
                                             </div>
                                         ))}
@@ -176,22 +171,19 @@ const ItemDetailModal = ({ show, item, onHide, onAddToCart }: ItemDetailModalPro
                                 <div className="mb-4 pb-4 border-bottom">
                                     <h6 className="fw-semibold mb-3">Add-ons &amp; Upgrades</h6>
                                     <div className="upgrade-slider-wrap">
-                                        <Swiper
-                                            slidesPerView={2}
-                                            spaceBetween={12}
-                                            className="mySwiper"
-                                        >
+                                        <Swiper slidesPerView={2} spaceBetween={12} className="mySwiper">
                                             {item.addons.map((addon) => {
-                                                const isSelected = selectedAddonIds.has(addon.id);
+                                                const isSelected = selectedAddons.has(addon);
                                                 return (
                                                     <SwiperSlide key={addon.id}>
                                                         <div
                                                             className="slider-item"
                                                             role="button"
                                                             tabIndex={0}
-                                                            onClick={() => toggleAddon(addon.id)}
+                                                            onClick={() => toggleAddon(addon)}
                                                             onKeyDown={(e) => {
-                                                                if (e.key === 'Enter' || e.key === ' ') toggleAddon(addon.id);
+                                                                if (e.key === 'Enter' || e.key === ' ')
+                                                                    toggleAddon(addon);
                                                             }}
                                                         >
                                                             <div
@@ -206,8 +198,12 @@ const ItemDetailModal = ({ show, item, onHide, onAddToCart }: ItemDetailModalPro
                                                                     />
                                                                 </div>
                                                                 <div>
-                                                                    <p className="fw-medium mb-1 text-dark">{addon.name}</p>
-                                                                    <p className="mb-0 fw-medium">${Number(addon.price).toLocaleString()}</p>
+                                                                    <p className="fw-medium mb-1 text-dark">
+                                                                        {addon.name}
+                                                                    </p>
+                                                                    <p className="mb-0 fw-medium">
+                                                                        ${Number(addon.price).toLocaleString()}
+                                                                    </p>
                                                                 </div>
                                                             </div>
                                                         </div>

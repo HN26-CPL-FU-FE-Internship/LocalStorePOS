@@ -28,12 +28,24 @@ const KitchenOrderItemRow = ({ item }: { item: OrderItemType }) => {
             )}
             {addons.length > 0 && (
                 <div className="bg-light rounded py-1 px-2 mt-2">
-                    <p className="mb-0 fw-medium d-flex align-items-center text-dark">
-                        <Icon name="badge-info" className="me-1" />
-                        Addons :{' '}
-                        {addons.map((addon) => (
-                            <span className="mx-1">{addon.addonName}</span>
-                        ))}
+                    <p className="mb-0 fw-medium text-dark">
+                        <span className="d-inline-flex align-items-center">
+                            <Icon name="badge-info" className="me-1" />
+                            <span>Addons : </span>
+                        </span>
+                        {addons.map((addon, index) => {
+                            if (index === 0)
+                                return (
+                                    <span className="ms-1" key={addon.id}>
+                                        {addon.addonName}
+                                    </span>
+                                );
+                            return (
+                                <span className="mx-0" key={addon.id}>
+                                    , {addon.addonName}
+                                </span>
+                            );
+                        })}
                     </p>
                 </div>
             )}

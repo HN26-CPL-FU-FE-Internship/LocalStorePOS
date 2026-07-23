@@ -4,3 +4,4 @@ export { default as usePOSItems } from './usePOSItems';
 export { default as useWaiters } from './useWaiters';
 export { default as useCustomers } from './useCustomers';
 export { default as useTables } from './useTables';
+export { default as usePlaceOrder } from './usePlaceOrder';

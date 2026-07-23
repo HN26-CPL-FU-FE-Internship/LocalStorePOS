@@ -8,7 +8,7 @@ import { bindCx, formatHourAndMinute, formatString, orderUtils, toTitleCase } fr
 import type { ConfirmType, ModalActionProps, OrderStatus, OrderSummary, OrderUpdateStatus } from '@/types';
 import type { PaymentRequest } from '@/services/orderService';
 import OrderActionDropdown from '../OrderActionDropdown';
-import { ORDER_STATUS_ERROR_TITLE, statuses } from '@/constants';
+import { KITCHEN_QUERY_KEYS, ORDER_STATUS_ERROR_TITLE, statuses } from '@/constants';
 import { useUpdateStatus, usePayOrder } from '@/hooks/order/';
 import useContextData from '@/hooks/useContextData';
 import { ToastContext } from '@/provider/ToastProvider/ToastContext';
@@ -16,6 +16,7 @@ import ConfirmModal from '@/components/common/ConfirmModal';
 import OrderModal from '../OrderModal';
 import PayOrderModal from '../PayOrderModal';
 import OrderItemRow from '../OrderItemRow';
+import { queryClient } from '@/lib';
 
 const cx = bindCx(styles);
 
@@ -69,7 +70,11 @@ const TabContent = ({ order }: { order: OrderSummary }) => {
         if (updateStatus) {
             // The useUpdateStatus hook's onSuccess/onError already shows toasts.
             // No need to duplicate feedback handling here.
-            updateStatusMutate.mutate(updateStatus);
+            updateStatusMutate.mutate(updateStatus, {
+                onSuccess: () => {
+                    queryClient.invalidateQueries({ queryKey: KITCHEN_QUERY_KEYS.all });
+                },
+            });
         }
         setShowConfirmModal(false);
     }, [updateStatus, updateStatusMutate]);

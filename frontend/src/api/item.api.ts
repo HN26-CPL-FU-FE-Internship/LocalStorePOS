@@ -128,17 +128,11 @@ const toFormData = (payload: ItemFormData): FormData => {
     }
 
     if (payload.variations) {
-        formData.append(
-            'variations',
-            JSON.stringify(payload.variations.filter((v) => v.sizeName.trim() !== '')),
-        );
+        formData.append('variations', JSON.stringify(payload.variations.filter((v) => v.sizeName.trim() !== '')));
     }
 
     if (payload.addons) {
-        formData.append(
-            'addons',
-            JSON.stringify(payload.addons.filter((a) => a.name.trim() !== '')),
-        );
+        formData.append('addons', JSON.stringify(payload.addons.filter((a) => a.name.trim() !== '')));
     }
 
     return formData;

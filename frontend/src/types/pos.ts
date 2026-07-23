@@ -75,9 +75,35 @@ export interface CartItem {
     item: POSItem;
     variationId: number | null;
     variationName: string | null;
-    addonIds: number[];
+    addonIds: ItemAddon[];
     quantity: number;
     unitPrice: number;
     totalPrice: number;
     note?: string;
 }
+
+export type PlaceOrder = {
+    orderType: string;
+    customerId?: number | null;
+    waiterId?: number | null;
+    tableId?: number | null;
+    subtotal: number;
+    vatAmount: number;
+    serviceTaxAmount: number;
+    grandTotal: number;
+    note?: string | null;
+    items: Array<{
+        itemId: number;
+        variationId?: number | null;
+        itemName: string;
+        unitPrice: number;
+        quantity: number;
+        lineTotal: number;
+        kitchenNote?: string | null;
+        addons?: Array<{
+            addonId: number;
+            addonName: string;
+            addonPrice: number;
+        }>;
+    }>;
+};

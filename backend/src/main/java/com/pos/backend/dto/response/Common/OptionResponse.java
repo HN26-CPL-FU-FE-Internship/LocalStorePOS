@@ -16,4 +16,5 @@ import lombok.NoArgsConstructor;
 public class OptionResponse {
     private Long id;
     private String name;
+
 }

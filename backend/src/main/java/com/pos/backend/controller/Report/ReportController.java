@@ -26,66 +26,70 @@ import lombok.experimental.FieldDefaults;
 @RequestMapping("/api/reports")
 public class ReportController {
 
-    ReportService reportService;
+        ReportService reportService;
 
-    @GetMapping("/earning")
-    public ApiResponse<PageResponse<EarningReportResponse>> getEarningReport(
-            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate fromDate,
-            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate toDate,
-            @RequestParam(required = false) String customerName,
-            @RequestParam(required = false) String paymentMethod,
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "10") int size) {
+        @GetMapping("/earning")
+        public ApiResponse<PageResponse<EarningReportResponse>> getEarningReport(
+                        @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate fromDate,
+                        @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate toDate,
+                        @RequestParam(required = false) String customerName,
+                        @RequestParam(required = false) String paymentMethod,
+                        @RequestParam(defaultValue = "0") int page,
+                        @RequestParam(defaultValue = "10") int size) {
 
-        PageResponse<EarningReportResponse> result = reportService.getEarningReport(fromDate, toDate, customerName, paymentMethod, page, size);
+                PageResponse<EarningReportResponse> result = reportService.getEarningReport(fromDate, toDate,
+                                customerName, paymentMethod, page, size);
 
-        return ApiResponse.<PageResponse<EarningReportResponse>>builder()
-                .result(result)
-                .build();
-    }
+                return ApiResponse.<PageResponse<EarningReportResponse>>builder()
+                                .result(result)
+                                .build();
+        }
 
-    @GetMapping("/orders")
-    public ApiResponse<PageResponse<OrderReportResponse>> getOrderReport(
-            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate fromDate,
-            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate toDate,
-            @RequestParam(required = false) String customerName,
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "10") int size) {
+        @GetMapping("/orders")
+        public ApiResponse<PageResponse<OrderReportResponse>> getOrderReport(
+                        @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate fromDate,
+                        @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate toDate,
+                        @RequestParam(required = false) String customerName,
+                        @RequestParam(defaultValue = "0") int page,
+                        @RequestParam(defaultValue = "10") int size) {
 
-        PageResponse<OrderReportResponse> result = reportService.getOrderReport(fromDate, toDate, customerName, page, size);
+                PageResponse<OrderReportResponse> result = reportService.getOrderReport(fromDate, toDate, customerName,
+                                page, size);
 
-        return ApiResponse.<PageResponse<OrderReportResponse>>builder()
-                .result(result)
-                .build();
-    }
+                return ApiResponse.<PageResponse<OrderReportResponse>>builder()
+                                .result(result)
+                                .build();
+        }
 
-    @GetMapping("/sales")
-    public ApiResponse<PageResponse<SalesReportResponse>> getSalesReport(
-            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate fromDate,
-            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate toDate,
-            @RequestParam(required = false) String categoryName,
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "10") int size) {
+        @GetMapping("/sales")
+        public ApiResponse<PageResponse<SalesReportResponse>> getSalesReport(
+                        @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate fromDate,
+                        @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate toDate,
+                        @RequestParam(required = false) String categoryName,
+                        @RequestParam(defaultValue = "0") int page,
+                        @RequestParam(defaultValue = "10") int size) {
 
-        PageResponse<SalesReportResponse> result = reportService.getSalesReport(fromDate, toDate, categoryName, page, size);
+                PageResponse<SalesReportResponse> result = reportService.getSalesReport(fromDate, toDate, categoryName,
+                                page, size);
 
-        return ApiResponse.<PageResponse<SalesReportResponse>>builder()
-                .result(result)
-                .build();
-    }
+                return ApiResponse.<PageResponse<SalesReportResponse>>builder()
+                                .result(result)
+                                .build();
+        }
 
-    @GetMapping("/customers")
-    public ApiResponse<PageResponse<CustomerReportResponse>> getCustomerReport(
-            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate fromDate,
-            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate toDate,
-            @RequestParam(required = false) String customerName,
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "10") int size) {
+        @GetMapping("/customers")
+        public ApiResponse<PageResponse<CustomerReportResponse>> getCustomerReport(
+                        @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate fromDate,
+                        @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate toDate,
+                        @RequestParam(required = false) String customerName,
+                        @RequestParam(defaultValue = "0") int page,
+                        @RequestParam(defaultValue = "10") int size) {
 
-        PageResponse<CustomerReportResponse> result = reportService.getCustomerReport(fromDate, toDate, customerName, page, size);
+                PageResponse<CustomerReportResponse> result = reportService.getCustomerReport(fromDate, toDate,
+                                customerName, page, size);
 
-        return ApiResponse.<PageResponse<CustomerReportResponse>>builder()
-                .result(result)
-                .build();
-    }
+                return ApiResponse.<PageResponse<CustomerReportResponse>>builder()
+                                .result(result)
+                                .build();
+        }
 }

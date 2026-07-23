@@ -13,4 +13,4 @@ export {
 export { FEEDBACK_CONFIG } from './feedback';
 export { CONFIRM_CONFIG } from './modal';
 export { KITCHEN_STATUSES, KITCHEN_QUERY_KEYS } from './kitchen';
-export { ORDER_TYPES, POS_QUERY_KEYS } from './pos';
+export { ORDER_TYPES, POS_QUERY_KEYS, ORDER_FILTERS, SERVICE_TAX_RATE, VAT_RATE } from './pos';

@@ -19,6 +19,7 @@ import com.pos.backend.dto.response.ApiResponse;
 import com.pos.backend.dto.response.Common.OptionResponse;
 import com.pos.backend.dto.response.Order.OrderResponse;
 import com.pos.backend.dto.response.POS.POSItemResponse;
+import com.pos.backend.dto.response.Table.TableResponse;
 import com.pos.backend.entity.Customer;
 import com.pos.backend.service.POS.POSService;
 
@@ -34,79 +35,79 @@ import lombok.experimental.FieldDefaults;
 @RequestMapping("/api/pos")
 public class POSController {
 
-    POSService posService;
+        POSService posService;
 
-    @GetMapping("/recent-orders")
-    // @PreAuthorize("@perm.hasPermission(authentication)")
-    public ApiResponse<Page<OrderResponse>> getRecentOrders(
-            @PageableDefault(size = 20, sort = "orderedAt", direction = Direction.DESC) Pageable pageable) {
+        @GetMapping("/recent-orders")
+        // @PreAuthorize("@perm.hasPermission(authentication)")
+        public ApiResponse<Page<OrderResponse>> getRecentOrders(
+                        @PageableDefault(size = 20, sort = "orderedAt", direction = Direction.DESC) Pageable pageable) {
 
-        Page<OrderResponse> responses = posService.getListRecentOrder(pageable);
-        return ApiResponse.<Page<OrderResponse>>builder()
-                .message("Success")
-                .result(responses)
-                .build();
-    }
+                Page<OrderResponse> responses = posService.getListRecentOrder(pageable);
+                return ApiResponse.<Page<OrderResponse>>builder()
+                                .message("Success")
+                                .result(responses)
+                                .build();
+        }
 
-    @GetMapping("/items")
-    public ApiResponse<List<POSItemResponse>> getItemsByCategory(
-            @RequestParam(required = false, defaultValue = "0") Long categoryId) {
+        @GetMapping("/items")
+        public ApiResponse<List<POSItemResponse>> getItemsByCategory(
+                        @RequestParam(required = false, defaultValue = "0") Long categoryId) {
 
-        List<POSItemResponse> items = posService.getItemsByCategory(categoryId);
-        return ApiResponse.<List<POSItemResponse>>builder()
-                .message("Success")
-                .result(items)
-                .build();
-    }
+                List<POSItemResponse> items = posService.getItemsByCategory(categoryId);
+                return ApiResponse.<List<POSItemResponse>>builder()
+                                .message("Success")
+                                .result(items)
+                                .build();
+        }
 
-    @GetMapping("/tables")
-    public ApiResponse<List<OptionResponse>> getAvailableTables() {
-        return ApiResponse.<List<OptionResponse>>builder()
-                .message("Success")
-                .result(posService.getAvailableTables())
-                .build();
-    }
+        @GetMapping("/tables")
+        public ApiResponse<List<TableResponse>> getAvailableTables() {
+                return ApiResponse.<List<TableResponse>>builder()
+                                .message("Success")
+                                .result(posService.getAvailableTables())
+                                .build();
+        }
 
-    @GetMapping("/waiters")
-    public ApiResponse<List<OptionResponse>> getWaiters() {
-        return ApiResponse.<List<OptionResponse>>builder()
-                .message("Success")
-                .result(posService.getWaiters())
-                .build();
-    }
+        @GetMapping("/waiters")
+        public ApiResponse<List<OptionResponse>> getWaiters() {
+                return ApiResponse.<List<OptionResponse>>builder()
+                                .message("Success")
+                                .result(posService.getWaiters())
+                                .build();
+        }
 
-    @GetMapping("/customers")
-    public ApiResponse<List<OptionResponse>> getCustomers() {
-        return ApiResponse.<List<OptionResponse>>builder()
-                .message("Success")
-                .result(posService.getCustomers())
-                .build();
-    }
+        @GetMapping("/customers")
+        public ApiResponse<List<OptionResponse>> getCustomers() {
+                return ApiResponse.<List<OptionResponse>>builder()
+                                .message("Success")
+                                .result(posService.getCustomers())
+                                .build();
+        }
 
-    @PostMapping("/customers")
-    public ApiResponse<OptionResponse> createCustomer(
-            @Valid @RequestBody CreateCustomerRequest request) {
+        @PostMapping("/customers")
+        public ApiResponse<OptionResponse> createCustomer(
+                        @Valid @RequestBody CreateCustomerRequest request) {
 
-        Customer customer = posService.createCustomer(request);
-        OptionResponse response = OptionResponse.builder()
-                .id(customer.getId())
-                .name(customer.getName())
-                .build();
+                Customer customer = posService.createCustomer(request);
+                OptionResponse response = OptionResponse.builder()
+                                .id(customer.getId())
+                                .name(customer.getName())
+                                .build();
 
-        return ApiResponse.<OptionResponse>builder()
-                .message("Customer created successfully")
-                .result(response)
-                .build();
-    }
+                return ApiResponse.<OptionResponse>builder()
+                                .message("Customer created successfully")
+                                .result(response)
+                                .build();
+        }
 
-    @PostMapping("/orders")
-    public ApiResponse<OrderResponse> createOrder(
-            @Valid @RequestBody CreateOrderRequest request) {
+        @PostMapping("/orders")
+        public ApiResponse<OrderResponse> createOrder(
+                        @Valid @RequestBody CreateOrderRequest request) {
 
-        OrderResponse response = posService.createOrder(request);
-        return ApiResponse.<OrderResponse>builder()
-                .message("Order placed successfully")
-                .result(response)
-                .build();
-    }
+                OrderResponse response = posService.createOrder(request);
+                return ApiResponse.<OrderResponse>builder()
+                                .message("Order placed successfully")
+                                .result(response)
+                                .build();
+        }
 }

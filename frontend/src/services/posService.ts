@@ -2,11 +2,16 @@ import { api } from '@/lib';
 import type { ApiResponse } from '@/types/auth';
 import type { CategoryEntry } from '@/api/category.api';
 import type { OrderSummary } from '@/types';
-import type { PageContent, POSItem, RecentOrder } from '@/types/pos';
+import type { PageContent, PlaceOrder, POSItem, RecentOrder } from '@/types/pos';
 
 export interface OptionItem {
     id: number;
     name: string;
+}
+
+export interface TablePOS extends OptionItem {
+    seats: number;
+    areaName: string;
 }
 
 const posService = {
@@ -37,8 +42,8 @@ const posService = {
         return res.data.result;
     },
 
-    getTables: async (): Promise<OptionItem[]> => {
-        const res = await api.get<ApiResponse<OptionItem[]>>('/pos/tables');
+    getTables: async (): Promise<TablePOS[]> => {
+        const res = await api.get<ApiResponse<TablePOS[]>>('/pos/tables');
         return res.data.result;
     },
 
@@ -52,31 +57,7 @@ const posService = {
         return res.data.result;
     },
 
-    placeOrder: async (data: {
-        orderType: string;
-        customerId?: number | null;
-        waiterId?: number | null;
-        tableId?: number | null;
-        subtotal: number;
-        vatAmount: number;
-        serviceTaxAmount: number;
-        grandTotal: number;
-        note?: string | null;
-        items: Array<{
-            itemId: number;
-            variationId?: number | null;
-            itemName: string;
-            unitPrice: number;
-            quantity: number;
-            lineTotal: number;
-            kitchenNote?: string | null;
-            addons?: Array<{
-                addonId: number;
-                addonName: string;
-                addonPrice: number;
-            }>;
-        }>;
-    }): Promise<OrderSummary> => {
+    placeOrder: async (data: PlaceOrder): Promise<OrderSummary> => {
         const res = await api.post<ApiResponse<OrderSummary>>('/pos/orders', data);
         return res.data.result;
     },

@@ -1,43 +1,84 @@
 import { Button, Modal, Table } from 'react-bootstrap';
 import Icon from '@/components/common/Icon';
-import type { CartItem } from '@/types';
 import { toTitleCase } from '@/utils';
+import usePOSCreateOrder from '@/stores/pos.store';
+import { useShallow } from 'zustand/react/shallow';
+import { VAT_RATE } from '@/constants';
+import useContextData from '@/hooks/useContextData';
+import { ToastContext } from '@/provider/ToastProvider/ToastContext';
+import { usePlaceOrder } from '@/hooks/pos';
 
-/* ------------------------------------------------------------------ */
-/*  Props                                                             */
-/* ------------------------------------------------------------------ */
 interface OrderConfirmModalProps {
     show: boolean;
     onHide: () => void;
-    onConfirm: () => void;
-    isProcessing: boolean;
-    orderType: string;
-    tableName: string | null;
-    customerName: string | null;
-    cartItems: CartItem[];
     subtotal: number;
     vatAmount: number;
     serviceTaxAmount: number;
     total: number;
 }
 
-/* ------------------------------------------------------------------ */
-/*  Component                                                         */
-/* ------------------------------------------------------------------ */
-function OrderConfirmModal({
-    show,
-    onHide,
-    onConfirm,
-    isProcessing,
-    orderType,
-    tableName,
-    customerName,
-    cartItems,
-    subtotal,
-    vatAmount,
-    serviceTaxAmount,
-    total,
-}: OrderConfirmModalProps) {
+function OrderConfirmModal({ show, onHide, subtotal, vatAmount, serviceTaxAmount, total }: OrderConfirmModalProps) {
+    const { cartItems, customer, table, setPlacingOrder, orderActiveType, resetCart, setTable, setCustomer } =
+        usePOSCreateOrder(
+            useShallow((s) => ({
+                cartItems: s.cartItems,
+                customer: s.customer,
+                table: s.table,
+                setCustomer: s.setCustomer,
+                setTable: s.setTable,
+                setPlacingOrder: s.setPlacingOrder,
+                orderActiveType: s.orderActiveType,
+                resetCart: s.resetCart,
+            })),
+        );
+
+    const { showToast } = useContextData(ToastContext);
+    const placeOrderMutation = usePlaceOrder();
+
+    const handlePlaceOrder = () => {
+        if (cartItems.length === 0) return;
+        setPlacingOrder(placeOrderMutation.isPending);
+        placeOrderMutation.mutate(
+            {
+                orderType: orderActiveType,
+                customerId: customer ? Number(customer.value) : null,
+                waiterId: null,
+                tableId: table ? Number(table.value) : null,
+                subtotal: Math.round(subtotal * 100) / 100,
+                vatAmount: VAT_RATE * 100,
+                serviceTaxAmount,
+                grandTotal: Math.round(total * 100) / 100,
+                note: null,
+                items: cartItems.map((c) => ({
+                    itemId: c.item.id,
+                    variationId: c.variationId,
+                    itemName: c.item.name,
+                    unitPrice: Math.round(c.unitPrice * 100) / 100,
+                    quantity: c.quantity,
+                    lineTotal: Math.round(c.totalPrice * 100) / 100,
+                    kitchenNote: c.note || null,
+                    addons: c.addonIds.map((addon) => ({
+                        addonId: addon.id,
+                        addonName: addon.name,
+                        addonPrice: addon.price,
+                    })),
+                })),
+            },
+            {
+                onSuccess: () => {
+                    showToast('success', 'Order placed successfully!');
+                    resetCart();
+                    setCustomer(null);
+                    setTable(null);
+                    onHide();
+                },
+                onError: () => {
+                    showToast('error', 'Failed to place order. Please try again.');
+                },
+            },
+        );
+    };
+
     return (
         <Modal show={show} onHide={onHide} centered size="lg" dialogClassName="order-confirm-dialog">
             <Modal.Header closeButton className="border-bottom pb-3">
@@ -46,9 +87,7 @@ function OrderConfirmModal({
                         <Icon name="clipboard-list" className="fs-4 text-primary" />
                         Confirm Order
                     </Modal.Title>
-                    <p className="mb-0 text-muted fs-13 mt-1">
-                        Please review your order before placing it.
-                    </p>
+                    <p className="mb-0 text-muted fs-13 mt-1">Please review your order before placing it.</p>
                 </div>
             </Modal.Header>
 
@@ -60,15 +99,15 @@ function OrderConfirmModal({
                             <Icon name="wine" className="text-muted fs-5" />
                             <div>
                                 <small className="text-muted d-block fs-11">Order Type</small>
-                                <span className="fw-semibold fs-14">{toTitleCase(orderType)}</span>
+                                <span className="fw-semibold fs-14">{toTitleCase(orderActiveType)}</span>
                             </div>
                         </div>
-                        {tableName && (
+                        {table && (
                             <div className="d-flex align-items-center gap-2">
                                 <Icon name="table-2" className="text-muted fs-5" />
                                 <div>
                                     <small className="text-muted d-block fs-11">Table</small>
-                                    <span className="fw-semibold fs-14">{tableName}</span>
+                                    <span className="fw-semibold fs-14">{table.label ?? null}</span>
                                 </div>
                             </div>
                         )}
@@ -76,7 +115,7 @@ function OrderConfirmModal({
                             <Icon name="user" className="text-muted fs-5" />
                             <div>
                                 <small className="text-muted d-block fs-11">Customer</small>
-                                <span className="fw-semibold fs-14">{customerName ?? 'Walk-in'}</span>
+                                <span className="fw-semibold fs-14">{customer?.label ?? 'Walk-in'}</span>
                             </div>
                         </div>
                     </div>
@@ -94,9 +133,15 @@ function OrderConfirmModal({
                         <thead className="bg-light">
                             <tr>
                                 <th className="py-2 ps-3">Item</th>
-                                <th className="py-2 text-center" style={{ width: 80 }}>Qty</th>
-                                <th className="py-2 text-end" style={{ width: 100 }}>Price</th>
-                                <th className="py-2 text-end pe-3" style={{ width: 100 }}>Total</th>
+                                <th className="py-2 text-center" style={{ width: 80 }}>
+                                    Qty
+                                </th>
+                                <th className="py-2 text-end" style={{ width: 100 }}>
+                                    Price
+                                </th>
+                                <th className="py-2 text-end pe-3" style={{ width: 100 }}>
+                                    Total
+                                </th>
                             </tr>
                         </thead>
                         <tbody>
@@ -108,9 +153,7 @@ function OrderConfirmModal({
                                             <small className="text-muted">{item.variationName}</small>
                                         )}
                                         {item.note && (
-                                            <small className="d-block text-muted fst-italic">
-                                                Note: {item.note}
-                                            </small>
+                                            <small className="d-block text-muted fst-italic">Note: {item.note}</small>
                                         )}
                                     </td>
                                     <td className="text-center py-2">{item.quantity}</td>
@@ -151,17 +194,22 @@ function OrderConfirmModal({
             </Modal.Body>
 
             <Modal.Footer className="border-top pt-3">
-                <Button variant="light" onClick={onHide} disabled={isProcessing} className="d-flex align-items-center gap-1">
+                <Button
+                    variant="light"
+                    onClick={onHide}
+                    disabled={placeOrderMutation.isPending}
+                    className="d-flex align-items-center gap-1"
+                >
                     <Icon name="x" />
                     Cancel
                 </Button>
                 <Button
                     variant="primary"
-                    onClick={onConfirm}
-                    disabled={isProcessing}
+                    onClick={handlePlaceOrder}
+                    disabled={placeOrderMutation.isPending}
                     className="d-flex align-items-center gap-1 px-4"
                 >
-                    {isProcessing ? (
+                    {placeOrderMutation.isPending ? (
                         <>
                             <span className="spinner-border spinner-border-sm" />
                             Placing Order...

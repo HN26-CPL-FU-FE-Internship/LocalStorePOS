@@ -31,6 +31,7 @@ import com.pos.backend.dto.response.Item.ItemAddonResponse;
 import com.pos.backend.dto.response.Item.ItemVariationResponse;
 import com.pos.backend.dto.response.Order.OrderResponse;
 import com.pos.backend.dto.response.POS.POSItemResponse;
+import com.pos.backend.dto.response.Table.TableResponse;
 import com.pos.backend.entity.Addon;
 import com.pos.backend.entity.Customer;
 import com.pos.backend.entity.Item;
@@ -64,10 +65,10 @@ public class POSService {
         ItemVariationRepository itemVariationRepository;
         AddonRepository addonRepository;
         OrderItemRepository orderItemRepository;
-    UserRepository userRepository;
-    CustomerRepository customerRepository;
-    OrderItemAddonRepository orderItemAddonRepository;
-    RestaurantTableRepository restaurantTableRepository;
+        UserRepository userRepository;
+        CustomerRepository customerRepository;
+        OrderItemAddonRepository orderItemAddonRepository;
+        RestaurantTableRepository restaurantTableRepository;
 
         public Page<OrderResponse> getListRecentOrder(Pageable pageable) {
 
@@ -204,19 +205,22 @@ public class POSService {
                                 .build();
         }
 
-    @Transactional(readOnly = true)
-    public List<OptionResponse> getAvailableTables() {
-        return restaurantTableRepository.findAll().stream()
-                .filter(table -> table.getStatus() == com.pos.backend.constant.enums.TableStatus.available)
-                .map(table -> OptionResponse.builder()
-                        .id(table.getId())
-                        .name(table.getTableNumber())
-                        .build())
-                .toList();
-    }
+        @Transactional(readOnly = true)
+        public List<TableResponse> getAvailableTables() {
+                return restaurantTableRepository.findAll().stream()
+                                .filter(table -> table
+                                                .getStatus() == com.pos.backend.constant.enums.TableStatus.available)
+                                .map(table -> TableResponse.builder()
+                                                .id(table.getId())
+                                                .name(table.getTableNumber())
+                                                .seats(table.getSeats())
+                                                .areaName(table.getArea() != null ? table.getArea().getName() : null)
+                                                .build())
+                                .toList();
+        }
 
-    @Transactional(readOnly = true)
-    public List<OptionResponse> getWaiters() {
+        @Transactional(readOnly = true)
+        public List<OptionResponse> getWaiters() {
                 return userRepository.findAll().stream()
                                 .map(user -> OptionResponse.builder()
                                                 .id(user.getId())
@@ -250,24 +254,26 @@ public class POSService {
         public OrderResponse createOrder(CreateOrderRequest request) {
                 // 1. Generate order number (time + random suffix to avoid collisions)
                 String orderNumber = "#" + LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyMMdd-HHmmss"))
-                                + String.format("%04d", ThreadLocalRandom.current().nextInt(9999));        // 2. Look up optional references
-        Customer customer = request.getCustomerId() != null
-                ? customerRepository.findById(request.getCustomerId()).orElse(null)
-                : null;
-        User waiter = request.getWaiterId() != null
-                ? userRepository.findById(request.getWaiterId()).orElse(null)
-                : null;
-        RestaurantTable table = request.getTableId() != null
-                ? restaurantTableRepository.findById(request.getTableId()).orElse(null)
-                : null;
+                                + String.format("%04d", ThreadLocalRandom.current().nextInt(9999)); // 2. Look up
+                                                                                                    // optional
+                                                                                                    // references
+                Customer customer = request.getCustomerId() != null
+                                ? customerRepository.findById(request.getCustomerId()).orElse(null)
+                                : null;
+                User waiter = request.getWaiterId() != null
+                                ? userRepository.findById(request.getWaiterId()).orElse(null)
+                                : null;
+                RestaurantTable table = request.getTableId() != null
+                                ? restaurantTableRepository.findById(request.getTableId()).orElse(null)
+                                : null;
 
-        // 3. Build & save Order
-        Order order = Order.builder()
-                .orderNumber(orderNumber)
-                .orderType(OrderType.valueOf(request.getOrderType()))
-                .customer(customer)
-                .waiter(waiter)
-                .table(table)
+                // 3. Build & save Order
+                Order order = Order.builder()
+                                .orderNumber(orderNumber)
+                                .orderType(OrderType.valueOf(request.getOrderType()))
+                                .customer(customer)
+                                .waiter(waiter)
+                                .table(table)
                                 .status(OrderStatus.pending)
                                 .kitchenStatus(KitchenStatus.new_order)
                                 .subtotal(request.getSubtotal() != null ? request.getSubtotal() : BigDecimal.ZERO)
