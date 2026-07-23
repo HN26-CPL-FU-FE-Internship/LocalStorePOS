@@ -56,7 +56,7 @@ const CartItemList = () => {
                                         </p>
                                     )}
 
-                                    {cartItem.addonIds.map((a) => (
+                                    {cartItem.item.addons.map((a) => (
                                         <p className="badge badge-sm bg-light text-dark mb-0 me-1">{a.name}</p>
                                     ))}
                                 </div>

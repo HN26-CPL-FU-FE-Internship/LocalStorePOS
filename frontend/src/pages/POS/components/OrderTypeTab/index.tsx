@@ -20,16 +20,19 @@ const OrderTypeTab = ({
     const waiterOptions = useMemo(() => waiters.map((w) => ({ value: String(w.id), label: w.name })), [waiters]);
     const customerOptions = useMemo(() => customers.map((c) => ({ value: String(c.id), label: c.name })), [customers]);
 
-    const { orderActiveType, setOrderActiveType, customer, setCustomer, setTable, table } = usePOSCreateOrder(
-        useShallow((s) => ({
-            orderActiveType: s.orderActiveType,
-            setOrderActiveType: s.setOrderActiveType,
-            customer: s.customer,
-            setCustomer: s.setCustomer,
-            table: s.table,
-            setTable: s.setTable,
-        })),
-    );
+    const { orderActiveType, setOrderActiveType, customer, setCustomer, setTable, table, waiter, setWaiter } =
+        usePOSCreateOrder(
+            useShallow((s) => ({
+                orderActiveType: s.orderActiveType,
+                setOrderActiveType: s.setOrderActiveType,
+                customer: s.customer,
+                setCustomer: s.setCustomer,
+                table: s.table,
+                setTable: s.setTable,
+                waiter: s.waiter,
+                setWaiter: s.setWaiter,
+            })),
+        );
     return (
         <div className="item border-bottom">
             <Tab.Container activeKey={orderActiveType} onSelect={(key) => key && setOrderActiveType(key)}>
@@ -66,7 +69,15 @@ const OrderTypeTab = ({
                             </Col>
                             <Col lg={4}>
                                 <div className="common-select w-100">
-                                    <Select className="select" options={waiterOptions} placeholder="Waiter" />
+                                    <Select
+                                        className="select"
+                                        options={waiterOptions}
+                                        placeholder="Waiter"
+                                        isSearchable
+                                        noOptionsMessage={() => 'No waiters found'}
+                                        value={waiter}
+                                        onChange={(opt) => setWaiter(opt)}
+                                    />
                                 </div>
                             </Col>
                             <Col lg={4}>

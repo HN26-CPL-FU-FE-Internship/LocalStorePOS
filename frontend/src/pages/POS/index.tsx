@@ -69,7 +69,10 @@ function POS() {
             const qty = itemQtys[item.id] || 1;
 
             addToCart({
-                item,
+                item: {
+                    ...item,
+                    addons: [],
+                },
                 variationId: defaultVariation?.id ?? null,
                 variationName: defaultVariation?.sizeName ?? null,
                 addonIds: [],

@@ -81,10 +81,13 @@ const ItemDetailModal = ({ show, item, onHide }: ItemDetailModalProps) => {
     const handleAddToCart = useCallback(() => {
         if (!item) return;
         const payload: CartPayLoad = {
-            item,
+            item: {
+                ...item,
+                addons: Array.from(selectedAddons),
+            },
             variationId: selectedVariationId,
             variationName: selectedVariation?.sizeName ?? null,
-            addonIds: Array.from(selectedAddons),
+            addonIds: Array.from(selectedAddons).map((addon) => addon.id),
             quantity,
             unitPrice: basePrice + addonsTotal,
             totalPrice,

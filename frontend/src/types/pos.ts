@@ -75,7 +75,7 @@ export interface CartItem {
     item: POSItem;
     variationId: number | null;
     variationName: string | null;
-    addonIds: ItemAddon[];
+    addonIds: number[];
     quantity: number;
     unitPrice: number;
     totalPrice: number;

@@ -57,7 +57,7 @@ function OrderConfirmModal({ show, onHide, subtotal, vatAmount, serviceTaxAmount
                     quantity: c.quantity,
                     lineTotal: Math.round(c.totalPrice * 100) / 100,
                     kitchenNote: c.note || null,
-                    addons: c.addonIds.map((addon) => ({
+                    addons: c.item.addons.map((addon) => ({
                         addonId: addon.id,
                         addonName: addon.name,
                         addonPrice: addon.price,

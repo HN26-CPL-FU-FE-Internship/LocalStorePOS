@@ -1,4 +1,4 @@
-import type { CartItem, ItemAddon, POSItem } from '@/types';
+import type { CartItem, POSItem } from '@/types';
 import type { SingleValue } from 'react-select';
 import { create } from 'zustand';
 
@@ -11,6 +11,8 @@ type CreateOrderStore = {
     customer: CartSelected | null;
     table: CartSelected | null;
     placingOrder: boolean;
+    waiter: CartSelected | null;
+    setWaiter: (value: SingleValue<CartSelected>) => void;
     setPlacingOrder: (value: boolean) => void;
     setTable: (value: SingleValue<CartSelected>) => void;
     setCustomer: (value: SingleValue<CartSelected>) => void;
@@ -29,7 +31,7 @@ export type CartPayLoad = {
     item: POSItem;
     variationId: number | null;
     variationName: string | null;
-    addonIds: ItemAddon[];
+    addonIds: number[];
     quantity: number;
     unitPrice: number;
     totalPrice: number;
@@ -49,6 +51,7 @@ const usePOSCreateOrder = create<CreateOrderStore>((set) => ({
     customer: null,
     table: null,
     placingOrder: false,
+    waiter: null,
 
     setSearchText: (value) =>
         set(() => ({
@@ -61,7 +64,7 @@ const usePOSCreateOrder = create<CreateOrderStore>((set) => ({
     setActiveCategory: (value) => set(() => ({ activeCategory: value })),
     resetCart: () => set(() => ({ cartItems: [] })),
     addToCart: (payload) => {
-        const cartId = `${payload.item.id}-${payload.variationId ?? 'base'}`;
+        const cartId = `${payload.item.id}-${payload.variationId ?? 'base'}-${payload.addonIds.join('-') ?? 'no-addons'}`;
 
         set((state) => {
             const { cartItems } = state;
@@ -73,7 +76,7 @@ const usePOSCreateOrder = create<CreateOrderStore>((set) => ({
                             ? {
                                   ...c,
                                   quantity: c.quantity + payload.quantity,
-                                  totalPrice: (c.quantity + payload.quantity) * c.unitPrice,
+                                  totalPrice: c.totalPrice + payload.totalPrice,
                               }
                             : c,
                     ),
@@ -146,6 +149,11 @@ const usePOSCreateOrder = create<CreateOrderStore>((set) => ({
     setPlacingOrder: (value) =>
         set(() => ({
             placingOrder: value,
+        })),
+
+    setWaiter: (value) =>
+        set(() => ({
+            waiter: value,
         })),
 }));
 
