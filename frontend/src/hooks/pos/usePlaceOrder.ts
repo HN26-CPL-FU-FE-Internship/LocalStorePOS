@@ -13,6 +13,9 @@ const usePlaceOrder = () => {
                     queryKey: POS_QUERY_KEYS.recentOrders(),
                 }),
                 queryClient.invalidateQueries({
+                    queryKey: POS_QUERY_KEYS.tables(),
+                }),
+                queryClient.invalidateQueries({
                     queryKey: orderKeys.all,
                 }),
                 queryClient.invalidateQueries({

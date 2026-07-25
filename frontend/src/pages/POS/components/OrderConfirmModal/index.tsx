@@ -1,29 +1,39 @@
 import { Button, Modal, Table } from 'react-bootstrap';
 import Icon from '@/components/common/Icon';
-import { toTitleCase } from '@/utils';
+import { calculateLineTotalPrice, toTitleCase } from '@/utils';
 import usePOSCreateOrder from '@/stores/pos.store';
 import { useShallow } from 'zustand/react/shallow';
-import { VAT_RATE } from '@/constants';
 import useContextData from '@/hooks/useContextData';
 import { ToastContext } from '@/provider/ToastProvider/ToastContext';
 import { usePlaceOrder } from '@/hooks/pos';
+import axios from 'axios';
 
 interface OrderConfirmModalProps {
     show: boolean;
     onHide: () => void;
     subtotal: number;
-    vatAmount: number;
-    serviceTaxAmount: number;
     total: number;
+    taxAmount: number;
+    serviceChargeAmount: number;
+    deliveryChargeAmount: number;
 }
 
-function OrderConfirmModal({ show, onHide, subtotal, vatAmount, serviceTaxAmount, total }: OrderConfirmModalProps) {
-    const { cartItems, customer, table, setPlacingOrder, orderActiveType, resetCart, setTable, setCustomer } =
+function OrderConfirmModal({
+    show,
+    onHide,
+    subtotal,
+    total,
+    taxAmount,
+    serviceChargeAmount,
+    deliveryChargeAmount,
+}: OrderConfirmModalProps) {
+    const { cartItems, customer, table, setPlacingOrder, orderActiveType, resetCart, setTable, setCustomer, waiter } =
         usePOSCreateOrder(
             useShallow((s) => ({
                 cartItems: s.cartItems,
                 customer: s.customer,
                 table: s.table,
+                waiter: s.waiter,
                 setCustomer: s.setCustomer,
                 setTable: s.setTable,
                 setPlacingOrder: s.setPlacingOrder,
@@ -42,11 +52,12 @@ function OrderConfirmModal({ show, onHide, subtotal, vatAmount, serviceTaxAmount
             {
                 orderType: orderActiveType,
                 customerId: customer ? Number(customer.value) : null,
-                waiterId: null,
+                waiterId: Number(waiter?.value),
                 tableId: table ? Number(table.value) : null,
                 subtotal: Math.round(subtotal * 100) / 100,
-                vatAmount: VAT_RATE * 100,
-                serviceTaxAmount,
+                taxAmount,
+                serviceCharge: orderActiveType === 'dine_in' ? serviceChargeAmount : 0,
+                deliveryCharge: orderActiveType === 'delivery' ? deliveryChargeAmount : 0,
                 grandTotal: Math.round(total * 100) / 100,
                 note: null,
                 items: cartItems.map((c) => ({
@@ -55,12 +66,13 @@ function OrderConfirmModal({ show, onHide, subtotal, vatAmount, serviceTaxAmount
                     itemName: c.item.name,
                     unitPrice: Math.round(c.unitPrice * 100) / 100,
                     quantity: c.quantity,
-                    lineTotal: Math.round(c.totalPrice * 100) / 100,
+                    lineTotal: Math.round(calculateLineTotalPrice(c.unitPrice, c.quantity) * 100) / 100,
                     kitchenNote: c.note || null,
                     addons: c.item.addons.map((addon) => ({
                         addonId: addon.id,
                         addonName: addon.name,
                         addonPrice: addon.price,
+                        quantity: addon.quantity,
                     })),
                 })),
             },
@@ -72,8 +84,14 @@ function OrderConfirmModal({ show, onHide, subtotal, vatAmount, serviceTaxAmount
                     setTable(null);
                     onHide();
                 },
-                onError: () => {
-                    showToast('error', 'Failed to place order. Please try again.');
+                onError: (error) => {
+                    let message = 'Failed to place order. Please try again.';
+
+                    if (axios.isAxiosError(error)) {
+                        message = error.response?.data?.message ?? message;
+                    }
+
+                    showToast('error', message);
                 },
             },
         );
@@ -159,7 +177,7 @@ function OrderConfirmModal({ show, onHide, subtotal, vatAmount, serviceTaxAmount
                                     <td className="text-center py-2">{item.quantity}</td>
                                     <td className="text-end py-2">${Number(item.unitPrice).toLocaleString()}</td>
                                     <td className="text-end pe-3 py-2 fw-medium">
-                                        ${item.totalPrice.toLocaleString()}
+                                        ${calculateLineTotalPrice(item.unitPrice, item.quantity).toLocaleString()}
                                     </td>
                                 </tr>
                             ))}
@@ -174,17 +192,26 @@ function OrderConfirmModal({ show, onHide, subtotal, vatAmount, serviceTaxAmount
                         Payment Summary
                     </h6>
                     <div className="d-flex justify-content-between mb-1 fs-14">
-                        <span className="text-muted">Sub Total (tax incl.)</span>
+                        <span className="text-muted">Sub Total</span>
                         <span className="fw-medium text-dark">${subtotal.toLocaleString()}</span>
                     </div>
                     <div className="d-flex justify-content-between mb-1 fs-14">
-                        <span className="text-muted">VAT (10%)</span>
-                        <span className="fw-medium text-dark">${vatAmount.toLocaleString()}</span>
+                        <span className="text-muted">Tax Amount</span>
+                        <span className="fw-medium text-dark">${taxAmount.toLocaleString()}</span>
                     </div>
-                    <div className="d-flex justify-content-between mb-2 fs-14">
-                        <span className="text-muted">Service Tax (5%)</span>
-                        <span className="fw-medium text-dark">${serviceTaxAmount.toLocaleString()}</span>
-                    </div>
+                    {orderActiveType === 'dine_in' && (
+                        <div className="d-flex justify-content-between mb-1 fs-14">
+                            <span className="text-muted">Service Charge</span>
+                            <span className="fw-medium text-dark">${serviceChargeAmount.toLocaleString()}</span>
+                        </div>
+                    )}
+                    {orderActiveType === 'delivery' && (
+                        <div className="d-flex justify-content-between mb-1 fs-14">
+                            <span className="text-muted">Delivery Charge</span>
+                            <span className="fw-medium text-dark">${deliveryChargeAmount.toLocaleString()}</span>
+                        </div>
+                    )}
+
                     <hr className="my-2" />
                     <div className="d-flex justify-content-between fs-5 fw-bold">
                         <span>Total</span>

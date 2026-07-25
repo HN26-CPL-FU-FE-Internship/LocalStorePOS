@@ -46,6 +46,7 @@ export interface ItemAddon {
     name: string;
     price: number;
     description: string | null;
+    quantity: number;
 }
 
 export interface POSItem {
@@ -78,7 +79,6 @@ export interface CartItem {
     addonIds: number[];
     quantity: number;
     unitPrice: number;
-    totalPrice: number;
     note?: string;
 }
 
@@ -88,8 +88,9 @@ export type PlaceOrder = {
     waiterId?: number | null;
     tableId?: number | null;
     subtotal: number;
-    vatAmount: number;
-    serviceTaxAmount: number;
+    taxAmount: number;
+    serviceCharge: number;
+    deliveryCharge: number;
     grandTotal: number;
     note?: string | null;
     items: Array<{
@@ -98,12 +99,13 @@ export type PlaceOrder = {
         itemName: string;
         unitPrice: number;
         quantity: number;
-        lineTotal: number;
+        lineTotal: number; // tiền 1 dòng chưa tính thuế
         kitchenNote?: string | null;
         addons?: Array<{
             addonId: number;
             addonName: string;
             addonPrice: number;
+            quantity: number;
         }>;
     }>;
 };

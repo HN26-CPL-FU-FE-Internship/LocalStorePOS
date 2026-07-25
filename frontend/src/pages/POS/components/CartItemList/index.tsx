@@ -1,7 +1,7 @@
 import { getItemImageUrl } from '@/api/item.api';
 import Icon from '@/components/common/Icon';
 import usePOSCreateOrder from '@/stores/pos.store';
-import { getItemImage } from '@/utils';
+import { calcPriceWithTax, calculateLineTotalPrice, formatAddonNote, getItemImage } from '@/utils';
 import { memo } from 'react';
 import { Button, Image } from 'react-bootstrap';
 import { useShallow } from 'zustand/react/shallow';
@@ -18,8 +18,6 @@ const CartItemList = () => {
                 updateCartQuantity: s.updateCartQuantity,
             })),
         );
-
-    console.log(cartItems);
 
     return (
         <>
@@ -57,13 +55,19 @@ const CartItemList = () => {
                                     )}
 
                                     {cartItem.item.addons.map((a) => (
-                                        <p className="badge badge-sm bg-light text-dark mb-0 me-1">{a.name}</p>
+                                        <p className="badge badge-sm bg-light text-dark mb-0 me-1">
+                                            {formatAddonNote(a.name, a.quantity)}
+                                        </p>
                                     ))}
                                 </div>
                             </Button>
                             <div className="d-flex align-items-center gap-2 flex-shrink-0">
                                 <div className="quantity-control">
-                                    <button className="minus-btn" onClick={() => updateCartQuantity(cartItem.id, -1)}>
+                                    <button
+                                        className="minus-btn"
+                                        onClick={() => updateCartQuantity(cartItem.id, -1)}
+                                        disabled={cartItem.quantity <= 1}
+                                    >
                                         <Icon name="minus" />
                                     </button>
                                     <input
@@ -102,9 +106,17 @@ const CartItemList = () => {
                                         </p>
                                     </div>
                                     <div className="text-center">
+                                        <span className="fs-12 mb-1 d-block fw-medium text-dark">TAX</span>
+                                        <p className="mb-0 fs-14 fw-normal">{cartItem.item.taxRate ?? 0}%</p>
+                                    </div>
+                                    <div className="text-center">
                                         <span className="fs-12 mb-1 d-block fw-medium text-dark">Total</span>
                                         <p className="mb-0 fs-14 fw-semibold text-dark">
-                                            ${cartItem.totalPrice.toLocaleString()}
+                                            $
+                                            {calcPriceWithTax(
+                                                calculateLineTotalPrice(cartItem.unitPrice, cartItem.quantity),
+                                                cartItem.item.taxRate,
+                                            )}
                                         </p>
                                     </div>
                                 </div>

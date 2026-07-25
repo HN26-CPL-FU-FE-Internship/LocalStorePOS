@@ -20,8 +20,9 @@ public class CreateOrderRequest {
     private Long waiterId;
     private Long tableId;
     private BigDecimal subtotal;
-    private BigDecimal vatAmount;
-    private BigDecimal serviceTaxAmount;
+    private BigDecimal taxAmount;
+    private BigDecimal serviceChargeAmount;
+    private BigDecimal deliveryChargeAmount;
     private BigDecimal grandTotal;
     private String note;
     private List<CreateOrderItemRequest> items;

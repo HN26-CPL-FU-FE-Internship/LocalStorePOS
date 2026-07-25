@@ -16,4 +16,7 @@ public class ItemAddonResponse {
     private String name;
     private BigDecimal price;
     private String description;
+
+    @Builder.Default
+    private Integer quantity = 0;
 }

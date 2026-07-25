@@ -1,5 +1,6 @@
 import Icon from '@/components/common/Icon';
 import type { OrderItemType } from '@/types';
+import { formatAddonNote } from '@/utils';
 import { memo } from 'react';
 
 const KitchenOrderItemRow = ({ item }: { item: OrderItemType }) => {
@@ -28,25 +29,21 @@ const KitchenOrderItemRow = ({ item }: { item: OrderItemType }) => {
             )}
             {addons.length > 0 && (
                 <div className="bg-light rounded py-1 px-2 mt-2">
-                    <p className="mb-0 fw-medium text-dark">
-                        <span className="d-inline-flex align-items-center">
+                    <div className="mb-0 fw-medium text-dark d-flex flex-column align-items-start">
+                        <p className="d-flex align-items-center mb-1">
                             <Icon name="badge-info" className="me-1" />
                             <span>Addons : </span>
-                        </span>
-                        {addons.map((addon, index) => {
-                            if (index === 0)
+                        </p>
+                        <ul className="mb-1">
+                            {addons.map((addon) => {
                                 return (
-                                    <span className="ms-1" key={addon.id}>
-                                        {addon.addonName}
-                                    </span>
+                                    <li className="ms-1 mb-1" key={addon.id}>
+                                        {formatAddonNote(addon.addonName, addon.quantity)}
+                                    </li>
                                 );
-                            return (
-                                <span className="mx-0" key={addon.id}>
-                                    , {addon.addonName}
-                                </span>
-                            );
-                        })}
-                    </p>
+                            })}
+                        </ul>
+                    </div>
                 </div>
             )}
         </div>

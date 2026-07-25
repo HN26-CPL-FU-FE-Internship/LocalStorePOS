@@ -3,7 +3,7 @@ import Icon from '@/components/common/Icon';
 import ImageWithSkeleton from '@/components/common/ImageWithSkeleton';
 import usePOSCreateOrder from '@/stores/pos.store';
 import type { POSItem } from '@/types';
-import { calcPriceWithTax, getItemImage } from '@/utils';
+import { getItemImage } from '@/utils';
 import { memo } from 'react';
 import { Col, Row } from 'react-bootstrap';
 import { Link } from 'react-router-dom';
@@ -115,15 +115,10 @@ const MenuItemsGrid = ({
 
                                         <div className="price d-flex align-items-center justify-content-between flex gap-2">
                                             <div>
-                                                <p className="mb-0 text-dark">
-                                                    $
-                                                    {Number(
-                                                        calcPriceWithTax(item.price, item.taxRate),
-                                                    ).toLocaleString()}
-                                                </p>
+                                                <p className="mb-0 text-dark">${Number(item.price).toLocaleString()}</p>
                                                 {item.taxRate && item.taxRate > 0 && (
                                                     <small className="fs-10 text-muted">
-                                                        incl. {item.taxRate}%{item.taxTitle ? ` ${item.taxTitle}` : ''}
+                                                        excl. {item.taxRate}%{item.taxTitle ? ` ${item.taxTitle}` : ''}
                                                     </small>
                                                 )}
                                             </div>

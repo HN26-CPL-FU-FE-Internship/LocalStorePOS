@@ -36,5 +36,5 @@ export const ORDER_FILTERS = [
     { key: 'delivery', label: 'Delivery' },
 ] as const;
 
-export const VAT_RATE = 0.1;
-export const SERVICE_TAX_RATE = 0.05;
+export const SERVICE_CHARGE_RATE = 0.05;
+export const DELIVERY_CHARGE_RATE = 0.05;

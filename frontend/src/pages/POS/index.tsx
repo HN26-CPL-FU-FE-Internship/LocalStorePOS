@@ -8,10 +8,9 @@ import AddCustomerModal from './components/AddCustomerModal';
 import ItemDetailModal from './components/ItemDetailModal';
 import OrderConfirmModal from './components/OrderConfirmModal';
 import './components/ItemDetailModal/ItemDetailModal.scss';
-import { SERVICE_TAX_RATE, VAT_RATE } from '@/constants';
 import { usePOSItems } from '@/hooks';
 import type { POSItem } from '@/types';
-import { calcPriceWithTax, calculateDiscount, formatDateTimeKitchen } from '@/utils';
+import { calculateDiscount, calculateLineTotalPrice, formatDateTimeKitchen } from '@/utils';
 import POSRecentOrder from './components/POSRecentOrder';
 import AvailableTable from './components/AvailableTable';
 import MenuCategory from './components/MenuCategory';
@@ -22,16 +21,18 @@ import CartItemList from './components/CartItemList';
 import usePOSCreateOrder from '@/stores/pos.store';
 import { useShallow } from 'zustand/react/shallow';
 import PlaceOrder from './components/PlaceOrder';
+import { DELIVERY_CHARGE_RATE, SERVICE_CHARGE_RATE } from '@/constants';
 
 function POS() {
     const categoriesSwiperRef = useRef<SwiperType>(null);
-    const { activeCategory, searchText, addToCart, cartItems, placingOrder } = usePOSCreateOrder(
+    const { activeCategory, searchText, addToCart, cartItems, placingOrder, orderActiveType } = usePOSCreateOrder(
         useShallow((s) => ({
             activeCategory: s.activeCategory,
             searchText: s.searchText,
             addToCart: s.addToCart,
             cartItems: s.cartItems,
             placingOrder: s.placingOrder,
+            orderActiveType: s.orderActiveType,
         })),
     );
     /* ---- data state ---- */
@@ -65,7 +66,7 @@ function POS() {
         (item: POSItem) => {
             const defaultVariation = item.variations.length > 0 ? item.variations[0] : null;
             const basePrice = defaultVariation ? defaultVariation.price : item.price;
-            const unitPrice = calcPriceWithTax(basePrice, item.taxRate);
+            const unitPrice = basePrice;
             const qty = itemQtys[item.id] || 1;
 
             addToCart({
@@ -78,7 +79,6 @@ function POS() {
                 addonIds: [],
                 quantity: qty,
                 unitPrice,
-                totalPrice: unitPrice * qty,
             });
 
             // Reset qty display to 1 after adding
@@ -102,18 +102,35 @@ function POS() {
     );
 
     const cartSubtotal = useMemo(() => {
-        return cartItems.reduce((sum, c) => sum + c.totalPrice, 0);
+        return cartItems.reduce((sum, c) => sum + c.unitPrice * c.quantity, 0);
     }, [cartItems]);
 
-    const vatAmount = useMemo(() => calculateDiscount(cartSubtotal, VAT_RATE * 100, 'percentage'), [cartSubtotal]);
-    const serviceTaxAmount = useMemo(
-        () => calculateDiscount(cartSubtotal, SERVICE_TAX_RATE * 100, 'percentage'),
+    const taxAmount = useMemo(
+        () =>
+            cartItems.reduce(
+                (sum, item) =>
+                    sum + (calculateLineTotalPrice(item.unitPrice, item.quantity) * (item.item.taxRate ?? 0)) / 100,
+                0,
+            ),
+        [cartItems],
+    );
+
+    const serviceChargeAmount = useMemo(
+        () => calculateDiscount(cartSubtotal, SERVICE_CHARGE_RATE * 100, 'percentage'),
         [cartSubtotal],
     );
-    const orderTotal = useMemo(
-        () => cartSubtotal + vatAmount + serviceTaxAmount,
-        [cartSubtotal, vatAmount, serviceTaxAmount],
+
+    const deliveryChargeAmount = useMemo(
+        () => calculateDiscount(cartSubtotal, DELIVERY_CHARGE_RATE * 100, 'percentage'),
+        [cartSubtotal],
     );
+
+    const orderTotal = useMemo(() => {
+        let charge = 0;
+        if (orderActiveType === 'dine_in') charge = serviceChargeAmount;
+        else if (orderActiveType === 'delivery') charge = deliveryChargeAmount;
+        return cartSubtotal + taxAmount + charge;
+    }, [cartSubtotal, deliveryChargeAmount, orderActiveType, serviceChargeAmount, taxAmount]);
 
     const cartTotalQty = useMemo(() => {
         return cartItems.reduce((sum, c) => sum + c.quantity, 0);
@@ -200,9 +217,10 @@ function POS() {
                 show={showOrderConfirm}
                 onHide={handleHideOrderConfirm}
                 subtotal={cartSubtotal}
-                vatAmount={vatAmount}
-                serviceTaxAmount={serviceTaxAmount}
                 total={orderTotal}
+                taxAmount={taxAmount}
+                serviceChargeAmount={serviceChargeAmount}
+                deliveryChargeAmount={deliveryChargeAmount}
             />
 
             {/* ======== Right Sidebar — Order Cart ======== ======== */}
@@ -238,13 +256,25 @@ function POS() {
                                     <span className="fw-medium text-dark">${cartSubtotal.toLocaleString()}</span>
                                 </p>
                                 <p className="fs-14 fw-normal d-flex align-items-center justify-content-between mb-0 mt-1">
-                                    VAT ({(VAT_RATE * 100).toFixed(0)}%)
-                                    <span className="fw-medium text-dark">${vatAmount.toLocaleString()}</span>
+                                    Tax Amount
+                                    <span className="fw-medium text-dark">${taxAmount.toLocaleString()}</span>
                                 </p>
-                                <p className="fs-14 fw-normal d-flex align-items-center justify-content-between mb-0 mt-1">
-                                    Service Tax ({(SERVICE_TAX_RATE * 100).toFixed(0)}%)
-                                    <span className="fw-medium text-dark">${serviceTaxAmount.toLocaleString()}</span>
-                                </p>
+                                {orderActiveType === 'dine_in' && (
+                                    <p className="fs-14 fw-normal d-flex align-items-center justify-content-between mb-0 mt-1">
+                                        Service Charge ({(SERVICE_CHARGE_RATE * 100).toFixed(0)}%)
+                                        <span className="fw-medium text-dark">
+                                            ${serviceChargeAmount.toLocaleString()}
+                                        </span>
+                                    </p>
+                                )}
+                                {orderActiveType === 'delivery' && (
+                                    <p className="fs-14 fw-normal d-flex align-items-center justify-content-between mb-0 mt-1">
+                                        Delivery Charge ({(DELIVERY_CHARGE_RATE * 100).toFixed(0)}%)
+                                        <span className="fw-medium text-dark">
+                                            ${deliveryChargeAmount.toLocaleString()}
+                                        </span>
+                                    </p>
+                                )}
                             </div>
                         )}
                     </div>

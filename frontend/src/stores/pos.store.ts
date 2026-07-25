@@ -34,7 +34,6 @@ export type CartPayLoad = {
     addonIds: number[];
     quantity: number;
     unitPrice: number;
-    totalPrice: number;
 };
 
 type CartSelected = {
@@ -64,7 +63,7 @@ const usePOSCreateOrder = create<CreateOrderStore>((set) => ({
     setActiveCategory: (value) => set(() => ({ activeCategory: value })),
     resetCart: () => set(() => ({ cartItems: [] })),
     addToCart: (payload) => {
-        const cartId = `${payload.item.id}-${payload.variationId ?? 'base'}-${payload.addonIds.join('-') ?? 'no-addons'}`;
+        const cartId = `${payload.item.id}-${payload.variationId ?? 'base'}-${payload.item.addons.map((a) => `${a.id}x${a.quantity}`).join('-') ?? 'no-addons'}`;
 
         set((state) => {
             const { cartItems } = state;
@@ -76,7 +75,6 @@ const usePOSCreateOrder = create<CreateOrderStore>((set) => ({
                             ? {
                                   ...c,
                                   quantity: c.quantity + payload.quantity,
-                                  totalPrice: c.totalPrice + payload.totalPrice,
                               }
                             : c,
                     ),
@@ -94,7 +92,6 @@ const usePOSCreateOrder = create<CreateOrderStore>((set) => ({
                         addonIds: payload.addonIds,
                         quantity: payload.quantity,
                         unitPrice: payload.unitPrice,
-                        totalPrice: payload.totalPrice,
                     },
                 ],
             };
@@ -140,7 +137,6 @@ const usePOSCreateOrder = create<CreateOrderStore>((set) => ({
                     ? {
                           ...c,
                           quantity: Math.max(1, c.quantity + delta),
-                          totalPrice: Math.max(1, c.quantity + delta) * c.unitPrice,
                       }
                     : c,
             ),

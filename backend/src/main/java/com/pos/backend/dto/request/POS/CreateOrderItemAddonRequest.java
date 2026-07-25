@@ -17,4 +17,5 @@ public class CreateOrderItemAddonRequest {
     private Long addonId;
     private String addonName;
     private BigDecimal addonPrice;
+    private Integer quantity;
 }

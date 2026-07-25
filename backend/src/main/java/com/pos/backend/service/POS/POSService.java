@@ -3,6 +3,7 @@ package com.pos.backend.service.POS;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -11,17 +12,17 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.pos.backend.constant.ErrorCode;
 import com.pos.backend.constant.enums.ItemStatus;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
-import java.util.concurrent.ThreadLocalRandom;
 
 import com.pos.backend.constant.enums.KitchenStatus;
 import com.pos.backend.constant.enums.OrderPaymentStatus;
 import com.pos.backend.constant.enums.OrderStatus;
 import com.pos.backend.constant.enums.OrderType;
+import com.pos.backend.constant.enums.TableStatus;
 import com.pos.backend.dto.request.POS.CreateCustomerRequest;
 import com.pos.backend.dto.request.POS.CreateOrderItemAddonRequest;
 import com.pos.backend.dto.request.POS.CreateOrderItemRequest;
@@ -41,6 +42,7 @@ import com.pos.backend.entity.OrderItem;
 import com.pos.backend.entity.OrderItemAddon;
 import com.pos.backend.entity.RestaurantTable;
 import com.pos.backend.entity.User;
+import com.pos.backend.exception.AppException;
 import com.pos.backend.repository.AddonRepository;
 import com.pos.backend.repository.CustomerRepository;
 import com.pos.backend.repository.ItemRepository;
@@ -50,6 +52,7 @@ import com.pos.backend.repository.OrderItemRepository;
 import com.pos.backend.repository.OrderRepository;
 import com.pos.backend.repository.RestaurantTableRepository;
 import com.pos.backend.repository.UserRepository;
+import com.pos.backend.util.POS;
 
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
@@ -252,83 +255,33 @@ public class POSService {
 
         @Transactional
         public OrderResponse createOrder(CreateOrderRequest request) {
-                // 1. Generate order number (time + random suffix to avoid collisions)
-                String orderNumber = "#" + LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyMMdd-HHmmss"))
-                                + String.format("%04d", ThreadLocalRandom.current().nextInt(9999)); // 2. Look up
-                                                                                                    // optional
-                                                                                                    // references
-                Customer customer = request.getCustomerId() != null
-                                ? customerRepository.findById(request.getCustomerId()).orElse(null)
-                                : null;
-                User waiter = request.getWaiterId() != null
-                                ? userRepository.findById(request.getWaiterId()).orElse(null)
-                                : null;
-                RestaurantTable table = request.getTableId() != null
-                                ? restaurantTableRepository.findById(request.getTableId()).orElse(null)
-                                : null;
+
+                Set<Long> itemIds = request.getItems().stream().map(item -> item.getItemId())
+                                .collect(Collectors.toSet());
+
+                Set<Long> variationIds = request.getItems().stream().map(item -> item.getVariationId())
+                                .collect(Collectors.toSet());
+
+                Set<Long> addonIds = request.getItems().stream().filter(item -> item.getAddons() != null)
+                                .flatMap(item -> item.getAddons().stream()).map(addon -> addon.getAddonId())
+                                .collect(Collectors.toSet());
+
+                Map<Long, Item> itemMap = itemRepository.findAllById(itemIds).stream()
+                                .collect(Collectors.toMap(Item::getId, Function.identity()));
+
+                Map<Long, ItemVariation> variationMap = itemVariationRepository.findAllWithItemByIdIn(variationIds)
+                                .stream()
+                                .collect(Collectors.toMap(ItemVariation::getId, Function.identity()));
+
+                Map<Long, Addon> addonMap = addonRepository.findAllById(addonIds).stream()
+                                .collect(Collectors.toMap(addon -> addon.getId(), Function.identity()));
 
                 // 3. Build & save Order
-                Order order = Order.builder()
-                                .orderNumber(orderNumber)
-                                .orderType(OrderType.valueOf(request.getOrderType()))
-                                .customer(customer)
-                                .waiter(waiter)
-                                .table(table)
-                                .status(OrderStatus.pending)
-                                .kitchenStatus(KitchenStatus.new_order)
-                                .subtotal(request.getSubtotal() != null ? request.getSubtotal() : BigDecimal.ZERO)
-                                .taxAmount(request.getVatAmount() != null ? request.getVatAmount() : BigDecimal.ZERO)
-                                .serviceCharge(request.getServiceTaxAmount() != null ? request.getServiceTaxAmount()
-                                                : BigDecimal.ZERO)
-                                .grandTotal(request.getGrandTotal() != null ? request.getGrandTotal() : BigDecimal.ZERO)
-                                .paymentStatus(OrderPaymentStatus.unpaid)
-                                .note(request.getNote())
-                                .orderedAt(LocalDateTime.now())
-                                .build();
-                order = orderRepository.save(order);
+                Order order = buildOrder(request, itemMap, variationMap, addonMap);
 
+                changeTableStatus(order.getTable() != null ? order.getTable().getId() : null);
                 // 4. Save OrderItems and OrderItemAddons
-                if (request.getItems() != null) {
-                        for (CreateOrderItemRequest itemReq : request.getItems()) {
-                                Item item = itemRepository.findById(itemReq.getItemId()).orElse(null);
-                                ItemVariation variation = itemReq.getVariationId() != null
-                                                ? itemVariationRepository.findById(itemReq.getVariationId())
-                                                                .orElse(null)
-                                                : null;
-
-                                OrderItem orderItem = OrderItem.builder()
-                                                .order(order)
-                                                .item(item)
-                                                .variation(variation)
-                                                .itemName(itemReq.getItemName())
-                                                .unitPrice(itemReq.getUnitPrice() != null ? itemReq.getUnitPrice()
-                                                                : BigDecimal.ZERO)
-                                                .quantity(itemReq.getQuantity() != null ? itemReq.getQuantity() : 1)
-                                                .lineTotal(itemReq.getLineTotal() != null ? itemReq.getLineTotal()
-                                                                : BigDecimal.ZERO)
-                                                .kitchenNote(itemReq.getKitchenNote())
-                                                .build();
-                                orderItem = orderItemRepository.save(orderItem);
-
-                                // 5. Save addons for this item
-                                if (itemReq.getAddons() != null) {
-                                        for (CreateOrderItemAddonRequest addonReq : itemReq.getAddons()) {
-                                                Addon addon = addonRepository.findById(addonReq.getAddonId())
-                                                                .orElse(null);
-                                                OrderItemAddon orderItemAddon = OrderItemAddon.builder()
-                                                                .orderItem(orderItem)
-                                                                .addon(addon)
-                                                                .addonName(addonReq.getAddonName())
-                                                                .addonPrice(addonReq.getAddonPrice() != null
-                                                                                ? addonReq.getAddonPrice()
-                                                                                : BigDecimal.ZERO)
-                                                                .quantity(1)
-                                                                .build();
-                                                orderItemAddonRepository.save(orderItemAddon);
-                                        }
-                                }
-                        }
-                }
+                saveOrderItem(order, itemMap, variationMap, addonMap, request);
 
                 // 6. Return response (without items list for simplicity)
                 return OrderResponse.builder()
@@ -347,4 +300,134 @@ public class POSService {
                                 .build();
         }
 
+        private Order buildOrder(CreateOrderRequest request, Map<Long, Item> itemMap,
+                        Map<Long, ItemVariation> variationMap,
+                        Map<Long, Addon> addonMap) {
+                Customer customer = request.getCustomerId() != null
+                                ? customerRepository.findById(request.getCustomerId())
+                                                .orElseThrow(() -> new AppException(ErrorCode.CUSTOMER_NOT_FOUND))
+                                : null;
+
+                User waiter = request.getWaiterId() != null
+                                ? userRepository.findById(request.getWaiterId())
+                                                .orElseThrow(() -> new AppException(ErrorCode.WAITER_NOT_FOUND))
+                                : null;
+
+                RestaurantTable table = request.getTableId() != null
+                                ? restaurantTableRepository.findById(request.getTableId())
+                                                .orElseThrow(() -> new AppException(ErrorCode.TABLE_NOT_FOUND))
+                                : null;
+
+                if (request.getOrderType().equals(OrderType.dine_in.name()) && table == null) {
+                        throw new AppException(ErrorCode.NO_TABLE_CHOOSE_FOR_DINE_IN);
+                }
+                if (request.getOrderType().equals(OrderType.dine_in.name()) && waiter == null) {
+                        throw new AppException(ErrorCode.NO_WAITER_CHOOSE_FOR_DINE_IN);
+                }
+
+                String orderNumber = "ORD-" + System.currentTimeMillis();
+
+                BigDecimal subTotal = POS.calSubTotal(request, itemMap, variationMap, addonMap);
+                BigDecimal taxAmount = POS.getTaxAmount(request, itemMap, variationMap, addonMap);
+                BigDecimal serviceCharge = request.getServiceChargeAmount() != null
+                                ? request.getServiceChargeAmount()
+                                : BigDecimal.ZERO;
+                BigDecimal deliveryCharge = request.getDeliveryChargeAmount() != null
+                                ? request.getDeliveryChargeAmount()
+                                : BigDecimal.ZERO;
+                BigDecimal grandTotal = subTotal
+                                .add(taxAmount)
+                                .add(serviceCharge)
+                                .add(deliveryCharge);
+
+                Order order = Order.builder()
+                                .orderNumber(orderNumber)
+                                .orderType(OrderType.valueOf(request.getOrderType()))
+                                .customer(customer)
+                                .waiter(waiter)
+                                .table(table)
+                                .status(OrderStatus.pending)
+                                .kitchenStatus(KitchenStatus.new_order)
+                                .subtotal(subTotal)
+                                .taxAmount(taxAmount)
+                                .serviceCharge(serviceCharge)
+                                .deliveryCharge(deliveryCharge)
+                                .grandTotal(grandTotal)
+                                .paymentStatus(OrderPaymentStatus.unpaid)
+                                .note(request.getNote())
+                                .orderedAt(LocalDateTime.now())
+                                .build();
+
+                return orderRepository.save(order);
+
+        }
+
+        private void saveOrderItem(Order order, Map<Long, Item> itemMap,
+                        Map<Long, ItemVariation> variationMap, Map<Long, Addon> addonMap, CreateOrderRequest request) {
+
+                for (CreateOrderItemRequest itemReq : request.getItems()) {
+                        Item item = itemMap.get(itemReq.getItemId());
+                        ItemVariation variation = variationMap.get(itemReq.getVariationId());
+
+                        if (item == null) {
+                                throw new AppException(ErrorCode.ITEM_NOT_FOUND);
+                        }
+
+                        if (variation != null && !variation.getItem().getId().equals(item.getId())) {
+                                throw new AppException(ErrorCode.INVALID_VARIATION_OR_ADDON_DATA);
+                        }
+
+                        OrderItem orderItem = OrderItem.builder()
+                                        .order(order)
+                                        .item(item)
+                                        .variation(variation)
+                                        .itemName(itemReq.getItemName())
+                                        .unitPrice(itemReq.getUnitPrice() != null ? itemReq.getUnitPrice()
+                                                        : BigDecimal.ZERO)
+                                        .quantity(itemReq.getQuantity() != null ? itemReq.getQuantity() : 1)
+                                        .lineTotal(itemReq.getLineTotal() != null ? itemReq.getLineTotal()
+                                                        : BigDecimal.ZERO)
+                                        .kitchenNote(itemReq.getKitchenNote())
+                                        .build();
+
+                        orderItemRepository.save(orderItem);
+
+                        saveItemAddons(itemReq, addonMap, orderItem);
+                }
+        }
+
+        private void saveItemAddons(CreateOrderItemRequest itemReq, Map<Long, Addon> addonMap, OrderItem orderItem) {
+
+                if (itemReq.getAddons() == null || itemReq.getAddons().isEmpty()) {
+                        return;
+                }
+
+                for (CreateOrderItemAddonRequest addonReq : itemReq.getAddons()) {
+
+                        Addon addon = addonMap.get(addonReq.getAddonId());
+
+                        if (addon == null) {
+                                throw new AppException(ErrorCode.ADDON_NOT_FOUND);
+                        }
+                        OrderItemAddon orderItemAddon = OrderItemAddon.builder()
+                                        .orderItem(orderItem)
+                                        .addon(addon)
+                                        .addonName(addonReq.getAddonName())
+                                        .addonPrice(addonReq.getAddonPrice())
+                                        .quantity(1)
+                                        .build();
+
+                        orderItemAddonRepository.save(orderItemAddon);
+                }
+        }
+
+        private void changeTableStatus(Long tableId) {
+                if (tableId == null)
+                        return;
+                RestaurantTable table = restaurantTableRepository.findById(tableId)
+                                .orElseThrow(() -> new AppException(ErrorCode.TABLE_NOT_FOUND));
+
+                table.setStatus(TableStatus.occupied);
+                restaurantTableRepository.save(table);
+        }
 }
