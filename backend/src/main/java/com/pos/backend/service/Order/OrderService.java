@@ -161,6 +161,13 @@ public class OrderService {
         order.setStatus(request.getStatus());
         order.setKitchenStatus(getKitchenStatusByOrderStatus(request.getStatus()));
 
+        if (order.getTable() != null && request.getStatus().equals(OrderStatus.cancelled)) {
+            RestaurantTable table = restaurantTableRepository.findById(order.getTable().getId())
+                    .orElseThrow(() -> new AppException(ErrorCode.TABLE_NOT_FOUND));
+
+            table.setStatus(TableStatus.available);
+        }
+
         return orderMapper.toOrderResponse(order);
     }
 
@@ -241,13 +248,11 @@ public class OrderService {
                         order.getCoupon().getDiscountAmount(),
                         order.getCoupon().getDiscountType())
                 : BigDecimal.ZERO;
-        BigDecimal taxVal = calculateDiscountValue(
-                subtotal, order.getTaxAmount(), DiscountType.percentage);
         BigDecimal calculatedGrandTotal = subtotal
                 .subtract(discVal)
                 .subtract(coupVal)
-                .add(taxVal)
                 .add(order.getServiceCharge())
+                .add(order.getDeliveryCharge())
                 .add(order.getTipAmount())
                 .max(BigDecimal.ZERO); // Never go negative
 

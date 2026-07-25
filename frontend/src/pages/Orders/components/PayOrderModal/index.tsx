@@ -78,7 +78,7 @@ const PayOrderModal = ({
     // ── Computed totals ──────────────────────────────────────────────
     const subtotal = order?.subtotal ?? 0;
 
-    const { discountValue, couponDiscount, taxValue, finalTotal } = useMemo(() => {
+    const { discountValue, couponDiscount } = useMemo(() => {
         // Use payment-tab values when set, otherwise fall back to order defaults
         const effectiveDiscountAmount = discountAmount > 0 ? discountAmount : (order?.discountAmount ?? 0);
         const effectiveDiscountType = (discountAmount > 0 ? discountType : 'percentage') as DiscountType;
@@ -87,14 +87,22 @@ const PayOrderModal = ({
 
         return calculateOrderTotals({
             subtotal,
-            taxAmount: order?.taxAmount ?? 0,
             discountAmount: effectiveDiscountAmount,
             discountType: effectiveDiscountType,
             coupon: effectiveCoupon,
-            serviceCharge: order?.serviceCharge ?? 0,
             tipAmount: effectiveTip,
         });
     }, [discountAmount, discountType, tipAmount, selectedCoupon, order, subtotal]);
+
+    const chargeAmount = useMemo(() => {
+        if (order?.orderType === 'dine_in') return order.serviceCharge ?? 0;
+        else return order?.deliveryCharge ?? 0;
+    }, [order]);
+
+    const finalTotal = useMemo(
+        () => Math.max(0, subtotal - discountValue - couponDiscount + chargeAmount + tipAmount),
+        [chargeAmount, couponDiscount, discountValue, subtotal, tipAmount],
+    );
 
     const handleConfirmPayment = useCallback(() => {
         if (!order) return;
@@ -102,6 +110,7 @@ const PayOrderModal = ({
         // Validate cash payment amount before proceeding
         if (activePaymentType === 'cash') {
             const given = parseFloat(givenAmount);
+            console.log(given < finalTotal);
             if (isNaN(given) || given <= 0) {
                 showToast('error', 'Please enter the amount given by the customer');
                 return;
@@ -215,13 +224,10 @@ const PayOrderModal = ({
                         <OrderInfoSection order={order} />
                         <OrderedMenusSection items={order.items} />
                         <OrderTotalsSection
-                            subtotal={subtotal}
-                            taxValue={taxValue}
                             discountValue={discountValue}
                             discountAmount={discountAmount}
                             discountType={discountType}
                             couponDiscount={couponDiscount}
-                            serviceCharge={order.serviceCharge}
                             tipAmount={tipAmount}
                             order={order}
                             selectedCoupon={selectedCoupon}

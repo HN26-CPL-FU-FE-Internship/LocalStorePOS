@@ -21,7 +21,7 @@ export function calculateDiscount(subTotal: number = 0, discount: number = 0, ty
     if (discount < 0) discount = 0;
     switch (type) {
         case 'percentage':
-            return Math.ceil((subTotal / 100) * Math.min(100, discount));
+            return Math.round((subTotal / 100) * Math.min(100, discount));
         case 'fixed_amount':
             return Math.round(Math.min(discount, subTotal));
         default:
@@ -31,19 +31,15 @@ export function calculateDiscount(subTotal: number = 0, discount: number = 0, ty
 
 export interface CalculateOrderTotalsParams {
     subtotal: number;
-    taxAmount: number;
     discountAmount: number;
     discountType: DiscountType;
     coupon: CouponOrder | null;
-    serviceCharge: number;
     tipAmount: number;
 }
 
 export interface CalculateOrderTotalsResult {
     discountValue: number;
     couponDiscount: number;
-    taxValue: number;
-    finalTotal: number;
 }
 
 /**
@@ -51,14 +47,12 @@ export interface CalculateOrderTotalsResult {
  * Returns the individual breakdown values plus the final total.
  */
 export function calculateOrderTotals(params: CalculateOrderTotalsParams): CalculateOrderTotalsResult {
-    const { subtotal, taxAmount, discountAmount, discountType, coupon, serviceCharge, tipAmount } = params;
+    const { subtotal, discountAmount, discountType, coupon } = params;
 
     const discVal = calculateDiscount(subtotal, discountAmount, discountType);
     const coupVal = coupon ? calculateDiscount(subtotal, coupon.discountAmount, coupon.discountType) : 0;
-    const taxVal = calculateDiscount(subtotal, taxAmount, 'percentage');
-    const finalTotal = Math.max(0, subtotal - discVal - coupVal + taxVal + serviceCharge + tipAmount);
 
-    return { discountValue: discVal, couponDiscount: coupVal, taxValue: taxVal, finalTotal };
+    return { discountValue: discVal, couponDiscount: coupVal };
 }
 
 // ── Utilities object (backward compat for existing imports) ─────────────

@@ -21,8 +21,8 @@ public class CreateOrderRequest {
     private Long tableId;
     private BigDecimal subtotal;
     private BigDecimal taxAmount;
-    private BigDecimal serviceChargeAmount;
-    private BigDecimal deliveryChargeAmount;
+    private BigDecimal serviceCharge;
+    private BigDecimal deliveryCharge;
     private BigDecimal grandTotal;
     private String note;
     private List<CreateOrderItemRequest> items;

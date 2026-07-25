@@ -329,11 +329,11 @@ public class POSService {
 
                 BigDecimal subTotal = POS.calSubTotal(request, itemMap, variationMap, addonMap);
                 BigDecimal taxAmount = POS.getTaxAmount(request, itemMap, variationMap, addonMap);
-                BigDecimal serviceCharge = request.getServiceChargeAmount() != null
-                                ? request.getServiceChargeAmount()
+                BigDecimal serviceCharge = request.getServiceCharge() != null
+                                ? request.getServiceCharge()
                                 : BigDecimal.ZERO;
-                BigDecimal deliveryCharge = request.getDeliveryChargeAmount() != null
-                                ? request.getDeliveryChargeAmount()
+                BigDecimal deliveryCharge = request.getDeliveryCharge() != null
+                                ? request.getDeliveryCharge()
                                 : BigDecimal.ZERO;
                 BigDecimal grandTotal = subTotal
                                 .add(taxAmount)

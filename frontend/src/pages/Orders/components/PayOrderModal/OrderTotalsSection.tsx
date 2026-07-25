@@ -1,39 +1,33 @@
 import type { CouponOrder, DiscountType, OrderSummary } from '@/types';
 
 interface OrderTotalsSectionProps {
-    subtotal: number;
-    taxValue: number;
+    order: OrderSummary;
     discountValue: number;
     discountAmount: number;
     discountType: DiscountType;
     couponDiscount: number;
-    serviceCharge: number;
     tipAmount: number;
-    order: OrderSummary;
     selectedCoupon: CouponOrder | null;
 }
 
 const OrderTotalsSection = ({
-    subtotal,
-    taxValue,
+    order,
     discountValue,
     discountAmount,
     discountType,
     couponDiscount,
-    serviceCharge,
     tipAmount,
-    order,
     selectedCoupon,
 }: OrderTotalsSectionProps) => (
     <div>
         <h6 className="fs-14 fw-normal d-flex align-items-center justify-content-between mb-3">
-            Sub Total<span className="fw-medium text-dark">${subtotal}</span>
+            Sub Total<span className="fw-medium text-dark">${order.subtotal}</span>
         </h6>
 
         {!!order.taxAmount && (
             <h6 className="fs-14 fw-normal d-flex align-items-center justify-content-between mb-3">
-                Tax ({order.taxAmount}%)
-                <span className="fw-medium text-dark">${taxValue}</span>
+                Tax Amount
+                <span className="fw-medium text-dark">${order.taxAmount}</span>
             </h6>
         )}
 
@@ -47,9 +41,17 @@ const OrderTotalsSection = ({
             </h6>
         )}
 
-        <h6 className="fs-14 fw-normal d-flex align-items-center justify-content-between mb-3">
-            Service Charge <span className="fw-medium text-dark">${serviceCharge}</span>
-        </h6>
+        {order.serviceCharge > 0 && (
+            <h6 className="fs-14 fw-normal d-flex align-items-center justify-content-between mb-3">
+                Service Charge <span className="fw-medium text-dark">${order.serviceCharge}</span>
+            </h6>
+        )}
+
+        {order.deliveryCharge > 0 && (
+            <h6 className="fs-14 fw-normal d-flex align-items-center justify-content-between mb-3">
+                Delivery Charge <span className="fw-medium text-dark">${order.deliveryCharge}</span>
+            </h6>
+        )}
 
         {(couponDiscount > 0 || order.coupon) && (
             <h6 className="fs-14 fw-normal d-flex align-items-center justify-content-between mb-3">

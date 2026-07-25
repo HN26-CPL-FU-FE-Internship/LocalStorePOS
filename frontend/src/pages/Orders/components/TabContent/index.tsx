@@ -8,7 +8,7 @@ import { bindCx, formatHourAndMinute, formatString, orderUtils, toTitleCase } fr
 import type { ConfirmType, ModalActionProps, OrderStatus, OrderSummary, OrderUpdateStatus } from '@/types';
 import type { PaymentRequest } from '@/services/orderService';
 import OrderActionDropdown from '../OrderActionDropdown';
-import { KITCHEN_QUERY_KEYS, ORDER_STATUS_ERROR_TITLE, statuses } from '@/constants';
+import { KITCHEN_QUERY_KEYS, ORDER_STATUS_ERROR_TITLE, POS_QUERY_KEYS, statuses } from '@/constants';
 import { useUpdateStatus, usePayOrder } from '@/hooks/order/';
 import useContextData from '@/hooks/useContextData';
 import { ToastContext } from '@/provider/ToastProvider/ToastContext';
@@ -73,6 +73,7 @@ const TabContent = ({ order }: { order: OrderSummary }) => {
             updateStatusMutate.mutate(updateStatus, {
                 onSuccess: () => {
                     queryClient.invalidateQueries({ queryKey: KITCHEN_QUERY_KEYS.all });
+                    queryClient.invalidateQueries({ queryKey: POS_QUERY_KEYS.tables() });
                 },
             });
         }
@@ -81,10 +82,17 @@ const TabContent = ({ order }: { order: OrderSummary }) => {
 
     const handlePaymentComplete = useCallback(
         (paymentData: PaymentRequest) =>
-            payOrderMutate.mutate({
-                id: order.id,
-                paymentData,
-            }),
+            payOrderMutate.mutate(
+                {
+                    id: order.id,
+                    paymentData,
+                },
+                {
+                    onSuccess: () => {
+                        queryClient.invalidateQueries({ queryKey: POS_QUERY_KEYS.tables() });
+                    },
+                },
+            ),
         [order.id, payOrderMutate],
     );
 
