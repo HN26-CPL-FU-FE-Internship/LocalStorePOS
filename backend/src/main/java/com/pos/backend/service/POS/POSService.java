@@ -16,7 +16,9 @@ import com.pos.backend.constant.ErrorCode;
 import com.pos.backend.constant.enums.ItemStatus;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 
 import com.pos.backend.constant.enums.KitchenStatus;
 import com.pos.backend.constant.enums.OrderPaymentStatus;
@@ -40,6 +42,7 @@ import com.pos.backend.entity.ItemVariation;
 import com.pos.backend.entity.Order;
 import com.pos.backend.entity.OrderItem;
 import com.pos.backend.entity.OrderItemAddon;
+import com.pos.backend.entity.OrderSequence;
 import com.pos.backend.entity.RestaurantTable;
 import com.pos.backend.entity.User;
 import com.pos.backend.exception.AppException;
@@ -50,6 +53,7 @@ import com.pos.backend.repository.ItemVariationRepository;
 import com.pos.backend.repository.OrderItemAddonRepository;
 import com.pos.backend.repository.OrderItemRepository;
 import com.pos.backend.repository.OrderRepository;
+import com.pos.backend.repository.OrderSequenceRepository;
 import com.pos.backend.repository.RestaurantTableRepository;
 import com.pos.backend.repository.UserRepository;
 import com.pos.backend.util.POS;
@@ -63,371 +67,391 @@ import lombok.experimental.FieldDefaults;
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 public class POSService {
 
-        OrderRepository orderRepository;
-        ItemRepository itemRepository;
-        ItemVariationRepository itemVariationRepository;
-        AddonRepository addonRepository;
-        OrderItemRepository orderItemRepository;
-        UserRepository userRepository;
-        CustomerRepository customerRepository;
-        OrderItemAddonRepository orderItemAddonRepository;
-        RestaurantTableRepository restaurantTableRepository;
+    OrderRepository orderRepository;
+    ItemRepository itemRepository;
+    ItemVariationRepository itemVariationRepository;
+    AddonRepository addonRepository;
+    OrderItemRepository orderItemRepository;
+    UserRepository userRepository;
+    CustomerRepository customerRepository;
+    OrderItemAddonRepository orderItemAddonRepository;
+    RestaurantTableRepository restaurantTableRepository;
+    OrderSequenceRepository orderSequenceRepository;
 
-        public Page<OrderResponse> getListRecentOrder(Pageable pageable) {
+    public Page<OrderResponse> getListRecentOrder(Pageable pageable) {
 
-                Page<Order> orders = orderRepository.findAll(pageable);
+        Page<Order> orders = orderRepository.findAll(pageable);
 
-                return orders.map(order -> OrderResponse.builder()
-                                .id(order.getId())
-                                .estimatedMinutes(order.getEstimatedMinutes() != null ? order.getEstimatedMinutes()
-                                                : null)
-                                .tableNumber(order.getTable() != null ? order.getTable().getTableNumber() : null)
-                                .kitchenStatus(order.getKitchenStatus().name())
-                                .orderNumber(order.getOrderNumber())
-                                .customerName(order.getCustomer() != null ? order.getCustomer().getName()
-                                                : "Walk In Customer")
-                                .orderType(order.getOrderType().name())
-                                .orderedAt(order.getOrderedAt())
-                                .build());
+        return orders.map(order -> OrderResponse.builder()
+                .id(order.getId())
+                .estimatedMinutes(order.getEstimatedMinutes() != null ? order.getEstimatedMinutes()
+                        : null)
+                .tableNumber(order.getTable() != null ? order.getTable().getTableNumber() : null)
+                .kitchenStatus(order.getKitchenStatus().name())
+                .orderNumber(order.getOrderNumber())
+                .customerName(order.getCustomer() != null ? order.getCustomer().getName()
+                        : "Walk In Customer")
+                .orderType(order.getOrderType().name())
+                .orderedAt(order.getOrderedAt())
+                .build());
+    }
+
+    @Transactional(readOnly = true)
+    public List<POSItemResponse> getItemsByCategory(Long categoryId) {
+        // 1. Fetch only active items by category
+        List<Item> items;
+        if (categoryId == null || categoryId == 0) {
+            items = itemRepository.findAll().stream()
+                    .filter(i -> i.getStatus() == ItemStatus.active)
+                    .toList();
+        } else {
+            items = itemRepository.findByCategory_Id(categoryId).stream()
+                    .filter(i -> i.getStatus() == ItemStatus.active)
+                    .toList();
         }
 
-        @Transactional(readOnly = true)
-        public List<POSItemResponse> getItemsByCategory(Long categoryId) {
-                // 1. Fetch only active items by category
-                List<Item> items;
-                if (categoryId == null || categoryId == 0) {
-                        items = itemRepository.findAll().stream()
-                                        .filter(i -> i.getStatus() == ItemStatus.active)
-                                        .toList();
-                } else {
-                        items = itemRepository.findByCategory_Id(categoryId).stream()
-                                        .filter(i -> i.getStatus() == ItemStatus.active)
-                                        .toList();
-                }
-
-                if (items.isEmpty()) {
-                        return List.of();
-                }
-
-                List<Long> itemIds = items.stream().map(Item::getId).toList();
-
-                // 2. Batch-load variations and addons, grouped by item ID
-                Map<Long, List<ItemVariation>> variationsByItemId = itemVariationRepository
-                                .findByItem_IdInOrderByItem_IdAscIdAsc(itemIds)
-                                .stream()
-                                .collect(Collectors.groupingBy(
-                                                v -> v.getItem().getId(),
-                                                Collectors.mapping(Function.identity(), Collectors.toList())));
-
-                Map<Long, List<Addon>> addonsByItemId = addonRepository
-                                .findByItem_IdInOrderByItem_IdAscIdAsc(itemIds)
-                                .stream()
-                                .collect(Collectors.groupingBy(
-                                                a -> a.getItem().getId(),
-                                                Collectors.mapping(Function.identity(), Collectors.toList())));
-
-                // 3. Count order frequency for popularity badges
-                List<Object[]> frequencyRows = orderItemRepository.countOrderFrequencyByItemIds(itemIds);
-                Map<Long, Long> orderCountMap = frequencyRows.stream()
-                                .collect(Collectors.toMap(
-                                                row -> (Long) row[0],
-                                                row -> (Long) row[1]));
-
-                // 4. Sort items by order count desc, assign badges
-                List<Long> sortedByFrequency = itemIds.stream()
-                                .sorted(Comparator.comparingLong(id -> -orderCountMap.getOrDefault(id, 0L)))
-                                .toList();
-
-                int total = sortedByFrequency.size();
-                int trendingThreshold = Math.max(1, (int) Math.ceil(total * 0.2));
-                int mustTryThreshold = Math.max(trendingThreshold + 1, (int) Math.ceil(total * 0.5));
-
-                Map<Long, String> badgeMap = new java.util.HashMap<>();
-                for (int i = 0; i < total; i++) {
-                        Long id = sortedByFrequency.get(i);
-                        long count = orderCountMap.getOrDefault(id, 0L);
-                        if (count == 0)
-                                continue;
-                        if (i < trendingThreshold) {
-                                badgeMap.put(id, "trending");
-                        } else if (i < mustTryThreshold) {
-                                badgeMap.put(id, "must_try");
-                        }
-                }
-
-                // 5. Build response using batch-loaded data
-                return items.stream()
-                                .map(item -> buildPOSItemResponse(item,
-                                                variationsByItemId.getOrDefault(item.getId(), List.of()),
-                                                addonsByItemId.getOrDefault(item.getId(), List.of()),
-                                                badgeMap))
-                                .toList();
+        if (items.isEmpty()) {
+            return List.of();
         }
 
-        private POSItemResponse buildPOSItemResponse(
-                        Item item,
-                        List<ItemVariation> variations,
-                        List<Addon> addons,
-                        Map<Long, String> badgeMap) {
+        List<Long> itemIds = items.stream().map(Item::getId).toList();
 
-                List<ItemVariationResponse> variationResponses = variations.stream()
-                                .map(v -> ItemVariationResponse.builder()
-                                                .id(v.getId())
-                                                .sizeName(v.getSizeName())
-                                                .price(v.getPrice())
-                                                .build())
-                                .toList();
+        // 2. Batch-load variations and addons, grouped by item ID
+        Map<Long, List<ItemVariation>> variationsByItemId = itemVariationRepository
+                .findByItem_IdInOrderByItem_IdAscIdAsc(itemIds)
+                .stream()
+                .collect(Collectors.groupingBy(
+                        v -> v.getItem().getId(),
+                        Collectors.mapping(Function.identity(), Collectors.toList())));
 
-                List<ItemAddonResponse> addonResponses = addons.stream()
-                                .map(a -> ItemAddonResponse.builder()
-                                                .id(a.getId())
-                                                .name(a.getName())
-                                                .price(a.getPrice())
-                                                .description(a.getDescription())
-                                                .build())
-                                .toList();
+        Map<Long, List<Addon>> addonsByItemId = addonRepository
+                .findByItem_IdInOrderByItem_IdAscIdAsc(itemIds)
+                .stream()
+                .collect(Collectors.groupingBy(
+                        a -> a.getItem().getId(),
+                        Collectors.mapping(Function.identity(), Collectors.toList())));
 
-                String badge = badgeMap.getOrDefault(item.getId(), null);
+        // 3. Count order frequency for popularity badges
+        List<Object[]> frequencyRows = orderItemRepository.countOrderFrequencyByItemIds(itemIds);
+        Map<Long, Long> orderCountMap = frequencyRows.stream()
+                .collect(Collectors.toMap(
+                        row -> (Long) row[0],
+                        row -> (Long) row[1]));
 
-                return POSItemResponse.builder()
-                                .id(item.getId())
-                                .name(item.getName())
-                                .description(item.getDescription())
-                                .imagePath(item.getImagePath())
-                                .price(item.getPrice())
-                                .netPrice(item.getNetPrice())
-                                .foodType(item.getFoodType().name())
-                                .categoryId(item.getCategory().getId())
-                                .categoryName(item.getCategory().getName())
-                                .taxId(item.getTax() != null ? item.getTax().getId() : null)
-                                .taxTitle(item.getTax() != null ? item.getTax().getTitle() : null)
-                                .taxRate(item.getTax() != null ? item.getTax().getTaxRate() : null)
-                                .variations(variationResponses)
-                                .addons(addonResponses)
-                                .badge(badge)
-                                .build();
+        // 4. Sort items by order count desc, assign badges
+        List<Long> sortedByFrequency = itemIds.stream()
+                .sorted(Comparator.comparingLong(id -> -orderCountMap.getOrDefault(id, 0L)))
+                .toList();
+
+        int total = sortedByFrequency.size();
+        int trendingThreshold = Math.max(1, (int) Math.ceil(total * 0.2));
+        int mustTryThreshold = Math.max(trendingThreshold + 1, (int) Math.ceil(total * 0.5));
+
+        Map<Long, String> badgeMap = new java.util.HashMap<>();
+        for (int i = 0; i < total; i++) {
+            Long id = sortedByFrequency.get(i);
+            long count = orderCountMap.getOrDefault(id, 0L);
+            if (count == 0)
+                continue;
+            if (i < trendingThreshold) {
+                badgeMap.put(id, "trending");
+            } else if (i < mustTryThreshold) {
+                badgeMap.put(id, "must_try");
+            }
         }
 
-        @Transactional(readOnly = true)
-        public List<TableResponse> getAvailableTables() {
-                return restaurantTableRepository.findAll().stream()
-                                .filter(table -> table
-                                                .getStatus() == com.pos.backend.constant.enums.TableStatus.available)
-                                .map(table -> TableResponse.builder()
-                                                .id(table.getId())
-                                                .name(table.getTableNumber())
-                                                .seats(table.getSeats())
-                                                .areaName(table.getArea() != null ? table.getArea().getName() : null)
-                                                .build())
-                                .toList();
+        // 5. Build response using batch-loaded data
+        return items.stream()
+                .map(item -> buildPOSItemResponse(item,
+                        variationsByItemId.getOrDefault(item.getId(), List.of()),
+                        addonsByItemId.getOrDefault(item.getId(), List.of()),
+                        badgeMap))
+                .toList();
+    }
+
+    private POSItemResponse buildPOSItemResponse(
+            Item item,
+            List<ItemVariation> variations,
+            List<Addon> addons,
+            Map<Long, String> badgeMap) {
+
+        List<ItemVariationResponse> variationResponses = variations.stream()
+                .map(v -> ItemVariationResponse.builder()
+                        .id(v.getId())
+                        .sizeName(v.getSizeName())
+                        .price(v.getPrice())
+                        .build())
+                .toList();
+
+        List<ItemAddonResponse> addonResponses = addons.stream()
+                .map(a -> ItemAddonResponse.builder()
+                        .id(a.getId())
+                        .name(a.getName())
+                        .price(a.getPrice())
+                        .description(a.getDescription())
+                        .build())
+                .toList();
+
+        String badge = badgeMap.getOrDefault(item.getId(), null);
+
+        return POSItemResponse.builder()
+                .id(item.getId())
+                .name(item.getName())
+                .description(item.getDescription())
+                .imagePath(item.getImagePath())
+                .price(item.getPrice())
+                .netPrice(item.getNetPrice())
+                .foodType(item.getFoodType().name())
+                .categoryId(item.getCategory().getId())
+                .categoryName(item.getCategory().getName())
+                .taxId(item.getTax() != null ? item.getTax().getId() : null)
+                .taxTitle(item.getTax() != null ? item.getTax().getTitle() : null)
+                .taxRate(item.getTax() != null ? item.getTax().getTaxRate() : null)
+                .variations(variationResponses)
+                .addons(addonResponses)
+                .badge(badge)
+                .build();
+    }
+
+    @Transactional(readOnly = true)
+    public List<TableResponse> getAvailableTables() {
+        return restaurantTableRepository.findAll().stream()
+                .filter(table -> table
+                        .getStatus() == com.pos.backend.constant.enums.TableStatus.available)
+                .map(table -> TableResponse.builder()
+                        .id(table.getId())
+                        .name(table.getTableNumber())
+                        .seats(table.getSeats())
+                        .areaName(table.getArea() != null ? table.getArea().getName() : null)
+                        .build())
+                .toList();
+    }
+
+    @Transactional(readOnly = true)
+    public List<OptionResponse> getWaiters() {
+        return userRepository.findAll().stream()
+                .map(user -> OptionResponse.builder()
+                        .id(user.getId())
+                        .name(user.getFirstName() + " " + user.getLastName())
+                        .build())
+                .toList();
+    }
+
+    @Transactional(readOnly = true)
+    public List<OptionResponse> getCustomers() {
+        return customerRepository.findAll().stream()
+                .map(customer -> OptionResponse.builder()
+                        .id(customer.getId())
+                        .name(customer.getName())
+                        .build())
+                .toList();
+    }
+
+    @Transactional
+    public Customer createCustomer(CreateCustomerRequest request) {
+        Customer customer = Customer.builder()
+                .name(request.getName())
+                .phone(request.getPhone())
+                .email(request.getEmail())
+                .gender(request.getGender())
+                .build();
+        return customerRepository.save(customer);
+    }
+
+    @Transactional
+    public OrderResponse createOrder(CreateOrderRequest request) {
+
+        Set<Long> itemIds = request.getItems().stream().map(item -> item.getItemId())
+                .collect(Collectors.toSet());
+
+        Set<Long> variationIds = request.getItems().stream().map(item -> item.getVariationId())
+                .collect(Collectors.toSet());
+
+        Set<Long> addonIds = request.getItems().stream().filter(item -> item.getAddons() != null)
+                .flatMap(item -> item.getAddons().stream()).map(addon -> addon.getAddonId())
+                .collect(Collectors.toSet());
+
+        Map<Long, Item> itemMap = itemRepository.findAllById(itemIds).stream()
+                .collect(Collectors.toMap(Item::getId, Function.identity()));
+
+        Map<Long, ItemVariation> variationMap = itemVariationRepository.findAllWithItemByIdIn(variationIds)
+                .stream()
+                .collect(Collectors.toMap(ItemVariation::getId, Function.identity()));
+
+        Map<Long, Addon> addonMap = addonRepository.findAllById(addonIds).stream()
+                .collect(Collectors.toMap(addon -> addon.getId(), Function.identity()));
+
+        // 3. Build & save Order
+        Order order = buildOrder(request, itemMap, variationMap, addonMap);
+
+        changeTableStatus(order.getTable() != null ? order.getTable().getId() : null);
+        // 4. Save OrderItems and OrderItemAddons
+        saveOrderItem(order, itemMap, variationMap, addonMap, request);
+
+        // 6. Return response (without items list for simplicity)
+        return OrderResponse.builder()
+                .id(order.getId())
+                .orderNumber(order.getOrderNumber())
+                .orderType(order.getOrderType().name())
+                .status(order.getStatus().name())
+                .kitchenStatus(order.getKitchenStatus().name())
+                .subtotal(order.getSubtotal())
+                .taxAmount(order.getTaxAmount())
+                .serviceCharge(order.getServiceCharge())
+                .grandTotal(order.getGrandTotal())
+                .paymentStatus(order.getPaymentStatus().name())
+                .note(order.getNote())
+                .orderedAt(order.getOrderedAt())
+                .build();
+    }
+
+    private Order buildOrder(CreateOrderRequest request, Map<Long, Item> itemMap,
+            Map<Long, ItemVariation> variationMap,
+            Map<Long, Addon> addonMap) {
+        Customer customer = request.getCustomerId() != null
+                ? customerRepository.findById(request.getCustomerId())
+                        .orElseThrow(() -> new AppException(ErrorCode.CUSTOMER_NOT_FOUND))
+                : null;
+
+        User waiter = request.getWaiterId() != null
+                ? userRepository.findById(request.getWaiterId())
+                        .orElseThrow(() -> new AppException(ErrorCode.WAITER_NOT_FOUND))
+                : null;
+
+        RestaurantTable table = request.getTableId() != null
+                ? restaurantTableRepository.findById(request.getTableId())
+                        .orElseThrow(() -> new AppException(ErrorCode.TABLE_NOT_FOUND))
+                : null;
+
+        if (request.getOrderType().equals(OrderType.dine_in.name()) && table == null) {
+            throw new AppException(ErrorCode.NO_TABLE_CHOOSE_FOR_DINE_IN);
+        }
+        if (request.getOrderType().equals(OrderType.dine_in.name()) && waiter == null) {
+            throw new AppException(ErrorCode.NO_WAITER_CHOOSE_FOR_DINE_IN);
         }
 
-        @Transactional(readOnly = true)
-        public List<OptionResponse> getWaiters() {
-                return userRepository.findAll().stream()
-                                .map(user -> OptionResponse.builder()
-                                                .id(user.getId())
-                                                .name(user.getFirstName() + " " + user.getLastName())
-                                                .build())
-                                .toList();
+        String orderNumber = "ORD-" + System.currentTimeMillis();
+
+        BigDecimal subTotal = POS.calSubTotal(request, itemMap, variationMap, addonMap);
+        BigDecimal taxAmount = POS.getTaxAmount(request, itemMap, variationMap, addonMap);
+        BigDecimal serviceCharge = request.getServiceCharge() != null
+                ? request.getServiceCharge()
+                : BigDecimal.ZERO;
+        BigDecimal deliveryCharge = request.getDeliveryCharge() != null
+                ? request.getDeliveryCharge()
+                : BigDecimal.ZERO;
+        BigDecimal grandTotal = subTotal
+                .add(taxAmount)
+                .add(serviceCharge)
+                .add(deliveryCharge);
+        String tokenNo = generateOrderToken();
+
+        Order order = Order.builder()
+                .orderNumber(orderNumber)
+                .tokenNo(tokenNo)
+                .orderType(OrderType.valueOf(request.getOrderType()))
+                .customer(customer)
+                .waiter(waiter)
+                .table(table)
+                .status(OrderStatus.pending)
+                .kitchenStatus(KitchenStatus.new_order)
+                .subtotal(subTotal)
+                .taxAmount(taxAmount)
+                .serviceCharge(serviceCharge)
+                .deliveryCharge(deliveryCharge)
+                .grandTotal(grandTotal)
+                .paymentStatus(OrderPaymentStatus.unpaid)
+                .note(request.getNote())
+                .orderedAt(LocalDateTime.now())
+                .build();
+
+        return orderRepository.save(order);
+
+    }
+
+    private void saveOrderItem(Order order, Map<Long, Item> itemMap,
+            Map<Long, ItemVariation> variationMap, Map<Long, Addon> addonMap, CreateOrderRequest request) {
+
+        for (CreateOrderItemRequest itemReq : request.getItems()) {
+            Item item = itemMap.get(itemReq.getItemId());
+            ItemVariation variation = variationMap.get(itemReq.getVariationId());
+
+            if (item == null) {
+                throw new AppException(ErrorCode.ITEM_NOT_FOUND);
+            }
+
+            if (variation != null && !variation.getItem().getId().equals(item.getId())) {
+                throw new AppException(ErrorCode.INVALID_VARIATION_OR_ADDON_DATA);
+            }
+
+            OrderItem orderItem = OrderItem.builder()
+                    .order(order)
+                    .item(item)
+                    .variation(variation)
+                    .itemName(itemReq.getItemName())
+                    .unitPrice(itemReq.getUnitPrice() != null ? itemReq.getUnitPrice()
+                            : BigDecimal.ZERO)
+                    .quantity(itemReq.getQuantity() != null ? itemReq.getQuantity() : 1)
+                    .lineTotal(itemReq.getLineTotal() != null ? itemReq.getLineTotal()
+                            : BigDecimal.ZERO)
+                    .kitchenNote(itemReq.getKitchenNote())
+                    .build();
+
+            orderItemRepository.save(orderItem);
+
+            saveItemAddons(itemReq, addonMap, orderItem);
+        }
+    }
+
+    private void saveItemAddons(CreateOrderItemRequest itemReq, Map<Long, Addon> addonMap, OrderItem orderItem) {
+
+        if (itemReq.getAddons() == null || itemReq.getAddons().isEmpty()) {
+            return;
         }
 
-        @Transactional(readOnly = true)
-        public List<OptionResponse> getCustomers() {
-                return customerRepository.findAll().stream()
-                                .map(customer -> OptionResponse.builder()
-                                                .id(customer.getId())
-                                                .name(customer.getName())
-                                                .build())
-                                .toList();
+        for (CreateOrderItemAddonRequest addonReq : itemReq.getAddons()) {
+
+            Addon addon = addonMap.get(addonReq.getAddonId());
+
+            if (addon == null) {
+                throw new AppException(ErrorCode.ADDON_NOT_FOUND);
+            }
+            OrderItemAddon orderItemAddon = OrderItemAddon.builder()
+                    .orderItem(orderItem)
+                    .addon(addon)
+                    .addonName(addonReq.getAddonName())
+                    .addonPrice(addonReq.getAddonPrice())
+                    .quantity(1)
+                    .build();
+
+            orderItemAddonRepository.save(orderItemAddon);
         }
+    }
 
-        @Transactional
-        public Customer createCustomer(CreateCustomerRequest request) {
-                Customer customer = Customer.builder()
-                                .name(request.getName())
-                                .phone(request.getPhone())
-                                .email(request.getEmail())
-                                .gender(request.getGender())
-                                .build();
-                return customerRepository.save(customer);
-        }
+    private void changeTableStatus(Long tableId) {
+        if (tableId == null)
+            return;
+        RestaurantTable table = restaurantTableRepository.findById(tableId)
+                .orElseThrow(() -> new AppException(ErrorCode.TABLE_NOT_FOUND));
 
-        @Transactional
-        public OrderResponse createOrder(CreateOrderRequest request) {
+        table.setStatus(TableStatus.occupied);
+        restaurantTableRepository.save(table);
+    }
 
-                Set<Long> itemIds = request.getItems().stream().map(item -> item.getItemId())
-                                .collect(Collectors.toSet());
+    private String generateOrderToken() {
+        LocalDate today = LocalDate.now();
 
-                Set<Long> variationIds = request.getItems().stream().map(item -> item.getVariationId())
-                                .collect(Collectors.toSet());
+        OrderSequence sequence = orderSequenceRepository.findBySequenceDateForUpdate(today)
+                .orElseGet(() -> OrderSequence.builder()
+                        .sequenceDate(today)
+                        .lastNumber(0)
+                        .build());
 
-                Set<Long> addonIds = request.getItems().stream().filter(item -> item.getAddons() != null)
-                                .flatMap(item -> item.getAddons().stream()).map(addon -> addon.getAddonId())
-                                .collect(Collectors.toSet());
+        sequence.setLastNumber(sequence.getLastNumber() + 1);
+        orderSequenceRepository.save(sequence);
 
-                Map<Long, Item> itemMap = itemRepository.findAllById(itemIds).stream()
-                                .collect(Collectors.toMap(Item::getId, Function.identity()));
-
-                Map<Long, ItemVariation> variationMap = itemVariationRepository.findAllWithItemByIdIn(variationIds)
-                                .stream()
-                                .collect(Collectors.toMap(ItemVariation::getId, Function.identity()));
-
-                Map<Long, Addon> addonMap = addonRepository.findAllById(addonIds).stream()
-                                .collect(Collectors.toMap(addon -> addon.getId(), Function.identity()));
-
-                // 3. Build & save Order
-                Order order = buildOrder(request, itemMap, variationMap, addonMap);
-
-                changeTableStatus(order.getTable() != null ? order.getTable().getId() : null);
-                // 4. Save OrderItems and OrderItemAddons
-                saveOrderItem(order, itemMap, variationMap, addonMap, request);
-
-                // 6. Return response (without items list for simplicity)
-                return OrderResponse.builder()
-                                .id(order.getId())
-                                .orderNumber(order.getOrderNumber())
-                                .orderType(order.getOrderType().name())
-                                .status(order.getStatus().name())
-                                .kitchenStatus(order.getKitchenStatus().name())
-                                .subtotal(order.getSubtotal())
-                                .taxAmount(order.getTaxAmount())
-                                .serviceCharge(order.getServiceCharge())
-                                .grandTotal(order.getGrandTotal())
-                                .paymentStatus(order.getPaymentStatus().name())
-                                .note(order.getNote())
-                                .orderedAt(order.getOrderedAt())
-                                .build();
-        }
-
-        private Order buildOrder(CreateOrderRequest request, Map<Long, Item> itemMap,
-                        Map<Long, ItemVariation> variationMap,
-                        Map<Long, Addon> addonMap) {
-                Customer customer = request.getCustomerId() != null
-                                ? customerRepository.findById(request.getCustomerId())
-                                                .orElseThrow(() -> new AppException(ErrorCode.CUSTOMER_NOT_FOUND))
-                                : null;
-
-                User waiter = request.getWaiterId() != null
-                                ? userRepository.findById(request.getWaiterId())
-                                                .orElseThrow(() -> new AppException(ErrorCode.WAITER_NOT_FOUND))
-                                : null;
-
-                RestaurantTable table = request.getTableId() != null
-                                ? restaurantTableRepository.findById(request.getTableId())
-                                                .orElseThrow(() -> new AppException(ErrorCode.TABLE_NOT_FOUND))
-                                : null;
-
-                if (request.getOrderType().equals(OrderType.dine_in.name()) && table == null) {
-                        throw new AppException(ErrorCode.NO_TABLE_CHOOSE_FOR_DINE_IN);
-                }
-                if (request.getOrderType().equals(OrderType.dine_in.name()) && waiter == null) {
-                        throw new AppException(ErrorCode.NO_WAITER_CHOOSE_FOR_DINE_IN);
-                }
-
-                String orderNumber = "ORD-" + System.currentTimeMillis();
-
-                BigDecimal subTotal = POS.calSubTotal(request, itemMap, variationMap, addonMap);
-                BigDecimal taxAmount = POS.getTaxAmount(request, itemMap, variationMap, addonMap);
-                BigDecimal serviceCharge = request.getServiceCharge() != null
-                                ? request.getServiceCharge()
-                                : BigDecimal.ZERO;
-                BigDecimal deliveryCharge = request.getDeliveryCharge() != null
-                                ? request.getDeliveryCharge()
-                                : BigDecimal.ZERO;
-                BigDecimal grandTotal = subTotal
-                                .add(taxAmount)
-                                .add(serviceCharge)
-                                .add(deliveryCharge);
-
-                Order order = Order.builder()
-                                .orderNumber(orderNumber)
-                                .orderType(OrderType.valueOf(request.getOrderType()))
-                                .customer(customer)
-                                .waiter(waiter)
-                                .table(table)
-                                .status(OrderStatus.pending)
-                                .kitchenStatus(KitchenStatus.new_order)
-                                .subtotal(subTotal)
-                                .taxAmount(taxAmount)
-                                .serviceCharge(serviceCharge)
-                                .deliveryCharge(deliveryCharge)
-                                .grandTotal(grandTotal)
-                                .paymentStatus(OrderPaymentStatus.unpaid)
-                                .note(request.getNote())
-                                .orderedAt(LocalDateTime.now())
-                                .build();
-
-                return orderRepository.save(order);
-
-        }
-
-        private void saveOrderItem(Order order, Map<Long, Item> itemMap,
-                        Map<Long, ItemVariation> variationMap, Map<Long, Addon> addonMap, CreateOrderRequest request) {
-
-                for (CreateOrderItemRequest itemReq : request.getItems()) {
-                        Item item = itemMap.get(itemReq.getItemId());
-                        ItemVariation variation = variationMap.get(itemReq.getVariationId());
-
-                        if (item == null) {
-                                throw new AppException(ErrorCode.ITEM_NOT_FOUND);
-                        }
-
-                        if (variation != null && !variation.getItem().getId().equals(item.getId())) {
-                                throw new AppException(ErrorCode.INVALID_VARIATION_OR_ADDON_DATA);
-                        }
-
-                        OrderItem orderItem = OrderItem.builder()
-                                        .order(order)
-                                        .item(item)
-                                        .variation(variation)
-                                        .itemName(itemReq.getItemName())
-                                        .unitPrice(itemReq.getUnitPrice() != null ? itemReq.getUnitPrice()
-                                                        : BigDecimal.ZERO)
-                                        .quantity(itemReq.getQuantity() != null ? itemReq.getQuantity() : 1)
-                                        .lineTotal(itemReq.getLineTotal() != null ? itemReq.getLineTotal()
-                                                        : BigDecimal.ZERO)
-                                        .kitchenNote(itemReq.getKitchenNote())
-                                        .build();
-
-                        orderItemRepository.save(orderItem);
-
-                        saveItemAddons(itemReq, addonMap, orderItem);
-                }
-        }
-
-        private void saveItemAddons(CreateOrderItemRequest itemReq, Map<Long, Addon> addonMap, OrderItem orderItem) {
-
-                if (itemReq.getAddons() == null || itemReq.getAddons().isEmpty()) {
-                        return;
-                }
-
-                for (CreateOrderItemAddonRequest addonReq : itemReq.getAddons()) {
-
-                        Addon addon = addonMap.get(addonReq.getAddonId());
-
-                        if (addon == null) {
-                                throw new AppException(ErrorCode.ADDON_NOT_FOUND);
-                        }
-                        OrderItemAddon orderItemAddon = OrderItemAddon.builder()
-                                        .orderItem(orderItem)
-                                        .addon(addon)
-                                        .addonName(addonReq.getAddonName())
-                                        .addonPrice(addonReq.getAddonPrice())
-                                        .quantity(1)
-                                        .build();
-
-                        orderItemAddonRepository.save(orderItemAddon);
-                }
-        }
-
-        private void changeTableStatus(Long tableId) {
-                if (tableId == null)
-                        return;
-                RestaurantTable table = restaurantTableRepository.findById(tableId)
-                                .orElseThrow(() -> new AppException(ErrorCode.TABLE_NOT_FOUND));
-
-                table.setStatus(TableStatus.occupied);
-                restaurantTableRepository.save(table);
-        }
+        return today.format(DateTimeFormatter.BASIC_ISO_DATE)
+                + "-"
+                + String.format("%04d", sequence.getLastNumber());
+    }
 }
