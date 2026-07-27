@@ -55,4 +55,33 @@ public class Store extends BaseEntity {
     @Builder.Default
     @Column(name = "timezone", nullable = false, length = 60)
     private String timezone = "UTC";
+
+    // Feature toggles
+    @Builder.Default
+    @Column(name = "enable_qr_menu", nullable = false)
+    private Boolean enableQrMenu = true;
+
+    @Builder.Default
+    @Column(name = "enable_takeaway", nullable = false)
+    private Boolean enableTakeaway = true;
+
+    @Builder.Default
+    @Column(name = "enable_dine_in", nullable = false)
+    private Boolean enableDineIn = true;
+
+    @Builder.Default
+    @Column(name = "enable_reservation", nullable = false)
+    private Boolean enableReservation = false;
+
+    @Builder.Default
+    @Column(name = "enable_order_via_qr", nullable = false)
+    private Boolean enableOrderViaQr = true;
+
+    @Builder.Default
+    @Column(name = "enable_delivery", nullable = false)
+    private Boolean enableDelivery = true;
+
+    @Builder.Default
+    @Column(name = "enable_table", nullable = false)
+    private Boolean enableTable = true;
 }

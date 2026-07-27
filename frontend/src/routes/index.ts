@@ -20,6 +20,13 @@ import Users from '@/pages/Users';
 import Permissions from '@/pages/Permissions';
 import Addons from '@/pages/Addons';
 import Coupons from '@/pages/Coupons';
+import StoreSettingsPage from '@/pages/Settings/StoreSettings';
+import TaxSettingsPage from '@/pages/Settings/TaxSettings';
+import PrintSettingsPage from '@/pages/Settings/PrintSettings';
+import PaymentSettingsPage from '@/pages/Settings/PaymentSettings';
+import DeliverySettingsPage from '@/pages/Settings/DeliverySettings';
+import NotificationsSettingsPage from '@/pages/Settings/NotificationsSettings';
+import IntegrationsSettingsPage from '@/pages/Settings/IntegrationsSettings';
 
 export const publicRoutes = [
     { path: configs.routes.login, component: Login, layout: AuthenticationLayout },
@@ -48,13 +55,13 @@ export const publicRoutes = [
     { path: configs.routes['sale-reports'], component: Reports, layout: AppLayout },
     { path: configs.routes['customer-reports'], component: Reports, layout: AppLayout },
     { path: configs.routes['audit-reports'], component: Reports, layout: AppLayout },
-    { path: configs.routes['store-settings'], component: Reservation, layout: AppLayout },
-    { path: configs.routes['tax-settings'], component: Reservation, layout: AppLayout },
-    { path: configs.routes['print-settings'], component: Reservation, layout: AppLayout },
-    { path: configs.routes['payment-settings'], component: Reservation, layout: AppLayout },
-    { path: configs.routes['delivery-settings'], component: Reservation, layout: AppLayout },
-    { path: configs.routes['notifications-settings'], component: Reservation, layout: AppLayout },
-    { path: configs.routes['integrations-settings'], component: Reservation, layout: AppLayout },
+    { path: configs.routes['store-settings'], component: StoreSettingsPage, layout: AppLayout },
+    { path: configs.routes['tax-settings'], component: TaxSettingsPage, layout: AppLayout },
+    { path: configs.routes['print-settings'], component: PrintSettingsPage, layout: AppLayout },
+    { path: configs.routes['payment-settings'], component: PaymentSettingsPage, layout: AppLayout },
+    { path: configs.routes['delivery-settings'], component: DeliverySettingsPage, layout: AppLayout },
+    { path: configs.routes['notifications-settings'], component: NotificationsSettingsPage, layout: AppLayout },
+    { path: configs.routes['integrations-settings'], component: IntegrationsSettingsPage, layout: AppLayout },
 ];
 
 export const privateRoutes = [];

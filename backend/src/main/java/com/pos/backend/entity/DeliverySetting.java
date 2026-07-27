@@ -47,4 +47,10 @@ public class DeliverySetting extends BaseEntity {
 
     @Column(name = "max_delivery_distance_km", precision = 10, scale = 2)
     private BigDecimal maxDeliveryDistanceKm;
+
+    @Column(name = "free_delivery_over", precision = 10, scale = 2)
+    private BigDecimal freeDeliveryOver;
+
+    @Column(name = "min_delivery_over", precision = 10, scale = 2)
+    private BigDecimal minDeliveryOver;
 }
