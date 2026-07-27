@@ -57,6 +57,7 @@ public enum ErrorCode {
         NO_WAITER_CHOOSE_FOR_DINE_IN(1036, HttpStatus.BAD_REQUEST, "haven't selected a waiter for dine in yet."),
         CUSTOMER_NOT_FOUND(1037, HttpStatus.NOT_FOUND, "Customer not found."),
         WAITER_NOT_FOUND(1037, HttpStatus.NOT_FOUND, "Waiter not found."),
+        ORDER_CANNOT_BE_EDITED(1038, HttpStatus.BAD_REQUEST, "Only unpaid pending orders can be edited."),
         ;
 
         int code;

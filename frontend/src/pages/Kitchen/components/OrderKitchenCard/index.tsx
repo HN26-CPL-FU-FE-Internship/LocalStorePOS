@@ -239,7 +239,7 @@ const OrderKitchenCard = ({ order }: { order: OrderSummary }) => {
                 onConfirm={handleConfirmMinutes}
                 minutesInput={minutesInput}
                 onMinutesChange={setMinutesInput}
-                isLoading={isStartingCooking}
+                isLoading={startCookingMutation.isPending}
                 orderNumber={order.orderNumber}
                 customerName={order.customerName}
             />
@@ -249,7 +249,7 @@ const OrderKitchenCard = ({ order }: { order: OrderSummary }) => {
                 show={showConfirmDoneModal}
                 onHide={() => setShowConfirmDoneModal(false)}
                 onConfirm={confirmMarkDone}
-                isLoading={isMarkingDone}
+                isLoading={markKitchenCompleteMutation.isPending}
                 orderNumber={order.orderNumber}
                 customerName={order.customerName}
             />

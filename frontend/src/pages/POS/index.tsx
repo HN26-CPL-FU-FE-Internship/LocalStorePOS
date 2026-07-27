@@ -66,24 +66,26 @@ function POS() {
 
     /* ---- hooks ---- */
     const { data: menuItems = [], isLoading: itemsLoading } = usePOSItems(activeCategory);
-    const {
-        data: editOrderData,
-        isLoading: isEditOrderLoading,
-    } = useOrderDetail(editingOrderNumber === editOrderNumber ? editOrderNumber : null);
+    const { data: editOrderData, isLoading: isEditOrderLoading } = useOrderDetail(
+        editingOrderNumber === editOrderNumber ? editOrderNumber : null,
+    );
 
-    // Load order data into store when edit mode is activated
+    // Load order data when entering edit mode; reset when leaving
     useEffect(() => {
         if (editOrderNumber && editOrderNumber !== editingOrderNumber) {
             resetCartFromStore();
             setEditingOrderNumber(editOrderNumber);
+        } else if (!editOrderNumber && editingOrderNumber) {
+            // User navigated away from edit mode (Cancel Edit or removed ?edit= param)
+            resetCartFromStore();
         }
     }, [editOrderNumber, editingOrderNumber, setEditingOrderNumber, resetCartFromStore]);
 
     useEffect(() => {
         if (editOrderData) {
-            loadFromOrder(editOrderData);
+            loadFromOrder(editOrderData, menuItems);
         }
-    }, [editOrderData, loadFromOrder]);
+    }, [editOrderData, loadFromOrder, menuItems]);
 
     /* ---- filtered menu items ---- */
     const filteredMenuItems = useMemo(() => {
@@ -144,15 +146,14 @@ function POS() {
         return cartItems.reduce((sum, c) => sum + c.unitPrice * c.quantity, 0);
     }, [cartItems]);
 
-    const taxAmount = useMemo(
-        () =>
-            cartItems.reduce(
-                (sum, item) =>
-                    sum + (calculateLineTotalPrice(item.unitPrice, item.quantity) * (item.item.taxRate ?? 0)) / 100,
-                0,
-            ),
-        [cartItems],
-    );
+    const taxAmount = useMemo(() => {
+        console.log(cartItems);
+        return cartItems.reduce((sum, item) => {
+            return sum + (calculateLineTotalPrice(item.unitPrice, item.quantity) * (item.item.taxRate ?? 0)) / 100;
+        }, 0);
+    }, [cartItems]);
+
+    console.log(menuItems);
 
     const serviceChargeAmount = useMemo(
         () => calculateDiscount(cartSubtotal, SERVICE_CHARGE_RATE * 100, 'percentage'),
@@ -223,17 +224,10 @@ function POS() {
                 <div className="alert alert-info d-flex align-items-center justify-content-between py-2 px-3 mb-3 mx-3 rounded-3">
                     <div className="d-flex align-items-center gap-2">
                         <Icon name="pencil-line" />
-                        <span className="fw-semibold fs-13">
-                            Editing Order: {editingOrderNumber}
-                        </span>
-                        {isEditOrderLoading && (
-                            <span className="spinner-border spinner-border-sm ms-2" />
-                        )}
+                        <span className="fw-semibold fs-13">Editing Order: {editingOrderNumber}</span>
+                        {isEditOrderLoading && <span className="spinner-border spinner-border-sm ms-2" />}
                     </div>
-                    <Link
-                        to="/pos"
-                        className="btn btn-sm btn-light d-flex align-items-center gap-1"
-                    >
+                    <Link to="/pos" className="btn btn-sm btn-light d-flex align-items-center gap-1">
                         <Icon name="x" />
                         Cancel Edit
                     </Link>
@@ -289,7 +283,9 @@ function POS() {
                 <Col lg={4}>
                     <div className="pos-right">
                         <div className="p-3 d-flex align-items-center justify-content-between flex-wrap border-bottom">
-                            <h6 className="mb-0">{editingOrderNumber ? `Editing: ${editingOrderNumber}` : 'New Order'}</h6>
+                            <h6 className="mb-0">
+                                {editingOrderNumber ? `Editing: ${editingOrderNumber}` : 'New Order'}
+                            </h6>
                             <p className="mb-0">{formatDateTimeKitchen(new Date().toISOString())}</p>
                         </div>
 

@@ -28,6 +28,10 @@ public class OrderCommonService {
                                         Collectors.mapping(
                                                 addon -> new OrderItemAddonResponse(
                                                         addon.getId(),
+                                                        addon.getAddon() != null
+                                                                ? addon.getAddon()
+                                                                        .getId()
+                                                                : null,
                                                         addon.getAddonName(),
                                                         addon.getAddonPrice(),
                                                         addon.getQuantity()),
@@ -43,6 +47,9 @@ public class OrderCommonService {
                                         Collectors.mapping(
                                                 item -> new OrderItemResponse(
                                                         item.getId(),
+                                                        item.getItem() != null
+                                                                ? item.getItem().getId()
+                                                                : null,
                                                         item.getItemName(),
                                                         item.getQuantity(),
                                                         item.getKitchenNote(),
@@ -54,7 +61,11 @@ public class OrderCommonService {
                                                         addonsByOrderItemId
                                                                 .getOrDefault(item
                                                                         .getId(),
-                                                                        List.of())),
+                                                                        List.of()),
+                                                        item.getVariation() != null
+                                                                ? item.getVariation()
+                                                                        .getId()
+                                                                : null),
                                                 Collectors.toList())));
     }
 }

@@ -29,6 +29,7 @@ import com.pos.backend.dto.request.POS.CreateCustomerRequest;
 import com.pos.backend.dto.request.POS.CreateOrderItemAddonRequest;
 import com.pos.backend.dto.request.POS.CreateOrderItemRequest;
 import com.pos.backend.dto.request.POS.CreateOrderRequest;
+import com.pos.backend.entity.OrderItemAddon;
 import com.pos.backend.dto.response.Common.OptionResponse;
 import com.pos.backend.dto.response.Item.ItemAddonResponse;
 import com.pos.backend.dto.response.Item.ItemVariationResponse;
@@ -426,6 +427,144 @@ public class POSService {
 
                         orderItemAddonRepository.save(orderItemAddon);
                 }
+        }
+
+        @Transactional
+        public OrderResponse updateOrder(String orderNumber, CreateOrderRequest request) {
+
+                // 1. Find existing order
+                Order order = orderRepository.findByOrderNumber(orderNumber)
+                                .orElseThrow(() -> new AppException(ErrorCode.ORDER_NOT_FOUND));
+
+                // Only unpaid pending orders can be edited
+                if (order.getStatus() != OrderStatus.pending
+                                || order.getPaymentStatus() != OrderPaymentStatus.unpaid) {
+                        throw new AppException(ErrorCode.ORDER_CANNOT_BE_EDITED);
+                }
+
+                // 2. Delete existing order items and their addons
+                List<OrderItem> existingItems = orderItemRepository.findByOrderId(order.getId());
+                if (!existingItems.isEmpty()) {
+                        List<Long> existingItemIds = existingItems.stream()
+                                        .map(OrderItem::getId)
+                                        .toList();
+                        List<OrderItemAddon> existingAddons = orderItemAddonRepository
+                                        .findByOrderItemIdIn(existingItemIds);
+                        if (!existingAddons.isEmpty()) {
+                                orderItemAddonRepository.deleteAll(existingAddons);
+                        }
+                        orderItemRepository.deleteAll(existingItems);
+                }
+
+                // 3. Load new item/variation/addon data
+                Set<Long> itemIds = request.getItems().stream()
+                                .map(CreateOrderItemRequest::getItemId)
+                                .collect(Collectors.toSet());
+
+                Set<Long> variationIds = request.getItems().stream()
+                                .map(CreateOrderItemRequest::getVariationId)
+                                .collect(Collectors.toSet());
+
+                Set<Long> addonIds = request.getItems().stream()
+                                .filter(item -> item.getAddons() != null)
+                                .flatMap(item -> item.getAddons().stream())
+                                .map(CreateOrderItemAddonRequest::getAddonId)
+                                .collect(Collectors.toSet());
+
+                Map<Long, Item> itemMap = itemRepository.findAllById(itemIds).stream()
+                                .collect(Collectors.toMap(Item::getId, Function.identity()));
+
+                Map<Long, ItemVariation> variationMap = itemVariationRepository
+                                .findAllWithItemByIdIn(variationIds)
+                                .stream()
+                                .collect(Collectors.toMap(ItemVariation::getId, Function.identity()));
+
+                Map<Long, Addon> addonMap = addonRepository.findAllById(addonIds).stream()
+                                .collect(Collectors.toMap(Addon::getId, Function.identity()));
+
+                // 4. Update order fields
+                Customer customer = request.getCustomerId() != null
+                                ? customerRepository.findById(request.getCustomerId())
+                                                .orElseThrow(() -> new AppException(ErrorCode.CUSTOMER_NOT_FOUND))
+                                : null;
+
+                User waiter = request.getWaiterId() != null
+                                ? userRepository.findById(request.getWaiterId())
+                                                .orElseThrow(() -> new AppException(ErrorCode.WAITER_NOT_FOUND))
+                                : null;
+
+                RestaurantTable newTable = request.getTableId() != null
+                                ? restaurantTableRepository.findById(request.getTableId())
+                                                .orElseThrow(() -> new AppException(ErrorCode.TABLE_NOT_FOUND))
+                                : null;
+
+                if (request.getOrderType().equals(OrderType.dine_in.name()) && newTable == null) {
+                        throw new AppException(ErrorCode.NO_TABLE_CHOOSE_FOR_DINE_IN);
+                }
+                if (request.getOrderType().equals(OrderType.dine_in.name()) && waiter == null) {
+                        throw new AppException(ErrorCode.NO_WAITER_CHOOSE_FOR_DINE_IN);
+                }
+
+                // Handle table status changes
+                RestaurantTable oldTable = order.getTable();
+                if (oldTable != null && (newTable == null || !oldTable.getId().equals(newTable.getId()))) {
+                        oldTable.setStatus(TableStatus.available);
+                        restaurantTableRepository.save(oldTable);
+                }
+                if (newTable != null && (oldTable == null || !newTable.getId().equals(oldTable.getId()))) {
+                        newTable.setStatus(TableStatus.occupied);
+                        restaurantTableRepository.save(newTable);
+                }
+
+                BigDecimal subTotal = POS.calSubTotal(request, itemMap, variationMap, addonMap);
+                BigDecimal taxAmount = POS.getTaxAmount(request, itemMap, variationMap, addonMap);
+                BigDecimal serviceCharge = request.getServiceCharge() != null
+                                ? request.getServiceCharge()
+                                : BigDecimal.ZERO;
+                BigDecimal deliveryCharge = request.getDeliveryCharge() != null
+                                ? request.getDeliveryCharge()
+                                : BigDecimal.ZERO;
+                BigDecimal grandTotal = subTotal
+                                .add(taxAmount)
+                                .add(serviceCharge)
+                                .add(deliveryCharge);
+
+                order.setOrderType(OrderType.valueOf(request.getOrderType()));
+                order.setCustomer(customer);
+                order.setWaiter(waiter);
+                order.setTable(newTable);
+                order.setSubtotal(subTotal);
+                order.setTaxAmount(taxAmount);
+                order.setServiceCharge(serviceCharge);
+                order.setDeliveryCharge(deliveryCharge);
+                order.setGrandTotal(grandTotal);
+                order.setNote(request.getNote());
+                // Reset discount/coupon when editing
+                order.setDiscountAmount(BigDecimal.ZERO);
+                order.setDiscountType(null);
+                order.setCoupon(null);
+                // Keep original orderedAt, status, kitchenStatus
+
+                orderRepository.save(order);
+
+                // 5. Re-create order items and addons
+                saveOrderItem(order, itemMap, variationMap, addonMap, request);
+
+                // 6. Return response
+                return OrderResponse.builder()
+                                .id(order.getId())
+                                .orderNumber(order.getOrderNumber())
+                                .orderType(order.getOrderType().name())
+                                .status(order.getStatus().name())
+                                .kitchenStatus(order.getKitchenStatus().name())
+                                .subtotal(order.getSubtotal())
+                                .taxAmount(order.getTaxAmount())
+                                .serviceCharge(order.getServiceCharge())
+                                .grandTotal(order.getGrandTotal())
+                                .paymentStatus(order.getPaymentStatus().name())
+                                .note(order.getNote())
+                                .orderedAt(order.getOrderedAt())
+                                .build();
         }
 
         private void changeTableStatus(Long tableId) {

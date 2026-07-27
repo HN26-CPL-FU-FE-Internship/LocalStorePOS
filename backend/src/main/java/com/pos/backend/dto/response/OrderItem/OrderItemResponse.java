@@ -9,12 +9,14 @@ import lombok.Builder;
 
 @Builder
 public record OrderItemResponse(
-        Long id,
-        String itemName,
-        Integer quantity,
-        String kitchenNote,
-        String sizeName,
-        BigDecimal unitPrice,
-        List<OrderItemAddonResponse> addons) {
+                Long id,
+                Long itemId,
+                String itemName,
+                Integer quantity,
+                String kitchenNote,
+                String sizeName,
+                BigDecimal unitPrice,
+                List<OrderItemAddonResponse> addons,
+                Long variationId) {
 
 }

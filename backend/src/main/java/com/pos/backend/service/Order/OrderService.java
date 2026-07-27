@@ -330,10 +330,13 @@ public class OrderService {
         User waiter = order.getWaiter();
 
         response.setCustomerName(customer != null ? customer.getName() : null);
+        response.setCustomerId(customer != null ? customer.getId() : null);
         response.setTableNumber(table != null ? table.getTableNumber() : null);
+        response.setTableId(table != null ? table.getId() : null);
         response.setWaiter(waiter != null
                 ? waiter.getFirstName() + " " + waiter.getLastName()
                 : null);
+        response.setWaiterId(waiter != null ? waiter.getId() : null);
         List<OrderItem> items = orderItemRepository.findByOrderId(order.getId());
         List<Long> itemIds = items.stream().map(OrderItem::getId).toList();
 

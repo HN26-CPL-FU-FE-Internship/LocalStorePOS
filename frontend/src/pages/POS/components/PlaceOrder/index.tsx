@@ -4,6 +4,7 @@ import { ToastContext } from '@/provider/ToastProvider/ToastContext';
 import usePOSCreateOrder from '@/stores/pos.store';
 import { memo, useCallback } from 'react';
 import { Button, Col, Row } from 'react-bootstrap';
+import { useNavigate } from 'react-router-dom';
 import { useShallow } from 'zustand/react/shallow';
 
 const PlaceOrder = ({ onShow }: { onShow: () => void }) => {
@@ -17,13 +18,19 @@ const PlaceOrder = ({ onShow }: { onShow: () => void }) => {
             editingOrderNumber: s.editingOrderNumber,
         })),
     );
+    const navigate = useNavigate();
     const { showToast } = useContextData(ToastContext);
     const handleCancelOrder = useCallback(() => {
-        resetCart();
-        setCustomer(null);
-        setTable(null);
-        showToast('info', 'Order cancelled');
-    }, [resetCart, setCustomer, setTable, showToast]);
+        if (editingOrderNumber) {
+            // In edit mode: navigate to /pos to exit edit (useEffect handles cleanup)
+            navigate('/pos');
+        } else {
+            resetCart();
+            setCustomer(null);
+            setTable(null);
+            showToast('info', 'Order cancelled');
+        }
+    }, [editingOrderNumber, navigate, resetCart, setCustomer, setTable, showToast]);
 
     return (
         <>

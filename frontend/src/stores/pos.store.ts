@@ -29,7 +29,7 @@ type CreateOrderStore = {
     updateCartQuantity: (id: string, delta: number) => void;
     resetCart: () => void;
     /** Populate the store from an existing order for editing */
-    loadFromOrder: (order: OrderSummary) => void;
+    loadFromOrder: (order: OrderSummary, menuItems: POSItem[]) => void;
 };
 
 export type CartPayLoad = {
@@ -76,6 +76,10 @@ const usePOSCreateOrder = create<CreateOrderStore>((set) => ({
         set(() => ({
             cartItems: [],
             editingOrderNumber: null,
+            orderActiveType: 'dine_in',
+            customer: null,
+            table: null,
+            waiter: null,
         })),
     addToCart: (payload) => {
         const cartId = `${payload.item.id}-${payload.variationId ?? 'base'}-${payload.item.addons.map((a) => `${a.id}x${a.quantity}`).join('-') ?? 'no-addons'}`;
@@ -167,16 +171,16 @@ const usePOSCreateOrder = create<CreateOrderStore>((set) => ({
             waiter: value,
         })),
 
-    loadFromOrder: (order) => {
+    loadFromOrder: (order, menuItems) => {
         // Build minimal POSItem for each order item
         const cartItems: CartItem[] = order.items.map((item) => {
-            const addonKey = item.addons.map((a) => `${a.id}x${a.quantity}`).join('-');
-            const cartId = `${item.id}-${item.sizeName ?? 'base'}-${addonKey || 'no-addons'}`;
-
+            const addonKey = item.addons.map((a) => `${a.addonId}x${a.quantity}`).join('-');
+            const cartId = `${item.itemId}-${item.sizeName ?? 'base'}-${addonKey || 'no-addons'}`;
+            const taxRate = menuItems.find((menuItem) => menuItem.id === item.itemId)?.taxRate ?? 0;
             return {
                 id: cartId,
                 item: {
-                    id: item.id,
+                    id: item.itemId,
                     name: item.itemName,
                     description: null,
                     imagePath: null,
@@ -187,18 +191,18 @@ const usePOSCreateOrder = create<CreateOrderStore>((set) => ({
                     categoryName: '',
                     taxId: null,
                     taxTitle: null,
-                    taxRate: null,
+                    taxRate: taxRate,
                     variations: item.sizeName
                         ? [
                               {
-                                  id: item.id,
+                                  id: item.variationId ?? item.itemId,
                                   sizeName: item.sizeName,
                                   price: item.unitPrice,
                               },
                           ]
                         : [],
                     addons: item.addons.map((a) => ({
-                        id: a.id,
+                        id: a.addonId,
                         name: a.addonName,
                         price: a.addonPrice,
                         description: null,
@@ -206,9 +210,9 @@ const usePOSCreateOrder = create<CreateOrderStore>((set) => ({
                     })),
                     badge: null,
                 },
-                variationId: item.sizeName ? item.id : null,
+                variationId: item.variationId ?? null,
                 variationName: item.sizeName ?? null,
-                addonIds: item.addons.map((a) => a.id),
+                addonIds: item.addons.map((a) => a.addonId),
                 quantity: item.quantity,
                 unitPrice: item.unitPrice,
                 note: item.kitchenNote ?? undefined,
@@ -218,13 +222,13 @@ const usePOSCreateOrder = create<CreateOrderStore>((set) => ({
         set(() => ({
             cartItems,
             orderActiveType: order.orderType,
-            customer: order.customerName
-                ? { value: String(order.id), label: order.customerName }
-                : null,
-            table: order.tableNumber
-                ? { value: order.tableNumber, label: order.tableNumber }
-                : null,
-            waiter: order.waiter ? { value: order.waiter, label: order.waiter } : null,
+            customer:
+                order.customerName && order.customerId
+                    ? { value: String(order.customerId), label: order.customerName }
+                    : null,
+            table:
+                order.tableNumber && order.tableId ? { value: String(order.tableId), label: order.tableNumber } : null,
+            waiter: order.waiter && order.waiterId ? { value: String(order.waiterId), label: order.waiter } : null,
             editingOrderNumber: order.orderNumber,
         }));
     },

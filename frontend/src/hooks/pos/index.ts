@@ -6,3 +6,4 @@ export { default as useCustomers } from './useCustomers';
 export { default as useTables } from './useTables';
 export { default as usePlaceOrder } from './usePlaceOrder';
 export { default as useCreateCustomer } from './useCreateCustomer';
+export { default as useUpdateOrder } from './useUpdateOrder';

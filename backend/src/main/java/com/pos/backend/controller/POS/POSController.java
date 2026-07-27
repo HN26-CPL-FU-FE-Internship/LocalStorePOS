@@ -7,7 +7,9 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort.Direction;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -107,6 +109,18 @@ public class POSController {
                 OrderResponse response = posService.createOrder(request);
                 return ApiResponse.<OrderResponse>builder()
                                 .message("Order placed successfully")
+                                .result(response)
+                                .build();
+        }
+
+        @PutMapping("/orders/{orderNumber}")
+        public ApiResponse<OrderResponse> updateOrder(
+                        @PathVariable String orderNumber,
+                        @Valid @RequestBody CreateOrderRequest request) {
+
+                OrderResponse response = posService.updateOrder(orderNumber, request);
+                return ApiResponse.<OrderResponse>builder()
+                                .message("Order updated successfully")
                                 .result(response)
                                 .build();
         }
