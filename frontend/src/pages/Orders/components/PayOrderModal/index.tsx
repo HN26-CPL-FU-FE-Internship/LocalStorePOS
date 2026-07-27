@@ -78,12 +78,16 @@ const PayOrderModal = ({
     // ── Computed totals ──────────────────────────────────────────────
     const subtotal = order?.subtotal ?? 0;
 
-    const { discountValue, couponDiscount } = useMemo(() => {
+    const { discountValue, couponDiscount, finalTotal } = useMemo(() => {
         // Use payment-tab values when set, otherwise fall back to order defaults
         const effectiveDiscountAmount = discountAmount > 0 ? discountAmount : (order?.discountAmount ?? 0);
         const effectiveDiscountType = (discountAmount > 0 ? discountType : 'percentage') as DiscountType;
         const effectiveTip = tipAmount > 0 ? tipAmount : (order?.tipAmount ?? 0);
         const effectiveCoupon = selectedCoupon ?? order?.coupon ?? null;
+
+        const chargeAmount = order?.orderType === 'dine_in'
+            ? (order?.serviceCharge ?? 0)
+            : (order?.deliveryCharge ?? 0);
 
         return calculateOrderTotals({
             subtotal,
@@ -91,18 +95,10 @@ const PayOrderModal = ({
             discountType: effectiveDiscountType,
             coupon: effectiveCoupon,
             tipAmount: effectiveTip,
+            taxAmount: order?.taxAmount ?? 0,
+            serviceCharge: chargeAmount,
         });
     }, [discountAmount, discountType, tipAmount, selectedCoupon, order, subtotal]);
-
-    const chargeAmount = useMemo(() => {
-        if (order?.orderType === 'dine_in') return order.serviceCharge ?? 0;
-        else return order?.deliveryCharge ?? 0;
-    }, [order]);
-
-    const finalTotal = useMemo(
-        () => Math.max(0, subtotal - discountValue - couponDiscount + chargeAmount + tipAmount),
-        [chargeAmount, couponDiscount, discountValue, subtotal, tipAmount],
-    );
 
     const handleConfirmPayment = useCallback(() => {
         if (!order) return;

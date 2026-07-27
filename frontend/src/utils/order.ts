@@ -35,24 +35,37 @@ export interface CalculateOrderTotalsParams {
     discountType: DiscountType;
     coupon: CouponOrder | null;
     tipAmount: number;
+    taxAmount: number;
+    serviceCharge: number;
 }
 
 export interface CalculateOrderTotalsResult {
     discountValue: number;
     couponDiscount: number;
+    taxValue: number;
+    finalTotal: number;
 }
 
 /**
  * Calculate all order totals including discounts, coupon, tax, service charge, and tip.
  * Returns the individual breakdown values plus the final total.
+ *
+ * Formula: finalTotal = subtotal - discountValue - couponDiscount + taxValue + serviceCharge + tipAmount
  */
 export function calculateOrderTotals(params: CalculateOrderTotalsParams): CalculateOrderTotalsResult {
-    const { subtotal, discountAmount, discountType, coupon } = params;
+    const { subtotal, discountAmount, discountType, coupon, tipAmount, taxAmount, serviceCharge } = params;
 
     const discVal = calculateDiscount(subtotal, discountAmount, discountType);
     const coupVal = coupon ? calculateDiscount(subtotal, coupon.discountAmount, coupon.discountType) : 0;
 
-    return { discountValue: discVal, couponDiscount: coupVal };
+    // taxAmount is the pre-computed monetary tax value (e.g. $10.00)
+    const taxValue = taxAmount;
+    const finalTotal = Math.max(
+        0,
+        subtotal - discVal - coupVal + taxValue + serviceCharge + tipAmount,
+    );
+
+    return { discountValue: discVal, couponDiscount: coupVal, taxValue, finalTotal };
 }
 
 // ── Utilities object (backward compat for existing imports) ─────────────

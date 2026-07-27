@@ -177,7 +177,7 @@ describe('calculateOrderTotals', () => {
     it('heavy: combines discount, coupon, and tip', () => {
         const result = calculateOrderTotals({
             subtotal: 200,
-            taxAmount: 8,
+            taxAmount: 16,  // pre-computed monetary tax: 8% of 200 = $16
             discountAmount: 15,
             discountType: 'percentage',
             coupon: { code: 'WELCOME', discountAmount: 20, discountType: 'fixed_amount' },
@@ -185,7 +185,7 @@ describe('calculateOrderTotals', () => {
             tipAmount: 12,
         });
 
-        // 15% of 200 = 30 discount, coupon = 20, tax 8% of 200 = 16, service = 10, tip = 12
+        // 15% of 200 = 30 discount, coupon = 20, tax = 16, service = 10, tip = 12
         expect(result).toEqual({
             discountValue: 30,
             couponDiscount: 20,
@@ -220,7 +220,7 @@ describe('calculateOrderTotals', () => {
     it('handles large values without overflow', () => {
         const result = calculateOrderTotals({
             subtotal: 999999,
-            taxAmount: 10,
+            taxAmount: 100000,  // pre-computed monetary tax: 10% of 999999 ≈ $100000
             discountAmount: 50,
             discountType: 'percentage',
             coupon: { code: 'BIG', discountAmount: 1000, discountType: 'fixed_amount' },
@@ -229,7 +229,7 @@ describe('calculateOrderTotals', () => {
         });
 
         // 50% of 999999 = 499999.5 -> Math.round = 500000
-        // coupon = 1000, tax 10% of 999999 = 99999.9 -> 100000
+        // coupon = 1000, tax = 100000, service = 50, tip = 100
         // total = 999999 - 500000 - 1000 + 100000 + 50 + 100 = 599149
         expect(result).toEqual({
             discountValue: 500000,
