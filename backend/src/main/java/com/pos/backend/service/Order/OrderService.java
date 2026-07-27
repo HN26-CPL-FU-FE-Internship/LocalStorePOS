@@ -253,10 +253,12 @@ public class OrderService {
         BigDecimal calculatedGrandTotal = subtotal
                 .subtract(discVal)
                 .subtract(coupVal)
+                .add(order.getTaxAmount())
                 .add(order.getServiceCharge())
                 .add(order.getDeliveryCharge())
                 .add(order.getTipAmount())
-                .max(BigDecimal.ZERO); // Never go negative
+                .max(BigDecimal.ZERO) // Never go negative
+                .setScale(2, RoundingMode.HALF_UP); // Match frontend 2-decimal rounding
 
         // Reject payment if the total is zero (100% discount + coupon wiped out
         // everything)

@@ -176,7 +176,7 @@ const usePOSCreateOrder = create<CreateOrderStore>((set) => ({
         const cartItems: CartItem[] = order.items.map((item) => {
             const addonKey = item.addons.map((a) => `${a.addonId}x${a.quantity}`).join('-');
             const cartId = `${item.itemId}-${item.sizeName ?? 'base'}-${addonKey || 'no-addons'}`;
-            const taxRate = menuItems.find((menuItem) => menuItem.id === item.itemId)?.taxRate ?? 0;
+            const matchItem = menuItems.find((menuItem) => menuItem.id === item.itemId);
             return {
                 id: cartId,
                 item: {
@@ -191,7 +191,7 @@ const usePOSCreateOrder = create<CreateOrderStore>((set) => ({
                     categoryName: '',
                     taxId: null,
                     taxTitle: null,
-                    taxRate: taxRate,
+                    taxRate: matchItem?.taxRate ?? 0,
                     variations: item.sizeName
                         ? [
                               {

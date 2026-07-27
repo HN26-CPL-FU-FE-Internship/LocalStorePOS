@@ -85,9 +85,8 @@ const PayOrderModal = ({
         const effectiveTip = tipAmount > 0 ? tipAmount : (order?.tipAmount ?? 0);
         const effectiveCoupon = selectedCoupon ?? order?.coupon ?? null;
 
-        const chargeAmount = order?.orderType === 'dine_in'
-            ? (order?.serviceCharge ?? 0)
-            : (order?.deliveryCharge ?? 0);
+        const chargeAmount =
+            order?.orderType === 'dine_in' ? (order?.serviceCharge ?? 0) : (order?.deliveryCharge ?? 0);
 
         return calculateOrderTotals({
             subtotal,

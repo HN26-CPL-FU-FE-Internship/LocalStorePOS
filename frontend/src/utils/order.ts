@@ -60,10 +60,8 @@ export function calculateOrderTotals(params: CalculateOrderTotalsParams): Calcul
 
     // taxAmount is the pre-computed monetary tax value (e.g. $10.00)
     const taxValue = taxAmount;
-    const finalTotal = Math.max(
-        0,
-        subtotal - discVal - coupVal + taxValue + serviceCharge + tipAmount,
-    );
+    const finalTotal =
+        Math.round(Math.max(0, subtotal - discVal - coupVal + taxValue + serviceCharge + tipAmount) * 100) / 100;
 
     return { discountValue: discVal, couponDiscount: coupVal, taxValue, finalTotal };
 }
