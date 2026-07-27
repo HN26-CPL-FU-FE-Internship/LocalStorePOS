@@ -34,7 +34,7 @@ const AvailableTable = () => {
                             {tables.map((table) => {
                                 const isSelected = selectedTable?.value === String(table.id);
                                 return (
-                                    <SwiperSlide>
+                                    <SwiperSlide key={table.id}>
                                         <Button
                                             key={table.id}
                                             variant={isSelected ? 'primary' : ''}

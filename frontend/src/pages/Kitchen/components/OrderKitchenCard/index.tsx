@@ -4,10 +4,11 @@ import type { OrderSummary } from '@/types';
 import { formatDateTimeKitchen, notifyTimerExpired, toTitleCase, warmUpAudio } from '@/utils';
 import { Button, Card, Col, Spinner } from 'react-bootstrap';
 import KitchenOrderItemRow from '../KitchenOrderItemRow';
-import { KITCHEN_STATUSES, KITCHEN_QUERY_KEYS, orderKeys } from '@/constants';
-import kitchenService from '@/services/kitchenService';
-import { queryClient } from '@/lib';
+import { KITCHEN_STATUSES } from '@/constants';
 import useCookingTimer from '@/hooks/kitchen/useCookingTimer';
+import useStartCooking from '@/hooks/kitchen/useStartCooking';
+import useMarkKitchenComplete from '@/hooks/kitchen/useMarkKitchenComplete';
+import useMarkKitchenDelayed from '@/hooks/kitchen/useMarkKitchenDelayed';
 import useContextData from '@/hooks/useContextData';
 import { ToastContext } from '@/provider/ToastProvider/ToastContext';
 import MinutesInputModal, { MIN_MINUTES, MAX_MINUTES } from './MinutesInputModal';
@@ -18,6 +19,8 @@ const OrderKitchenCard = ({ order }: { order: OrderSummary }) => {
     const isCompleted = kitchenStatus === 'completed' || kitchenStatus === 'cancelled';
     const { showToast } = useContextData(ToastContext);
 
+    const markKitchenDelayedMutation = useMarkKitchenDelayed();
+
     // ── Auto-delay when timer expires ────────────────────────────────
     const handleTimerExpired = useCallback(async () => {
         // Notify chef with sound + browser notification
@@ -26,13 +29,12 @@ const OrderKitchenCard = ({ order }: { order: OrderSummary }) => {
         // Only auto-delay if order is still cooking (not already completed/cancelled)
         if (kitchenStatus !== 'in_kitchen') return;
         try {
-            await kitchenService.markKitchenDelayed(order.id);
+            await markKitchenDelayedMutation.mutateAsync(order.id);
             showToast('warning', 'Order is now delayed!');
-            queryClient.invalidateQueries({ queryKey: KITCHEN_QUERY_KEYS.all });
         } catch {
             // Silently fail — the order might have been completed externally
         }
-    }, [order.id, kitchenStatus, showToast, order.orderNumber, order.customerName]);
+    }, [order.id, kitchenStatus, showToast, order.orderNumber, order.customerName, markKitchenDelayedMutation]);
 
     // Timer state — now includes progressPercent from the hook (wall-clock accurate)
     const {
@@ -50,12 +52,13 @@ const OrderKitchenCard = ({ order }: { order: OrderSummary }) => {
         onComplete: handleTimerExpired,
     });
 
+    const startCookingMutation = useStartCooking();
+    const markKitchenCompleteMutation = useMarkKitchenComplete();
+
     // Confirmation / input modals
     const [showMinutesModal, setShowMinutesModal] = useState(false);
     const [showConfirmDoneModal, setShowConfirmDoneModal] = useState(false);
     const [minutesInput, setMinutesInput] = useState(15);
-    const [isStartingCooking, setIsStartingCooking] = useState(false);
-    const [isMarkingDone, setIsMarkingDone] = useState(false);
 
     // ── Handlers ────────────────────────────────────────────────────────
 
@@ -82,22 +85,18 @@ const OrderKitchenCard = ({ order }: { order: OrderSummary }) => {
         // Pre-warm AudioContext while we have a user gesture (required by browsers)
         warmUpAudio();
 
-        setIsStartingCooking(true);
         try {
-            await kitchenService.startCooking({ id: order.id, estimatedMinutes: minutesInput });
+            await startCookingMutation.mutateAsync({ id: order.id, estimatedMinutes: minutesInput });
             startTimer(minutesInput);
             setShowMinutesModal(false);
             showToast('success', 'Cooking started!');
-            queryClient.invalidateQueries({ queryKey: KITCHEN_QUERY_KEYS.all });
         } catch (error) {
             const message =
                 (error as { response?: { data?: { message?: string } } })?.response?.data?.message ??
                 'Failed to start cooking.';
             showToast('error', message);
-        } finally {
-            setIsStartingCooking(false);
         }
-    }, [minutesInput, order.id, startTimer, showToast]);
+    }, [minutesInput, order.id, startTimer, showToast, startCookingMutation]);
 
     const handleMarkDone = useCallback(async () => {
         if (isCompleted) return;
@@ -107,22 +106,17 @@ const OrderKitchenCard = ({ order }: { order: OrderSummary }) => {
 
     const confirmMarkDone = useCallback(async () => {
         setShowConfirmDoneModal(false);
-        setIsMarkingDone(true);
         try {
-            await kitchenService.markKitchenComplete(order.id);
+            await markKitchenCompleteMutation.mutateAsync(order.id);
             showToast('success', 'Order marked as completed!');
             resetTimer();
-            queryClient.invalidateQueries({ queryKey: KITCHEN_QUERY_KEYS.all });
-            queryClient.invalidateQueries({ queryKey: orderKeys.all });
         } catch (error) {
             const message =
                 (error as { response?: { data?: { message?: string } } })?.response?.data?.message ??
                 'Failed to mark order as completed.';
             showToast('error', message);
-        } finally {
-            setIsMarkingDone(false);
         }
-    }, [order.id, resetTimer, showToast]);
+    }, [order.id, resetTimer, showToast, markKitchenCompleteMutation]);
 
     useEffect(() => {
         if (order.kitchenStatus === 'completed') resetTimer();
@@ -201,11 +195,11 @@ const OrderKitchenCard = ({ order }: { order: OrderSummary }) => {
                     {!isCompleted && (
                         <>
                             <Button
-                                className={`btn-light w-100 timer-btn ${isStartingCooking || isMarkingDone || timerExpired ? 'disabled' : ''}`}
+                                className={`btn-light w-100 timer-btn ${startCookingMutation.isPending || markKitchenCompleteMutation.isPending || timerExpired ? 'disabled' : ''}`}
                                 onClick={handlePlayClick}
-                                disabled={isStartingCooking || isMarkingDone || timerExpired}
+                                disabled={startCookingMutation.isPending || markKitchenCompleteMutation.isPending || timerExpired}
                             >
-                                {isStartingCooking && timerState === 'idle' ? (
+                                {startCookingMutation.isPending && timerState === 'idle' ? (
                                     <Spinner size="sm" className="me-2" />
                                 ) : (
                                     <Icon name={playButtonIcon} className="me-2" />
@@ -219,9 +213,9 @@ const OrderKitchenCard = ({ order }: { order: OrderSummary }) => {
                             <Button
                                 className="btn-outline-success w-100"
                                 onClick={handleMarkDone}
-                                disabled={isStartingCooking || isMarkingDone}
+                                disabled={startCookingMutation.isPending || markKitchenCompleteMutation.isPending}
                             >
-                                {isMarkingDone ? (
+                                {markKitchenCompleteMutation.isPending ? (
                                     <Spinner size="sm" className="me-2" />
                                 ) : (
                                     <Icon name="check-check" className="me-2" />

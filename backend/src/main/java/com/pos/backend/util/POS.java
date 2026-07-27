@@ -58,7 +58,9 @@ public class POS {
             itemPrice = itemPrice.multiply(BigDecimal.valueOf(itemReq.getQuantity()));
 
             subTotal = subTotal.add(itemPrice);
-            taxAmount = taxAmount.add(itemPrice.multiply(item.getTax().getTaxRate()).divide(BigDecimal.valueOf(100)));
+            taxAmount = taxAmount
+                    .add(itemPrice.multiply(item.getTax() != null ? item.getTax().getTaxRate() : BigDecimal.ZERO)
+                            .divide(BigDecimal.valueOf(100)));
         }
         return type.equals("sub_total") ? subTotal : taxAmount;
     }
