@@ -7,13 +7,14 @@ import { Button, Col, Row } from 'react-bootstrap';
 import { useShallow } from 'zustand/react/shallow';
 
 const PlaceOrder = ({ onShow }: { onShow: () => void }) => {
-    const { cartItems, resetCart, setCustomer, setTable, placingOrder } = usePOSCreateOrder(
+    const { cartItems, resetCart, setCustomer, setTable, placingOrder, editingOrderNumber } = usePOSCreateOrder(
         useShallow((s) => ({
             cartItems: s.cartItems,
             resetCart: s.resetCart,
             setCustomer: s.setCustomer,
             setTable: s.setTable,
             placingOrder: s.placingOrder,
+            editingOrderNumber: s.editingOrderNumber,
         })),
     );
     const { showToast } = useContextData(ToastContext);
@@ -31,7 +32,11 @@ const PlaceOrder = ({ onShow }: { onShow: () => void }) => {
                 disabled={cartItems.length === 0 || placingOrder}
                 onClick={onShow}
             >
-                {placingOrder ? 'Placing Order...' : 'Place an Order'}
+                {placingOrder
+                    ? 'Saving...'
+                    : editingOrderNumber
+                      ? 'Update Order'
+                      : 'Place an Order'}
             </Button>
             <Row className="g-3">
                 <Col sm={4}>

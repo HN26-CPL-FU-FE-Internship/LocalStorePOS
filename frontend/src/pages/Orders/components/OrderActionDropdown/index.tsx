@@ -31,7 +31,7 @@ function OrderActionDropdown({ actions, order }: { actions: OrderActionDropdownP
             key: 'edit',
             icon: 'pencil-line',
             label: 'Edit Order',
-            to: '/pos',
+            to: `/pos?edit=${order.orderNumber}`,
         },
         {
             key: 'cancel',
