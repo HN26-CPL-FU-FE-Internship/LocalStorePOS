@@ -13,5 +13,6 @@ public interface OrderMapper {
     @Mapping(target = "items", ignore = true)
     @Mapping(target = "coupon", ignore = true)
     @Mapping(target = "customerName", ignore = true)
+    @Mapping(target = "waiter", ignore = true)
     OrderResponse toOrderResponse(Order order);
 }

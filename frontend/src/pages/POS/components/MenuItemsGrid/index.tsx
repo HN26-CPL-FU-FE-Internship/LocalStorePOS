@@ -108,7 +108,15 @@ const MenuItemsGrid = ({
                                             </div>
                                         </div>
                                         <h6 className="fs-14 fw-semibold text-truncate mb-2">
-                                            <Link data-bs-toggle="modal" data-bs-target="#items_details" to="/pos">
+                                            <Link
+                                                data-bs-toggle="modal"
+                                                data-bs-target="#items_details"
+                                                to="/pos"
+                                                onClick={() => {
+                                                    setSelectedItem(item);
+                                                    setShowItemDetail(true);
+                                                }}
+                                            >
                                                 {item.name}
                                             </Link>
                                         </h6>

@@ -131,7 +131,7 @@ const TabContent = ({ order }: { order: OrderSummary }) => {
                             />
                         </div>
                         <div className="d-flex align-items-center justify-content-between mb-3">
-                            <p className="mb-0 fs-14 fw-semibold text-dark">
+                            <p className="mb-0 fs-12 fw-semibold text-dark">
                                 <span className="fw-normal">Token No :</span> {order.tokenNo || '-'}
                             </p>
                             <h6 className="mb-0 fw-semibold d-flex align-items-center gap-1">

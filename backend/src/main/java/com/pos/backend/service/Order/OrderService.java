@@ -30,12 +30,14 @@ import com.pos.backend.dto.response.Order.OrderResponse;
 import com.pos.backend.dto.response.OrderItem.OrderItemResponse;
 import com.pos.backend.dto.response.OrderItemAddons.OrderItemAddonResponse;
 import com.pos.backend.entity.Coupon;
+import com.pos.backend.entity.Customer;
 import com.pos.backend.entity.Order;
 import com.pos.backend.entity.OrderItem;
 import com.pos.backend.entity.OrderItemAddon;
 import com.pos.backend.entity.Payment;
 import com.pos.backend.entity.PaymentMethod;
 import com.pos.backend.entity.RestaurantTable;
+import com.pos.backend.entity.User;
 import com.pos.backend.exception.AppException;
 import com.pos.backend.mapper.CouponMapper;
 import com.pos.backend.mapper.OrderMapper;
@@ -314,6 +316,41 @@ public class OrderService {
         paymentRepository.save(payment);
 
         return orderMapper.toOrderResponse(order);
+    }
+
+    public OrderResponse getOrderDetail(String orderNumber) {
+
+        Order order = orderRepository.findByOrderNumber(orderNumber)
+                .orElseThrow(() -> new AppException(ErrorCode.ORDER_NOT_FOUND));
+
+        OrderResponse response = orderMapper.toOrderResponse(order);
+
+        Customer customer = order.getCustomer();
+        RestaurantTable table = order.getTable();
+        User waiter = order.getWaiter();
+
+        response.setCustomerName(customer != null ? customer.getName() : null);
+        response.setTableNumber(table != null ? table.getTableNumber() : null);
+        response.setWaiter(waiter != null
+                ? waiter.getFirstName() + " " + waiter.getLastName()
+                : null);
+        List<OrderItem> items = orderItemRepository.findByOrderId(order.getId());
+        List<Long> itemIds = items.stream().map(OrderItem::getId).toList();
+
+        List<OrderItemAddon> orderItemAddons = itemIds.isEmpty() ? List.of()
+                : orderItemAddonRepository
+                        .findByOrderItemIdIn(itemIds);
+
+        // Gom nhóm addon theo order_item_id
+        Map<Long, List<OrderItemAddonResponse>> addonsByItemIds = orderCommonService
+                .groupAddonsByItemId(orderItemAddons);
+
+        // Gom nhóm order_item theo order_id
+        Map<Long, List<OrderItemResponse>> orderItemsByOrderId = orderCommonService.groupItemsByOrderId(
+                items,
+                addonsByItemIds);
+        response.setItems(orderItemsByOrderId.get(order.getId()));
+        return response;
     }
 
     /**

@@ -14,6 +14,9 @@ public interface OrderItemRepository extends JpaRepository<OrderItem, Long> {
     @EntityGraph(attributePaths = { "order", "variation" })
     List<OrderItem> findByOrderIdIn(List<Long> orderIds);
 
+    @EntityGraph(attributePaths = { "order", "variation" })
+    List<OrderItem> findByOrderId(Long id);
+
     /**
      * Count how many times each item has been ordered (by item_id).
      * Returns array of [itemId, count].

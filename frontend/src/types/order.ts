@@ -51,6 +51,7 @@ export type OrderSummary = {
     orderType: string;
     tableNumber: string;
     orderedAt: string;
+    waiter: string;
 
     coupon: CouponOrder;
 

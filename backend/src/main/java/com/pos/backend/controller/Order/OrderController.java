@@ -79,4 +79,15 @@ public class OrderController {
                                 .build();
         }
 
+        @GetMapping("/{orderNumber}/detail")
+        // @PreAuthorize("@perm.hasPermission(authentication)")
+        public ApiResponse<OrderResponse> getByOrderNumber(@PathVariable String orderNumber) {
+
+                OrderResponse response = orderService.getOrderDetail(orderNumber);
+                return ApiResponse.<OrderResponse>builder()
+                                .message("Success")
+                                .result(response)
+                                .build();
+        }
+
 }
