@@ -1,5 +1,6 @@
 package com.pos.backend.service.Settings;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import org.springframework.stereotype.Service;
@@ -27,19 +28,30 @@ public class PaymentMethodServiceImpl {
             new String[] { "bank", "Bank" });
 
     private List<PaymentMethod> getOrCreateMethods() {
-        List<PaymentMethod> existing = paymentMethodRepository.findAll();
-        if (!existing.isEmpty()) {
-            return existing;
-        }
-        return DEFAULT_METHODS.stream()
-                .map(m -> paymentMethodRepository.save(
-                        PaymentMethod.builder()
-                                .code(m[0])
-                                .name(m[1])
-                                .isEnabled(true)
-                                .build()))
-                .toList();
+
+    List<PaymentMethod> existing = paymentMethodRepository.findAll();
+
+    if (!existing.isEmpty()) {
+        return existing;
     }
+
+    List<PaymentMethod> methods = new ArrayList<>();
+
+    for (String[] m : DEFAULT_METHODS) {
+
+        PaymentMethod paymentMethod = PaymentMethod.builder()
+                .code(m[0])
+                .name(m[1])
+                .isEnabled(true)
+                .build();
+
+        PaymentMethod saved = paymentMethodRepository.save(paymentMethod);
+
+        methods.add(saved);
+    }
+
+    return methods;
+}
 
     @Transactional(readOnly = true)
     public List<PaymentMethodResponse> getAllPaymentMethods() {

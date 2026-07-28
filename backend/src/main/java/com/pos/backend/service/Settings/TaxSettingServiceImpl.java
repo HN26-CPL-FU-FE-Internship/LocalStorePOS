@@ -4,9 +4,6 @@ import java.util.List;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
-import java.util.List;
-
 import com.pos.backend.constant.ErrorCode;
 import com.pos.backend.constant.enums.CommonStatus;
 import com.pos.backend.dto.request.Settings.TaxSettingRequest;

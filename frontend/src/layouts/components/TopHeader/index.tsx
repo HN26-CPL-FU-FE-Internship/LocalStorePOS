@@ -1,5 +1,7 @@
 import Button from 'react-bootstrap/Button';
 import Icon from '@/components/common/Icon';
+import { Link } from 'react-router-dom';
+import configs from '@/configs';
 
 import logo from '@/assets/img/logo.svg';
 import smallLogo from '@/assets/img/logo-small.svg';
@@ -25,7 +27,9 @@ export interface TopHeaderProps {
  * because the original markup isn't a typical collapsing navbar — it's a
  * fixed topbar with independent icon-button clusters.
  */
+
 const TopHeader = ({ logoHref = '#', onOpenSearch, onOpenMobileSidebar }: TopHeaderProps) => {
+    const { routes } = configs;
     const { toggleTheme } = useContextData<ThemeContextType>(ThemeContext);
     const [iconName, setIconName] = useState<ThemeType>('moon');
 
@@ -68,7 +72,7 @@ const TopHeader = ({ logoHref = '#', onOpenSearch, onOpenMobileSidebar }: TopHea
 
                 <div className="d-flex align-items-center header-list">
                     {/* Upgrade */}
-                    <div className="header-item d-none d-sm-flex">
+                    {/* <div className="header-item d-none d-sm-flex">
                         <Button
                             variant="primary"
                             size="sm"
@@ -78,7 +82,7 @@ const TopHeader = ({ logoHref = '#', onOpenSearch, onOpenMobileSidebar }: TopHea
                             <Icon name="crown" className="me-1" />
                             Upgrade
                         </Button>
-                    </div>
+                    </div> */}
 
                     {/* Search */}
                     <div className="header-item d-flex">
@@ -94,10 +98,10 @@ const TopHeader = ({ logoHref = '#', onOpenSearch, onOpenMobileSidebar }: TopHea
 
                     {/* Report */}
                     <div className="header-item d-none d-sm-flex">
-                        <a href="lorem ipsum" className="topbar-link btn btn-icon" aria-label="report" title="Report">
+                        <Link to={routes['earning-reports']} className="topbar-link btn btn-icon" aria-label="report" title="Report">
                             <Icon name="chart-column-stacked" className="fs-16" />
                             <span className="position-absolute report-badge bg-success" />
-                        </a>
+                        </Link>
                     </div>
 
                     {/* Light/Dark mode */}

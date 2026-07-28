@@ -248,7 +248,7 @@ const UsersPage = () => {
             setAddForm(addEmptyForm);
             clearAvatar();
             await loadUsers();
-            } catch (err: unknown) {
+        } catch (err: unknown) {
             const msg =
                 (err as AxiosError<{ message?: string }>)?.response?.data?.message || 'Failed to create user';
             alert(msg);
@@ -298,7 +298,7 @@ const UsersPage = () => {
             setEditForm(editEmptyForm);
             clearAvatar();
             await loadUsers();
-            } catch (err: unknown) {
+        } catch (err: unknown) {
             const msg =
                 (err as AxiosError<{ message?: string }>)?.response?.data?.message || 'Failed to update user';
             alert(msg);
@@ -318,7 +318,7 @@ const UsersPage = () => {
             setCurrentUser(null);
             setShowDelete(false);
             await loadUsers();
-            } catch (err: unknown) {
+        } catch (err: unknown) {
             const msg =
                 (err as AxiosError<{ message?: string }>)?.response?.data?.message || 'Failed to delete user';
             alert(msg);
