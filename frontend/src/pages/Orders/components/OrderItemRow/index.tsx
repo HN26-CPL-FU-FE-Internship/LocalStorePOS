@@ -15,7 +15,7 @@ const OrderItemRow = ({ item }: { item: OrderItemType }) => (
                 {item.sizeName ? ` - ${item.sizeName}` : ''}
             </p>
             <span className="line"></span>
-            <p className="text-dark">x{item.quantity}</p>
+            <p className="text-dark me-2">x{item.quantity}</p>
         </div>
 
         {item.kitchenNote && (

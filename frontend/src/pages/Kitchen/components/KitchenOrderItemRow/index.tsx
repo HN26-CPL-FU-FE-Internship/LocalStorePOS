@@ -8,7 +8,7 @@ const KitchenOrderItemRow = ({ item }: { item: OrderItemType }) => {
 
     return (
         <div
-            className="border-bottom-dashed mb-3 pb-3
+            className="border-bottom-dashed mb-3 me-2 pb-3
                         "
         >
             <div className="orders text-dark mb-2">

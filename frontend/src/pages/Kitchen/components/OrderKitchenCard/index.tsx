@@ -161,7 +161,13 @@ const OrderKitchenCard = ({ order }: { order: OrderSummary }) => {
                     </div>
                 </Card.Body>
                 <Card.Body>
-                    <div className="orders-list mb-4">
+                    <div
+                        className="orders-list mb-4"
+                        style={{
+                            height: '250px',
+                            overflowY: 'scroll',
+                        }}
+                    >
                         {order.items.map((item) => (
                             <KitchenOrderItemRow key={item.id} item={item} />
                         ))}
@@ -197,7 +203,11 @@ const OrderKitchenCard = ({ order }: { order: OrderSummary }) => {
                             <Button
                                 className={`btn-light w-100 timer-btn ${startCookingMutation.isPending || markKitchenCompleteMutation.isPending || timerExpired ? 'disabled' : ''}`}
                                 onClick={handlePlayClick}
-                                disabled={startCookingMutation.isPending || markKitchenCompleteMutation.isPending || timerExpired}
+                                disabled={
+                                    startCookingMutation.isPending ||
+                                    markKitchenCompleteMutation.isPending ||
+                                    timerExpired
+                                }
                             >
                                 {startCookingMutation.isPending && timerState === 'idle' ? (
                                     <Spinner size="sm" className="me-2" />
