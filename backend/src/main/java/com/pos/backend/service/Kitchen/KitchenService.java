@@ -13,6 +13,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.pos.backend.constant.ErrorCode;
 import com.pos.backend.constant.enums.KitchenStatus;
+import com.pos.backend.constant.enums.OrderItemStatus;
 import com.pos.backend.constant.enums.OrderStatus;
 import com.pos.backend.dto.request.Kitchen.StartCookingRequest;
 import com.pos.backend.dto.response.Order.OrderResponse;
@@ -36,108 +37,109 @@ import lombok.experimental.FieldDefaults;
 @RequiredArgsConstructor
 public class KitchenService {
 
-	OrderRepository orderRepository;
-	OrderItemRepository orderItemRepository;
-	OrderItemAddonRepository orderItemAddonRepository;
-	OrderCommonService orderCommonService;
+    OrderRepository orderRepository;
+    OrderItemRepository orderItemRepository;
+    OrderItemAddonRepository orderItemAddonRepository;
+    OrderCommonService orderCommonService;
 
-	public Map<String, Long> getKitchenStats() {
+    public Map<String, Long> getKitchenStats() {
 
-		Map<String, Long> result = new LinkedHashMap<>();
-		for (KitchenStatus status : KitchenStatus.values()) {
-			result.put(status.name(), 0L);
-		}
+        Map<String, Long> result = new LinkedHashMap<>();
+        for (KitchenStatus status : KitchenStatus.values()) {
+            result.put(status.name(), 0L);
+        }
 
-		List<KitchenStatusCount> stats = orderRepository.countOrderByKitchenStatus();
+        List<KitchenStatusCount> stats = orderRepository.countOrderByKitchenStatus();
 
-		for (KitchenStatusCount statusCount : stats) {
-			result.put(statusCount.getKitchenStatus(), statusCount.getTotalOrder());
-		}
+        for (KitchenStatusCount statusCount : stats) {
+            result.put(statusCount.getKitchenStatus(), statusCount.getTotalOrder());
+        }
 
-		return result;
-	}
+        return result;
+    }
 
-	public Page<OrderResponse> getKitchenOrders(Pageable pageable) {
+    public Page<OrderResponse> getKitchenOrders(Pageable pageable) {
 
-		Page<Order> orders = orderRepository.findAll(pageable);
-		List<Long> orderIds = orders.stream().map(order -> order.getId()).toList();
+        Page<Order> orders = orderRepository.findAll(pageable);
+        List<Long> orderIds = orders.stream().map(order -> order.getId()).toList();
 
-		List<OrderItem> orderItems = orderItemRepository.findByOrderIdIn(orderIds);
-		List<Long> orderItemIds = orderItems.stream().map(item -> item.getId()).toList();
+        List<OrderItem> orderItems = orderItemRepository.findByOrderIdIn(orderIds);
+        List<Long> orderItemIds = orderItems.stream().map(item -> item.getId()).toList();
 
-		List<OrderItemAddon> addons = orderItemAddonRepository.findByOrderItemIdIn(orderItemIds);
+        List<OrderItemAddon> addons = orderItemAddonRepository.findByOrderItemIdIn(orderItemIds);
 
-		Map<Long, List<OrderItemAddonResponse>> addonsByOrderItemId = orderCommonService.groupAddonsByItemId(addons);
+        Map<Long, List<OrderItemAddonResponse>> addonsByOrderItemId = orderCommonService.groupAddonsByItemId(addons);
 
-		Map<Long, List<OrderItemResponse>> orderItemsByOrderId = orderCommonService.groupItemsByOrderId(orderItems,
-				addonsByOrderItemId);
+        Map<Long, List<OrderItemResponse>> orderItemsByOrderId = orderCommonService.groupItemsByOrderId(orderItems,
+                addonsByOrderItemId);
 
-		List<OrderResponse> orderResponses = orders.stream().map(order -> OrderResponse.builder()
-				.id(order.getId())
-				.kitchenStatus(order.getKitchenStatus().toString())
-				.tokenNo(order.getTokenNo())
-				.items(orderItemsByOrderId.getOrDefault(order.getId(), List.of()))
-				.estimatedMinutes(order.getEstimatedMinutes())
-				.cookingStartedAt(order.getCookingStartedAt())
-				.orderNumber(order.getOrderNumber())
-				.orderedAt(order.getOrderedAt())
-				.orderType(order.getOrderType().toString())
-				.customerName(order.getCustomer() != null ? order.getCustomer().getName()
-						: "Walk In Customer")
-				.build()).toList();
+        List<OrderResponse> orderResponses = orders.stream().map(order -> OrderResponse.builder()
+                .id(order.getId())
+                .kitchenStatus(order.getKitchenStatus().toString())
+                .tokenNo(order.getTokenNo())
+                .items(orderItemsByOrderId.getOrDefault(order.getId(), List.of()))
+                .estimatedMinutes(order.getEstimatedMinutes())
+                .cookingStartedAt(order.getCookingStartedAt())
+                .orderNumber(order.getOrderNumber())
+                .orderedAt(order.getOrderedAt())
+                .orderType(order.getOrderType().toString())
+                .customerName(order.getCustomer() != null ? order.getCustomer().getName()
+                        : "Walk In Customer")
+                .build()).toList();
 
-		return new PageImpl<>(orderResponses, pageable, orders.getTotalElements());
-	}
+        return new PageImpl<>(orderResponses, pageable, orders.getTotalElements());
+    }
 
-	@Transactional
-	public OrderResponse startCooking(Long id, StartCookingRequest request) {
-		Order order = orderRepository.findById(id)
-				.orElseThrow(() -> new AppException(ErrorCode.ORDER_NOT_FOUND));
+    @Transactional
+    public OrderResponse startCooking(Long id, StartCookingRequest request) {
+        Order order = orderRepository.findById(id)
+                .orElseThrow(() -> new AppException(ErrorCode.ORDER_NOT_FOUND));
 
-		order.setKitchenStatus(KitchenStatus.in_kitchen);
-		order.setEstimatedMinutes(request.getEstimatedMinutes());
-		order.setCookingStartedAt(LocalDateTime.now());
-		order.setStatus(OrderStatus.preparing);
-		order = orderRepository.save(order);
+        order.setKitchenStatus(KitchenStatus.in_kitchen);
+        order.setEstimatedMinutes(request.getEstimatedMinutes());
+        order.setCookingStartedAt(LocalDateTime.now());
+        order.setStatus(OrderStatus.preparing);
+        order = orderRepository.save(order);
 
-		return buildOrderResponse(order);
-	}
+        return buildOrderResponse(order);
+    }
 
-	@Transactional
-	public OrderResponse markComplete(Long id) {
-		Order order = orderRepository.findById(id)
-				.orElseThrow(() -> new AppException(ErrorCode.ORDER_NOT_FOUND));
+    @Transactional
+    public OrderResponse markComplete(Long id) {
+        Order order = orderRepository.findById(id)
+                .orElseThrow(() -> new AppException(ErrorCode.ORDER_NOT_FOUND));
 
-		order.setKitchenStatus(KitchenStatus.completed);
-		order = orderRepository.save(order);
+        order.setKitchenStatus(KitchenStatus.completed);
+        order = orderRepository.save(order);
 
-		return buildOrderResponse(order);
-	}
+        orderItemRepository.updateStatusByOrderId(id, OrderItemStatus.ready);
+        return buildOrderResponse(order);
+    }
 
-	@Transactional
-	public OrderResponse markDelayed(Long id) {
-		Order order = orderRepository.findById(id)
-				.orElseThrow(() -> new AppException(ErrorCode.ORDER_NOT_FOUND));
+    @Transactional
+    public OrderResponse markDelayed(Long id) {
+        Order order = orderRepository.findById(id)
+                .orElseThrow(() -> new AppException(ErrorCode.ORDER_NOT_FOUND));
 
-		order.setKitchenStatus(KitchenStatus.delayed);
+        order.setKitchenStatus(KitchenStatus.delayed);
 
-		order = orderRepository.save(order);
+        order = orderRepository.save(order);
 
-		return buildOrderResponse(order);
-	}
+        return buildOrderResponse(order);
+    }
 
-	private OrderResponse buildOrderResponse(Order order) {
-		return OrderResponse.builder()
-				.id(order.getId())
-				.kitchenStatus(order.getKitchenStatus().toString())
-				.tokenNo(order.getTokenNo())
-				.items(List.of())
-				.estimatedMinutes(order.getEstimatedMinutes())
-				.cookingStartedAt(order.getCookingStartedAt())
-				.orderNumber(order.getOrderNumber())
-				.orderedAt(order.getOrderedAt())
-				.orderType(order.getOrderType().toString())
-				.customerName(order.getCustomer() != null ? order.getCustomer().getName() : "Walk In Customer")
-				.build();
-	}
+    private OrderResponse buildOrderResponse(Order order) {
+        return OrderResponse.builder()
+                .id(order.getId())
+                .kitchenStatus(order.getKitchenStatus().toString())
+                .tokenNo(order.getTokenNo())
+                .items(List.of())
+                .estimatedMinutes(order.getEstimatedMinutes())
+                .cookingStartedAt(order.getCookingStartedAt())
+                .orderNumber(order.getOrderNumber())
+                .orderedAt(order.getOrderedAt())
+                .orderType(order.getOrderType().toString())
+                .customerName(order.getCustomer() != null ? order.getCustomer().getName() : "Walk In Customer")
+                .build();
+    }
 }

@@ -1,19 +1,41 @@
 import Icon from '@/components/common/Icon';
+import useUpdateItemStatus from '@/hooks/kitchen/useUpdateItemStatus';
+import useContextData from '@/hooks/useContextData';
+import { ToastContext } from '@/provider/ToastProvider/ToastContext';
 import type { OrderItemType } from '@/types';
 import { formatAddonNote } from '@/utils';
 import { memo } from 'react';
 
 const KitchenOrderItemRow = ({ item }: { item: OrderItemType }) => {
-    const { addons } = item;
+    const { addons, status } = item;
 
+    const itemStatus = ['pending', 'preparing'].includes(status) ? 'danger' : 'success';
+    const updateStatusMutate = useUpdateItemStatus();
+    const { showToast } = useContextData(ToastContext);
+    const handleUpdateStatus = () => {
+        updateStatusMutate.mutate(
+            { id: item.id, status: 'ready' },
+            {
+                onSuccess: () => {
+                    showToast('success', 'Update status of item successfully!');
+                },
+            },
+        );
+    };
     return (
         <div
             className="border-bottom-dashed mb-3 me-2 pb-3
                         "
         >
-            <div className="orders text-dark mb-2">
+            <div
+                className="orders text-dark mb-2"
+                onClick={handleUpdateStatus}
+                style={{
+                    cursor: 'pointer',
+                }}
+            >
                 <p>
-                    <span className="dot success"></span>
+                    <span className={`dot ${itemStatus}`}></span>
                     {item.itemName}
                     {item.sizeName ? ` - ${item.sizeName}` : ''}
                 </p>

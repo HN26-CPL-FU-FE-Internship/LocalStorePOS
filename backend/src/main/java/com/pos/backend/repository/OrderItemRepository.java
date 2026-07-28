@@ -1,11 +1,13 @@
 package com.pos.backend.repository;
 
+import com.pos.backend.constant.enums.OrderItemStatus;
 import com.pos.backend.entity.OrderItem;
 
 import java.util.List;
 
 import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
@@ -52,4 +54,12 @@ public interface OrderItemRepository extends JpaRepository<OrderItem, Long> {
             GROUP BY c.id, c.name, o.id
             """)
     List<Object[]> findCategorySalesByOrderIds(@Param("orderIds") List<Long> orderIds);
+
+    @Modifying
+    @Query("""
+                UPDATE OrderItem oi
+                SET oi.status = :status
+                WHERE oi.order.id = :orderId
+            """)
+    void updateStatusByOrderId(Long orderId, OrderItemStatus status);
 }

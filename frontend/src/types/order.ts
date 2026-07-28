@@ -38,6 +38,7 @@ export interface OrderItem {
     unitPrice: number;
     addons: OrderItemAddon[];
     variationId: number | null;
+    status: string;
     taxRate: number;
 }
 

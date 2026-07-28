@@ -11,6 +11,7 @@ import java.util.UUID;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -18,6 +19,7 @@ import com.pos.backend.constant.ErrorCode;
 import com.pos.backend.constant.enums.CouponStatus;
 import com.pos.backend.constant.enums.DiscountType;
 import com.pos.backend.constant.enums.KitchenStatus;
+import com.pos.backend.constant.enums.OrderItemStatus;
 import com.pos.backend.constant.enums.OrderPaymentStatus;
 import com.pos.backend.constant.enums.OrderStatus;
 import com.pos.backend.constant.enums.PaymentStatus;
@@ -50,6 +52,7 @@ import com.pos.backend.repository.PaymentRepository;
 import com.pos.backend.repository.RestaurantTableRepository;
 import com.pos.backend.specification.OrderSpecification;
 import com.pos.backend.util.OrderUtil;
+import com.pos.backend.ws.OrderEvent;
 
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
@@ -69,6 +72,7 @@ public class OrderService {
     OrderMapper orderMapper;
     CouponMapper couponMapper;
     OrderCommonService orderCommonService;
+    SimpMessagingTemplate messagingTemplate;
 
     public Map<String, Long> getOrderCountByStatus(DateFilter filter) {
 
@@ -91,6 +95,8 @@ public class OrderService {
         }
 
         result.put("total", allOrderCount);
+
+        messagingTemplate.convertAndSend("/topic/orders", new OrderEvent("Hello Websocket"));
 
         return result;
     }
@@ -154,20 +160,26 @@ public class OrderService {
         Order order = orderRepository.findById(id)
                 .orElseThrow(() -> new AppException(ErrorCode.ORDER_NOT_FOUND));
 
-        // if (order.getStatus() == OrderStatus.delivered)
-        // throw new AppException(ErrorCode.ORDER_HAS_BEEN_DELIVERED);
-        // if (order.getStatus() == OrderStatus.served)
-        // throw new AppException(ErrorCode.ORDER_HAS_BEEN_SERVED);
-
         validateStatusTransition(order.getStatus(), request.getStatus());
         order.setStatus(request.getStatus());
         order.setKitchenStatus(getKitchenStatusByOrderStatus(request.getStatus()));
 
-        if (order.getTable() != null && request.getStatus().equals(OrderStatus.cancelled)) {
-            RestaurantTable table = restaurantTableRepository.findById(order.getTable().getId())
-                    .orElseThrow(() -> new AppException(ErrorCode.TABLE_NOT_FOUND));
+        switch (request.getStatus()) {
+            case cancelled -> {
+                if (order.getTable() != null) {
+                    RestaurantTable table = restaurantTableRepository.findById(order.getTable().getId())
+                            .orElseThrow(() -> new AppException(ErrorCode.TABLE_NOT_FOUND));
 
-            table.setStatus(TableStatus.available);
+                    table.setStatus(TableStatus.available);
+                }
+            }
+
+            case delivered, served -> {
+                orderItemRepository.updateStatusByOrderId(id, OrderItemStatus.served);
+            }
+
+            default -> {
+            }
         }
 
         return orderMapper.toOrderResponse(order);

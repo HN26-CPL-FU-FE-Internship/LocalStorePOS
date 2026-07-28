@@ -58,6 +58,7 @@ public class OrderCommonService {
                                                                         .getSizeName()
                                                                 : null,
                                                         item.getUnitPrice(),
+                                                        item.getStatus().name(),
                                                         addonsByOrderItemId
                                                                 .getOrDefault(item
                                                                         .getId(),
@@ -66,6 +67,7 @@ public class OrderCommonService {
                                                                 ? item.getVariation()
                                                                         .getId()
                                                                 : null),
+
                                                 Collectors.toList())));
     }
 }
