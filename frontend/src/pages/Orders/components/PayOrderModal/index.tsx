@@ -105,7 +105,6 @@ const PayOrderModal = ({
         // Validate cash payment amount before proceeding
         if (activePaymentType === 'cash') {
             const given = parseFloat(givenAmount);
-            console.log(given < finalTotal);
             if (isNaN(given) || given <= 0) {
                 showToast('error', 'Please enter the amount given by the customer');
                 return;

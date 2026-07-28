@@ -147,13 +147,10 @@ function POS() {
     }, [cartItems]);
 
     const taxAmount = useMemo(() => {
-        console.log(cartItems);
         return cartItems.reduce((sum, item) => {
             return sum + (calculateLineTotalPrice(item.unitPrice, item.quantity) * (item.item.taxRate ?? 0)) / 100;
         }, 0);
     }, [cartItems]);
-
-    console.log(menuItems);
 
     const serviceChargeAmount = useMemo(
         () => calculateDiscount(cartSubtotal, SERVICE_CHARGE_RATE * 100, 'percentage'),

@@ -12,6 +12,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.pos.backend.constant.ErrorCode;
+import com.pos.backend.constant.enums.EventType;
 import com.pos.backend.constant.enums.KitchenStatus;
 import com.pos.backend.constant.enums.OrderItemStatus;
 import com.pos.backend.constant.enums.OrderStatus;
@@ -27,6 +28,8 @@ import com.pos.backend.repository.OrderItemAddonRepository;
 import com.pos.backend.repository.OrderItemRepository;
 import com.pos.backend.repository.OrderRepository;
 import com.pos.backend.service.Order.OrderCommonService;
+import com.pos.backend.service.WebSocket.WebSocketService;
+import com.pos.backend.ws.WebSocketEvent;
 
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
@@ -41,6 +44,7 @@ public class KitchenService {
     OrderItemRepository orderItemRepository;
     OrderItemAddonRepository orderItemAddonRepository;
     OrderCommonService orderCommonService;
+    WebSocketService webSocketService;
 
     public Map<String, Long> getKitchenStats() {
 
@@ -101,7 +105,12 @@ public class KitchenService {
         order.setStatus(OrderStatus.preparing);
         order = orderRepository.save(order);
 
-        return buildOrderResponse(order);
+        OrderResponse response = buildOrderResponse(order);
+        webSocketService.sendTopic("/orders", WebSocketEvent.builder()
+                .type(EventType.ORDER_UPDATED)
+                .data(response)
+                .build());
+        return response;
     }
 
     @Transactional
@@ -113,7 +122,12 @@ public class KitchenService {
         order = orderRepository.save(order);
 
         orderItemRepository.updateStatusByOrderId(id, OrderItemStatus.ready);
-        return buildOrderResponse(order);
+        OrderResponse response = buildOrderResponse(order);
+        webSocketService.sendTopic("/orders", WebSocketEvent.builder()
+                .type(EventType.ORDER_UPDATED)
+                .data(response)
+                .build());
+        return response;
     }
 
     @Transactional
@@ -125,7 +139,12 @@ public class KitchenService {
 
         order = orderRepository.save(order);
 
-        return buildOrderResponse(order);
+        OrderResponse response = buildOrderResponse(order);
+        webSocketService.sendTopic("/orders", WebSocketEvent.builder()
+                .type(EventType.ORDER_UPDATED)
+                .data(response)
+                .build());
+        return response;
     }
 
     private OrderResponse buildOrderResponse(Order order) {

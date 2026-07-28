@@ -11,13 +11,13 @@ import java.util.UUID;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
-import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.pos.backend.constant.ErrorCode;
 import com.pos.backend.constant.enums.CouponStatus;
 import com.pos.backend.constant.enums.DiscountType;
+import com.pos.backend.constant.enums.EventType;
 import com.pos.backend.constant.enums.KitchenStatus;
 import com.pos.backend.constant.enums.OrderItemStatus;
 import com.pos.backend.constant.enums.OrderPaymentStatus;
@@ -50,9 +50,10 @@ import com.pos.backend.repository.OrderRepository;
 import com.pos.backend.repository.PaymentMethodRepository;
 import com.pos.backend.repository.PaymentRepository;
 import com.pos.backend.repository.RestaurantTableRepository;
+import com.pos.backend.service.WebSocket.WebSocketService;
 import com.pos.backend.specification.OrderSpecification;
 import com.pos.backend.util.OrderUtil;
-import com.pos.backend.ws.OrderEvent;
+import com.pos.backend.ws.WebSocketEvent;
 
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
@@ -72,7 +73,7 @@ public class OrderService {
     OrderMapper orderMapper;
     CouponMapper couponMapper;
     OrderCommonService orderCommonService;
-    SimpMessagingTemplate messagingTemplate;
+    WebSocketService webSocketService;
 
     public Map<String, Long> getOrderCountByStatus(DateFilter filter) {
 
@@ -95,8 +96,6 @@ public class OrderService {
         }
 
         result.put("total", allOrderCount);
-
-        messagingTemplate.convertAndSend("/topic/orders", new OrderEvent("Hello Websocket"));
 
         return result;
     }
@@ -181,8 +180,13 @@ public class OrderService {
             default -> {
             }
         }
+        OrderResponse orderResponse = orderMapper.toOrderResponse(order);
+        webSocketService.sendTopic("/orders", WebSocketEvent.builder()
+                .type(EventType.ORDER_UPDATED)
+                .data(orderResponse)
+                .build());
 
-        return orderMapper.toOrderResponse(order);
+        return orderResponse;
     }
 
     private KitchenStatus getKitchenStatusByOrderStatus(OrderStatus status) {
@@ -329,7 +333,12 @@ public class OrderService {
 
         paymentRepository.save(payment);
 
-        return orderMapper.toOrderResponse(order);
+        OrderResponse orderResponse = orderMapper.toOrderResponse(order);
+        webSocketService.sendTopic("/orders", WebSocketEvent.builder()
+                .type(EventType.ORDER_UPDATED)
+                .data(orderResponse)
+                .build());
+        return orderResponse;
     }
 
     public OrderResponse getOrderDetail(String orderNumber) {

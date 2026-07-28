@@ -71,7 +71,10 @@ const NotificationsDropdown = ({ groups, unreadCount = 0, className = '' }: Noti
                 </a>
             </div>
             <SimpleBar className="notification-body">
-                <Tabs defaultActiveKey="all" className="p-1 bg-light rounded border-0 nav-solid-white mb-3">
+                <Tabs
+                    defaultActiveKey="all"
+                    className="p-1 bg-light rounded border-0 nav-solid-white mb-3 d-flex justify-content-between"
+                >
                     <Tab tabClassName="d-flex align-items-center py-1 px-2" eventKey="all" title="All">
                         <NotificationList groups={groups} />
                     </Tab>
@@ -86,9 +89,9 @@ const NotificationsDropdown = ({ groups, unreadCount = 0, className = '' }: Noti
                     >
                         <NotificationList groups={groups} />
                     </Tab>
-                    <Tab tabClassName="d-flex align-items-center py-1 px-2" eventKey="inbox" title="Inbox">
+                    {/* <Tab tabClassName="d-flex align-items-center py-1 px-2" eventKey="inbox" title="Inbox">
                         <NotificationList groups={groups.slice(0, 1)} />
-                    </Tab>
+                    </Tab> */}
                     <Tab
                         tabClassName="d-flex align-items-center py-1 px-2"
                         eventKey="kitchen"

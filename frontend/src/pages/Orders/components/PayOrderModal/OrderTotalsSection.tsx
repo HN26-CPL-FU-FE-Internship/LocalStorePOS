@@ -19,8 +19,6 @@ const OrderTotalsSection = ({
     tipAmount,
     selectedCoupon,
 }: OrderTotalsSectionProps) => {
-    console.log(order);
-
     return (
         <div>
             <h6 className="fs-14 fw-normal d-flex align-items-center justify-content-between mb-3">

@@ -13,6 +13,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.pos.backend.constant.ErrorCode;
+import com.pos.backend.constant.enums.EventType;
 import com.pos.backend.constant.enums.ItemStatus;
 
 import java.math.BigDecimal;
@@ -56,7 +57,9 @@ import com.pos.backend.repository.OrderRepository;
 import com.pos.backend.repository.OrderSequenceRepository;
 import com.pos.backend.repository.RestaurantTableRepository;
 import com.pos.backend.repository.UserRepository;
+import com.pos.backend.service.WebSocket.WebSocketService;
 import com.pos.backend.util.POS;
+import com.pos.backend.ws.WebSocketEvent;
 
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
@@ -77,6 +80,7 @@ public class POSService {
     OrderItemAddonRepository orderItemAddonRepository;
     RestaurantTableRepository restaurantTableRepository;
     OrderSequenceRepository orderSequenceRepository;
+    WebSocketService webSocketService;
 
     public Page<OrderResponse> getListRecentOrder(Pageable pageable) {
 
@@ -289,7 +293,8 @@ public class POSService {
         saveOrderItem(order, itemMap, variationMap, addonMap, request);
 
         // 6. Return response (without items list for simplicity)
-        return OrderResponse.builder()
+
+        OrderResponse response = OrderResponse.builder()
                 .id(order.getId())
                 .orderNumber(order.getOrderNumber())
                 .orderType(order.getOrderType().name())
@@ -303,6 +308,12 @@ public class POSService {
                 .note(order.getNote())
                 .orderedAt(order.getOrderedAt())
                 .build();
+
+        webSocketService.sendTopic("/orders", WebSocketEvent.builder()
+                .type(EventType.ORDER_CREATED)
+                .data(response)
+                .build());
+        return response;
     }
 
     private Order buildOrder(CreateOrderRequest request, Map<Long, Item> itemMap,
@@ -550,7 +561,8 @@ public class POSService {
         saveOrderItem(order, itemMap, variationMap, addonMap, request);
 
         // 6. Return response
-        return OrderResponse.builder()
+
+        OrderResponse response = OrderResponse.builder()
                 .id(order.getId())
                 .orderNumber(order.getOrderNumber())
                 .orderType(order.getOrderType().name())
@@ -564,6 +576,12 @@ public class POSService {
                 .note(order.getNote())
                 .orderedAt(order.getOrderedAt())
                 .build();
+
+        webSocketService.sendTopic("/orders", WebSocketEvent.builder()
+                .type(EventType.ORDER_UPDATED)
+                .data(response)
+                .build());
+        return response;
     }
 
     private void changeTableStatus(Long tableId) {
