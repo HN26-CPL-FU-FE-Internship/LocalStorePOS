@@ -37,90 +37,91 @@ import lombok.experimental.FieldDefaults;
 @FieldDefaults(level = AccessLevel.PRIVATE)
 public class SecurityConfig {
 
-        final String[] publicEndPoints = { "/api/auth/login", "/api/auth/register", "/api/auth/refresh" };
+    final String[] publicEndPoints = { "/api/auth/login", "/api/auth/register", "/api/auth/refresh" };
 
-        final JwtAuthenticationEntryPoint jwtAuthenticationEntryPoint;
-        final JwtAccessDeniedHandler jwtAccessDeniedHandler;
-        final JwtAuthenticationFilter jwtAuthenticationFilter;
-        @Value("${jwt.signer-key}")
-        String signerKey;
+    final JwtAuthenticationEntryPoint jwtAuthenticationEntryPoint;
+    final JwtAccessDeniedHandler jwtAccessDeniedHandler;
+    final JwtAuthenticationFilter jwtAuthenticationFilter;
+    @Value("${jwt.signer-key}")
+    String signerKey;
 
-        @Bean
-        public SecurityFilterChain filterChain(HttpSecurity httpSecurity) throws Exception {
+    @Bean
+    public SecurityFilterChain filterChain(HttpSecurity httpSecurity) throws Exception {
 
-                httpSecurity.authorizeHttpRequests(request -> request
-                                .requestMatchers(HttpMethod.POST, publicEndPoints).permitAll()
-                                .requestMatchers("/uploads/**").permitAll()
-                                .anyRequest().authenticated());
+        httpSecurity.authorizeHttpRequests(request -> request
+                .requestMatchers(HttpMethod.POST, publicEndPoints).permitAll()
+                .requestMatchers("/uploads/**").permitAll()
+                .requestMatchers("/ws/**").permitAll()
+                .anyRequest().authenticated());
 
-                httpSecurity.oauth2ResourceServer(
-                                oauth2 -> oauth2.jwt(jwtConfigure -> jwtConfigure.decoder(
-                                                jwtDecoder())
-                                                .jwtAuthenticationConverter(jwtAuthenticationConverter())));
+        httpSecurity.oauth2ResourceServer(
+                oauth2 -> oauth2.jwt(jwtConfigure -> jwtConfigure.decoder(
+                        jwtDecoder())
+                        .jwtAuthenticationConverter(jwtAuthenticationConverter())));
 
-                httpSecurity.exceptionHandling(exceptionHandling -> exceptionHandling
-                                .authenticationEntryPoint(jwtAuthenticationEntryPoint)
-                                .accessDeniedHandler(jwtAccessDeniedHandler));
+        httpSecurity.exceptionHandling(exceptionHandling -> exceptionHandling
+                .authenticationEntryPoint(jwtAuthenticationEntryPoint)
+                .accessDeniedHandler(jwtAccessDeniedHandler));
 
-                httpSecurity.addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
+        httpSecurity.addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
 
-                httpSecurity.cors(cors -> cors.configurationSource(corsConfigurationSource()));
-                httpSecurity.csrf(t -> t.disable());
+        httpSecurity.cors(cors -> cors.configurationSource(corsConfigurationSource()));
+        httpSecurity.csrf(t -> t.disable());
 
-                return httpSecurity.build();
-        }
+        return httpSecurity.build();
+    }
 
-        @Bean
-        CorsConfigurationSource corsConfigurationSource() {
+    @Bean
+    CorsConfigurationSource corsConfigurationSource() {
 
-                CorsConfiguration configuration = new CorsConfiguration();
+        CorsConfiguration configuration = new CorsConfiguration();
 
-                configuration.setAllowedOrigins(List.of(
-                                "http://localhost:5173",
-                                "http://localhost:3000"));
-                configuration.setAllowedMethods(List.of(
-                                "GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
-                configuration.setAllowedHeaders(List.of(
-                                "Authorization", "Content-Type", "Accept", "Origin", "X-Requested-With"));
-                configuration.setAllowCredentials(true);
-                configuration.setMaxAge(3600L);
+        configuration.setAllowedOrigins(List.of(
+                "http://localhost:5173",
+                "http://localhost:3000"));
+        configuration.setAllowedMethods(List.of(
+                "GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
+        configuration.setAllowedHeaders(List.of(
+                "Authorization", "Content-Type", "Accept", "Origin", "X-Requested-With"));
+        configuration.setAllowCredentials(true);
+        configuration.setMaxAge(3600L);
 
-                UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
 
-                source.registerCorsConfiguration("/**", configuration);
+        source.registerCorsConfiguration("/**", configuration);
 
-                return source;
-        }
+        return source;
+    }
 
-        @Bean
-        JwtDecoder jwtDecoder() {
+    @Bean
+    JwtDecoder jwtDecoder() {
 
-                SecretKeySpec secretKeySpec = new SecretKeySpec(signerKey.getBytes(),
-                                "HS512");
+        SecretKeySpec secretKeySpec = new SecretKeySpec(signerKey.getBytes(),
+                "HS512");
 
-                return NimbusJwtDecoder
-                                .withSecretKey(secretKeySpec)
-                                .macAlgorithm(MacAlgorithm.HS512)
-                                .build();
-        }
+        return NimbusJwtDecoder
+                .withSecretKey(secretKeySpec)
+                .macAlgorithm(MacAlgorithm.HS512)
+                .build();
+    }
 
-        @Bean
-        JwtAuthenticationConverter jwtAuthenticationConverter() {
+    @Bean
+    JwtAuthenticationConverter jwtAuthenticationConverter() {
 
-                JwtGrantedAuthoritiesConverter grantedAuthoritiesConverter = new JwtGrantedAuthoritiesConverter();
+        JwtGrantedAuthoritiesConverter grantedAuthoritiesConverter = new JwtGrantedAuthoritiesConverter();
 
-                grantedAuthoritiesConverter.setAuthorityPrefix("");
+        grantedAuthoritiesConverter.setAuthorityPrefix("");
 
-                JwtAuthenticationConverter authenticationConverter = new JwtAuthenticationConverter();
+        JwtAuthenticationConverter authenticationConverter = new JwtAuthenticationConverter();
 
-                authenticationConverter.setJwtGrantedAuthoritiesConverter(grantedAuthoritiesConverter);
+        authenticationConverter.setJwtGrantedAuthoritiesConverter(grantedAuthoritiesConverter);
 
-                return authenticationConverter;
-        }
+        return authenticationConverter;
+    }
 
-        @Bean
-        PasswordEncoder passwordEncoder() {
-                return new BCryptPasswordEncoder(10);
-        }
+    @Bean
+    PasswordEncoder passwordEncoder() {
+        return new BCryptPasswordEncoder(10);
+    }
 
 }
