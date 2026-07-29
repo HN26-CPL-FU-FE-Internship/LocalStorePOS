@@ -18,6 +18,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort.Direction;
 import org.springframework.data.web.PageableDefault;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -36,6 +37,7 @@ public class KitchenController {
     KitchenService kitchenService;
 
     @GetMapping("/stats")
+    @PreAuthorize("@perm.hasPermission(authentication, 'Kitchen (KDS)', 'view')")
     public ApiResponse<Map<String, Long>> getKitchenStats() {
 
         Map<String, Long> responses = kitchenService.getKitchenStats();
@@ -47,6 +49,7 @@ public class KitchenController {
     }
 
     @GetMapping("/orders")
+    @PreAuthorize("@perm.hasPermission(authentication, 'Kitchen (KDS)', 'view')")
     public ApiResponse<Map<String, Object>> getKitchenOrders(
             @PageableDefault(page = 0, size = 9, sort = "orderedAt", direction = Direction.DESC) Pageable pageable) {
         Page<OrderResponse> page = kitchenService.getKitchenOrders(pageable);
@@ -65,6 +68,7 @@ public class KitchenController {
     }
 
     @PostMapping("/{id}/start-cooking")
+    @PreAuthorize("@perm.hasPermission(authentication, 'Kitchen (KDS)', 'add')")
     public ApiResponse<OrderResponse> startCooking(
             @PathVariable Long id,
             @Valid @RequestBody StartCookingRequest request) {
@@ -76,6 +80,7 @@ public class KitchenController {
     }
 
     @PatchMapping("/{id}/complete")
+    @PreAuthorize("@perm.hasPermission(authentication, 'Kitchen (KDS)', 'edit')")
     public ApiResponse<OrderResponse> markComplete(@PathVariable Long id) {
         OrderResponse response = kitchenService.markComplete(id);
         return ApiResponse.<OrderResponse>builder()
@@ -85,6 +90,7 @@ public class KitchenController {
     }
 
     @PatchMapping("/{id}/delay")
+    @PreAuthorize("@perm.hasPermission(authentication, 'Kitchen (KDS)', 'edit')")
     public ApiResponse<OrderResponse> markDelayed(@PathVariable Long id) {
         OrderResponse response = kitchenService.markDelayed(id);
         return ApiResponse.<OrderResponse>builder()

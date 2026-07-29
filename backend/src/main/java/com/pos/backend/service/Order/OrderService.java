@@ -18,7 +18,9 @@ import com.pos.backend.constant.ErrorCode;
 import com.pos.backend.constant.enums.AuditAction;
 import com.pos.backend.constant.enums.CouponStatus;
 import com.pos.backend.constant.enums.DiscountType;
+import com.pos.backend.constant.enums.EventType;
 import com.pos.backend.constant.enums.KitchenStatus;
+import com.pos.backend.constant.enums.OrderItemStatus;
 import com.pos.backend.constant.enums.OrderPaymentStatus;
 import com.pos.backend.constant.enums.OrderStatus;
 import com.pos.backend.constant.enums.PaymentStatus;
@@ -31,12 +33,14 @@ import com.pos.backend.dto.response.Order.OrderResponse;
 import com.pos.backend.dto.response.OrderItem.OrderItemResponse;
 import com.pos.backend.dto.response.OrderItemAddons.OrderItemAddonResponse;
 import com.pos.backend.entity.Coupon;
+import com.pos.backend.entity.Customer;
 import com.pos.backend.entity.Order;
 import com.pos.backend.entity.OrderItem;
 import com.pos.backend.entity.OrderItemAddon;
 import com.pos.backend.entity.Payment;
 import com.pos.backend.entity.PaymentMethod;
 import com.pos.backend.entity.RestaurantTable;
+import com.pos.backend.entity.User;
 import com.pos.backend.exception.AppException;
 import com.pos.backend.mapper.CouponMapper;
 import com.pos.backend.mapper.OrderMapper;
@@ -48,8 +52,10 @@ import com.pos.backend.repository.OrderRepository;
 import com.pos.backend.repository.PaymentMethodRepository;
 import com.pos.backend.repository.PaymentRepository;
 import com.pos.backend.repository.RestaurantTableRepository;
+import com.pos.backend.service.WebSocket.WebSocketService;
 import com.pos.backend.specification.OrderSpecification;
 import com.pos.backend.util.OrderUtil;
+import com.pos.backend.ws.WebSocketEvent;
 
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
@@ -69,6 +75,7 @@ public class OrderService {
     OrderMapper orderMapper;
     CouponMapper couponMapper;
     OrderCommonService orderCommonService;
+    WebSocketService webSocketService;
     AuditLogService auditLogService;
 
     public Map<String, Long> getOrderCountByStatus(DateFilter filter) {
@@ -155,29 +162,36 @@ public class OrderService {
         Order order = orderRepository.findById(id)
                 .orElseThrow(() -> new AppException(ErrorCode.ORDER_NOT_FOUND));
 
-        // if (order.getStatus() == OrderStatus.delivered)
-        // throw new AppException(ErrorCode.ORDER_HAS_BEEN_DELIVERED);
-        // if (order.getStatus() == OrderStatus.served)
-        // throw new AppException(ErrorCode.ORDER_HAS_BEEN_SERVED);
-
         validateStatusTransition(order.getStatus(), request.getStatus());
         order.setStatus(request.getStatus());
         order.setKitchenStatus(getKitchenStatusByOrderStatus(request.getStatus()));
 
-        if (order.getTable() != null && request.getStatus().equals(OrderStatus.cancelled)) {
-            RestaurantTable table = restaurantTableRepository.findById(order.getTable().getId())
-                    .orElseThrow(() -> new AppException(ErrorCode.TABLE_NOT_FOUND));
+        switch (request.getStatus()) {
+            case cancelled -> {
+                if (order.getTable() != null) {
+                    RestaurantTable table = restaurantTableRepository.findById(order.getTable().getId())
+                            .orElseThrow(() -> new AppException(ErrorCode.TABLE_NOT_FOUND));
 
-            table.setStatus(TableStatus.available);
+                    table.setStatus(TableStatus.available);
+                }
+            }
+
+            case delivered, served -> {
+                orderItemRepository.updateStatusByOrderId(id, OrderItemStatus.served);
+            }
+
+            default -> {
+            }
         }
-
-        OrderResponse response = orderMapper.toOrderResponse(order);
-
+        OrderResponse orderResponse = orderMapper.toOrderResponse(order);
+        webSocketService.sendTopic("/orders", WebSocketEvent.builder()
+                .type(EventType.ORDER_UPDATED)
+                .data(orderResponse)
+                .build());
         auditLogService.log(null, AuditAction.ORDER_STATUS_CHANGED, "ORDER", "Order", id,
                 "Order #" + order.getOrderNumber() + " status changed to " + request.getStatus(),
                 null, null, "SUCCESS", null);
-
-        return response;
+        return orderResponse;
     }
 
     private KitchenStatus getKitchenStatusByOrderStatus(OrderStatus status) {
@@ -272,10 +286,12 @@ public class OrderService {
         BigDecimal calculatedGrandTotal = subtotal
                 .subtract(discVal)
                 .subtract(coupVal)
+                .add(order.getTaxAmount())
                 .add(order.getServiceCharge())
                 .add(order.getDeliveryCharge())
                 .add(order.getTipAmount())
-                .max(BigDecimal.ZERO); // Never go negative
+                .max(BigDecimal.ZERO) // Never go negative
+                .setScale(2, RoundingMode.HALF_UP); // Match frontend 2-decimal rounding
 
         // Reject payment if the total is zero (100% discount + coupon wiped out
         // everything)
@@ -340,8 +356,49 @@ public class OrderService {
                 "Payment processed for order #" + order.getOrderNumber() + ": $" + order.getGrandTotal()
                         + " via " + request.getPaymentType(),
                 null, null, "SUCCESS", null);
-
+        webSocketService.sendTopic("/orders", WebSocketEvent.builder()
+                .type(EventType.ORDER_UPDATED)
+                .data(orderResponse)
+                .build());
         return orderResponse;
+    }
+
+    public OrderResponse getOrderDetail(String orderNumber) {
+
+        Order order = orderRepository.findByOrderNumber(orderNumber)
+                .orElseThrow(() -> new AppException(ErrorCode.ORDER_NOT_FOUND));
+
+        OrderResponse response = orderMapper.toOrderResponse(order);
+
+        Customer customer = order.getCustomer();
+        RestaurantTable table = order.getTable();
+        User waiter = order.getWaiter();
+
+        response.setCustomerName(customer != null ? customer.getName() : null);
+        response.setCustomerId(customer != null ? customer.getId() : null);
+        response.setTableNumber(table != null ? table.getTableNumber() : null);
+        response.setTableId(table != null ? table.getId() : null);
+        response.setWaiter(waiter != null
+                ? waiter.getFirstName() + " " + waiter.getLastName()
+                : null);
+        response.setWaiterId(waiter != null ? waiter.getId() : null);
+        List<OrderItem> items = orderItemRepository.findByOrderId(order.getId());
+        List<Long> itemIds = items.stream().map(OrderItem::getId).toList();
+
+        List<OrderItemAddon> orderItemAddons = itemIds.isEmpty() ? List.of()
+                : orderItemAddonRepository
+                        .findByOrderItemIdIn(itemIds);
+
+        // Gom nhóm addon theo order_item_id
+        Map<Long, List<OrderItemAddonResponse>> addonsByItemIds = orderCommonService
+                .groupAddonsByItemId(orderItemAddons);
+
+        // Gom nhóm order_item theo order_id
+        Map<Long, List<OrderItemResponse>> orderItemsByOrderId = orderCommonService.groupItemsByOrderId(
+                items,
+                addonsByItemIds);
+        response.setItems(orderItemsByOrderId.get(order.getId()));
+        return response;
     }
 
     /**

@@ -55,7 +55,7 @@ const CartItemList = () => {
                                     )}
 
                                     {cartItem.item.addons.map((a) => (
-                                        <p className="badge badge-sm bg-light text-dark mb-0 me-1">
+                                        <p key={a.id} className="badge badge-sm bg-light text-dark mb-0 me-1">
                                             {formatAddonNote(a.name, a.quantity)}
                                         </p>
                                     ))}

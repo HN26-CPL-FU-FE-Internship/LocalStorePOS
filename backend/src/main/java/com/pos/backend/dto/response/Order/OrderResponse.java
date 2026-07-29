@@ -30,6 +30,10 @@ public class OrderResponse {
     String status;
     String kitchenStatus;
     String customerName;
+    Long customerId;
+    String waiter;
+    Long waiterId;
+    Long tableId;
     CouponResponse coupon;
     BigDecimal subtotal;
     BigDecimal discountAmount;

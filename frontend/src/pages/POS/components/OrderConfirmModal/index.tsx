@@ -5,7 +5,8 @@ import usePOSCreateOrder from '@/stores/pos.store';
 import { useShallow } from 'zustand/react/shallow';
 import useContextData from '@/hooks/useContextData';
 import { ToastContext } from '@/provider/ToastProvider/ToastContext';
-import { usePlaceOrder } from '@/hooks/pos';
+import { usePlaceOrder, useUpdateOrder } from '@/hooks/pos';
+import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 
 interface OrderConfirmModalProps {
@@ -27,74 +28,125 @@ function OrderConfirmModal({
     serviceChargeAmount,
     deliveryChargeAmount,
 }: OrderConfirmModalProps) {
-    const { cartItems, customer, table, setPlacingOrder, orderActiveType, resetCart, setTable, setCustomer, waiter } =
-        usePOSCreateOrder(
-            useShallow((s) => ({
-                cartItems: s.cartItems,
-                customer: s.customer,
-                table: s.table,
-                waiter: s.waiter,
-                setCustomer: s.setCustomer,
-                setTable: s.setTable,
-                setPlacingOrder: s.setPlacingOrder,
-                orderActiveType: s.orderActiveType,
-                resetCart: s.resetCart,
-            })),
-        );
+    const {
+        cartItems,
+        customer,
+        table,
+        setPlacingOrder,
+        orderActiveType,
+        resetCart,
+        setTable,
+        setCustomer,
+        waiter,
+        editingOrderNumber,
+    } = usePOSCreateOrder(
+        useShallow((s) => ({
+            cartItems: s.cartItems,
+            customer: s.customer,
+            table: s.table,
+            waiter: s.waiter,
+            setCustomer: s.setCustomer,
+            setTable: s.setTable,
+            setPlacingOrder: s.setPlacingOrder,
+            orderActiveType: s.orderActiveType,
+            resetCart: s.resetCart,
+            editingOrderNumber: s.editingOrderNumber,
+        })),
+    );
 
+    const navigate = useNavigate();
     const { showToast } = useContextData(ToastContext);
     const placeOrderMutation = usePlaceOrder();
+    const updateOrderMutation = useUpdateOrder();
+    const isPending = placeOrderMutation.isPending || updateOrderMutation.isPending;
+    const isEditing = Boolean(editingOrderNumber);
+
+    const buildOrderPayload = () => ({
+        orderType: orderActiveType,
+        customerId: customer ? Number(customer.value) : null,
+        waiterId: Number(waiter?.value),
+        tableId: table ? Number(table.value) : null,
+        subtotal: Math.round(subtotal * 100) / 100,
+        taxAmount,
+        serviceCharge: orderActiveType === 'dine_in' ? serviceChargeAmount : 0,
+        deliveryCharge: orderActiveType === 'delivery' ? deliveryChargeAmount : 0,
+        grandTotal: Math.round(total * 100) / 100,
+        note: null,
+        items: cartItems.map((c) => ({
+            itemId: c.item.id,
+            variationId: c.variationId,
+            itemName: c.item.name,
+            unitPrice: Math.round(c.unitPrice * 100) / 100,
+            quantity: c.quantity,
+            lineTotal: Math.round(calculateLineTotalPrice(c.unitPrice, c.quantity) * 100) / 100,
+            kitchenNote: c.note || null,
+            addons: c.item.addons.map((addon) => ({
+                addonId: addon.id,
+                addonName: addon.name,
+                addonPrice: addon.price,
+                quantity: addon.quantity,
+            })),
+        })),
+    });
 
     const handlePlaceOrder = () => {
         if (cartItems.length === 0) return;
-        setPlacingOrder(placeOrderMutation.isPending);
-        placeOrderMutation.mutate(
-            {
-                orderType: orderActiveType,
-                customerId: customer ? Number(customer.value) : null,
-                waiterId: Number(waiter?.value),
-                tableId: table ? Number(table.value) : null,
-                subtotal: Math.round(subtotal * 100) / 100,
-                taxAmount,
-                serviceCharge: orderActiveType === 'dine_in' ? serviceChargeAmount : 0,
-                deliveryCharge: orderActiveType === 'delivery' ? deliveryChargeAmount : 0,
-                grandTotal: Math.round(total * 100) / 100,
-                note: null,
-                items: cartItems.map((c) => ({
-                    itemId: c.item.id,
-                    variationId: c.variationId,
-                    itemName: c.item.name,
-                    unitPrice: Math.round(c.unitPrice * 100) / 100,
-                    quantity: c.quantity,
-                    lineTotal: Math.round(calculateLineTotalPrice(c.unitPrice, c.quantity) * 100) / 100,
-                    kitchenNote: c.note || null,
-                    addons: c.item.addons.map((addon) => ({
-                        addonId: addon.id,
-                        addonName: addon.name,
-                        addonPrice: addon.price,
-                        quantity: addon.quantity,
-                    })),
-                })),
-            },
-            {
-                onSuccess: () => {
-                    showToast('success', 'Order placed successfully!');
-                    resetCart();
-                    setCustomer(null);
-                    setTable(null);
-                    onHide();
-                },
-                onError: (error) => {
-                    let message = 'Failed to place order. Please try again.';
+        setPlacingOrder(true);
 
-                    if (axios.isAxiosError(error)) {
-                        message = error.response?.data?.message ?? message;
-                    }
+        if (isEditing && editingOrderNumber) {
+            // Update existing order
+            updateOrderMutation.mutate(
+                { orderNumber: editingOrderNumber, data: buildOrderPayload() },
+                {
+                    onSuccess: () => {
+                        showToast('success', 'Order updated successfully!');
+                        resetCart();
+                        setCustomer(null);
+                        setTable(null);
+                        onHide();
+                        navigate('/orders');
+                    },
+                    onError: (error) => {
+                        let message = 'Failed to update order. Please try again.';
 
-                    showToast('error', message);
+                        if (axios.isAxiosError(error)) {
+                            message = error.response?.data?.message ?? message;
+                        }
+
+                        showToast('error', message);
+                    },
+                    onSettled: () => {
+                        setPlacingOrder(false);
+                    },
                 },
-            },
-        );
+            );
+        } else {
+            // Create new order
+            placeOrderMutation.mutate(
+                buildOrderPayload(),
+                {
+                    onSuccess: () => {
+                        showToast('success', 'Order placed successfully!');
+                        resetCart();
+                        setCustomer(null);
+                        setTable(null);
+                        onHide();
+                    },
+                    onError: (error) => {
+                        let message = 'Failed to place order. Please try again.';
+
+                        if (axios.isAxiosError(error)) {
+                            message = error.response?.data?.message ?? message;
+                        }
+
+                        showToast('error', message);
+                    },
+                    onSettled: () => {
+                        setPlacingOrder(false);
+                    },
+                },
+            );
+        }
     };
 
     return (
@@ -103,9 +155,11 @@ function OrderConfirmModal({
                 <div>
                     <Modal.Title className="fs-5 fw-semibold d-flex align-items-center gap-2">
                         <Icon name="clipboard-list" className="fs-4 text-primary" />
-                        Confirm Order
+                        {isEditing ? 'Update Order' : 'Confirm Order'}
                     </Modal.Title>
-                    <p className="mb-0 text-muted fs-13 mt-1">Please review your order before placing it.</p>
+                    <p className="mb-0 text-muted fs-13 mt-1">
+                        {isEditing ? 'Review your changes before updating the order.' : 'Please review your order before placing it.'}
+                    </p>
                 </div>
             </Modal.Header>
 
@@ -224,7 +278,7 @@ function OrderConfirmModal({
                 <Button
                     variant="light"
                     onClick={onHide}
-                    disabled={placeOrderMutation.isPending}
+                    disabled={isPending}
                     className="d-flex align-items-center gap-1"
                 >
                     <Icon name="x" />
@@ -233,18 +287,18 @@ function OrderConfirmModal({
                 <Button
                     variant="primary"
                     onClick={handlePlaceOrder}
-                    disabled={placeOrderMutation.isPending}
+                    disabled={isPending}
                     className="d-flex align-items-center gap-1 px-4"
                 >
-                    {placeOrderMutation.isPending ? (
+                    {isPending ? (
                         <>
                             <span className="spinner-border spinner-border-sm" />
-                            Placing Order...
+                            {isEditing ? 'Updating Order...' : 'Placing Order...'}
                         </>
                     ) : (
                         <>
                             <Icon name="circle-check-big" />
-                            Confirm & Place Order
+                            {isEditing ? 'Confirm & Update Order' : 'Confirm & Place Order'}
                         </>
                     )}
                 </Button>

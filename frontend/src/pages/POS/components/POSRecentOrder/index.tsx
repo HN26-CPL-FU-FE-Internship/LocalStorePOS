@@ -135,17 +135,25 @@ const POSRecentOrder = () => {
                                                         className={`progress-bar ${
                                                             order.kitchenStatus === 'completed'
                                                                 ? 'bg-success'
-                                                                : order.kitchenStatus === 'cooking'
+                                                                : order.kitchenStatus === 'in_kitchen'
                                                                   ? 'bg-warning'
-                                                                  : 'bg-secondary'
+                                                                  : order.kitchenStatus === 'delayed'
+                                                                    ? 'bg-danger'
+                                                                    : order.kitchenStatus === 'cancelled'
+                                                                      ? 'bg-danger'
+                                                                      : 'bg-secondary'
                                                         }`}
                                                         style={{
                                                             width:
                                                                 order.kitchenStatus === 'completed'
                                                                     ? '100%'
-                                                                    : order.kitchenStatus === 'cooking'
+                                                                    : order.kitchenStatus === 'in_kitchen'
                                                                       ? '50%'
-                                                                      : '10%',
+                                                                      : order.kitchenStatus === 'delayed'
+                                                                        ? '75%'
+                                                                        : order.kitchenStatus === 'cancelled'
+                                                                          ? '100%'
+                                                                          : '10%',
                                                         }}
                                                     ></div>
                                                 </div>
@@ -153,9 +161,13 @@ const POSRecentOrder = () => {
                                                     <Icon name="clock" className="me-1" />
                                                     {order.kitchenStatus === 'new_order'
                                                         ? 'Pending'
-                                                        : order.kitchenStatus === 'cooking'
+                                                        : order.kitchenStatus === 'in_kitchen'
                                                           ? `${order.estimatedMinutes ?? '?'}:00`
-                                                          : 'Done'}
+                                                          : order.kitchenStatus === 'delayed'
+                                                            ? 'Delayed'
+                                                            : order.kitchenStatus === 'cancelled'
+                                                              ? 'Cancelled'
+                                                              : 'Done'}
                                                 </p>
                                             </div>
                                         </div>

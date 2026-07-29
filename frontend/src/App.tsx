@@ -7,6 +7,7 @@ import ThemeContext from './provider/ThemeProvider/ThemeContext';
 import AuthGuard from './components/common/AuthGuard';
 import { PUBLIC_ROUTES } from './types/permission';
 import { useEffect } from 'react';
+import { connectWebSocket } from './websocket';
 
 function App() {
     const { theme } = useContextData<ThemeContextType>(ThemeContext);
@@ -16,6 +17,9 @@ function App() {
         document.documentElement.setAttribute('data-sidebar', theme);
     }, [theme]);
 
+    useEffect(() => {
+        connectWebSocket();
+    }, []);
     return (
         <BrowserRouter basename="/restaurant-pos">
             <div className="app">

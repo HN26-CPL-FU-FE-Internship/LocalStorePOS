@@ -30,6 +30,11 @@ const orderService = {
         return res.data;
     },
 
+    getOrderDetail: async (orderNumber: string): Promise<OrderSummary> => {
+        const res = await api.get<ApiResponse<OrderSummary>>(`/orders/${orderNumber}/detail`);
+        return res.data.result;
+    },
+
     updateStatus: async ({ status, id }: { status: string; id: number }) => {
         const res = await api.patch<ApiResponse<OrderSummary>>(`/orders/${id}/status`, {
             status,

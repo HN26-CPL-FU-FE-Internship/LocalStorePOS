@@ -1,11 +1,18 @@
 import Icon from '@/components/common/Icon';
-import { Card, Col, Dropdown } from 'react-bootstrap';
-import { Link } from 'react-router-dom';
+import { Button, Card, Col, Dropdown } from 'react-bootstrap';
+import { Link, useLocation } from 'react-router-dom';
 import { useCallback, useMemo, useState } from 'react';
 
 import styles from './TabContent.module.scss';
 import { bindCx, formatHourAndMinute, formatString, orderUtils, toTitleCase } from '@/utils';
-import type { ConfirmType, ModalActionProps, OrderStatus, OrderSummary, OrderUpdateStatus } from '@/types';
+import {
+    ROUTE_PERMISSION_MAP,
+    type ConfirmType,
+    type ModalActionProps,
+    type OrderStatus,
+    type OrderSummary,
+    type OrderUpdateStatus,
+} from '@/types';
 import type { PaymentRequest } from '@/services/orderService';
 import OrderActionDropdown from '../OrderActionDropdown';
 import { KITCHEN_QUERY_KEYS, ORDER_STATUS_ERROR_TITLE, POS_QUERY_KEYS, statuses } from '@/constants';
@@ -17,6 +24,7 @@ import OrderModal from '../OrderModal';
 import PayOrderModal from '../PayOrderModal';
 import OrderItemRow from '../OrderItemRow';
 import { queryClient } from '@/lib';
+import useAuth from '@/hooks/useAuth';
 
 const cx = bindCx(styles);
 
@@ -96,6 +104,9 @@ const TabContent = ({ order }: { order: OrderSummary }) => {
         [order.id, payOrderMutate],
     );
 
+    const { pathname } = useLocation();
+    const { hasPermission } = useAuth();
+
     return (
         <>
             <Col xxl={4} xl={6} md={6} className="d-flex">
@@ -119,19 +130,21 @@ const TabContent = ({ order }: { order: OrderSummary }) => {
                                     </p>
                                 </div>
                             </div>
-                            <OrderActionDropdown
-                                actions={{
-                                    cx,
-                                    onUpdateStatus: handleRequestStatusUpdate,
-                                    onPay: orderUtils.onPay,
-                                    onPrint: orderUtils.onPrint,
-                                    onOpenModal: setShowOrderPay,
-                                }}
-                                order={order}
-                            />
+                            {hasPermission(ROUTE_PERMISSION_MAP[pathname], 'view') && (
+                                <OrderActionDropdown
+                                    actions={{
+                                        cx,
+                                        onUpdateStatus: handleRequestStatusUpdate,
+                                        onPay: orderUtils.onPay,
+                                        onPrint: orderUtils.onPrint,
+                                        onOpenModal: setShowOrderPay,
+                                    }}
+                                    order={order}
+                                />
+                            )}
                         </div>
                         <div className="d-flex align-items-center justify-content-between mb-3">
-                            <p className="mb-0 fs-14 fw-semibold text-dark">
+                            <p className="mb-0 fs-12 fw-semibold text-dark">
                                 <span className="fw-normal">Token No :</span> {order.tokenNo || '-'}
                             </p>
                             <h6 className="mb-0 fw-semibold d-flex align-items-center gap-1">
@@ -143,9 +156,16 @@ const TabContent = ({ order }: { order: OrderSummary }) => {
                             className="mb-3 pb-3 border-bottom"
                             style={{
                                 minHeight: '250px',
+                                height: '300px',
                             }}
                         >
-                            <div className="orders-list">
+                            <div
+                                className="orders-list"
+                                style={{
+                                    height: '100%',
+                                    overflowY: 'scroll',
+                                }}
+                            >
                                 {visibleItems.map((item) => (
                                     <OrderItemRow key={item.id} item={item} />
                                 ))}
@@ -172,23 +192,38 @@ const TabContent = ({ order }: { order: OrderSummary }) => {
                         </div>
                         <div className="d-flex align-items-center justify-content-between flex-wrap gap-3">
                             <p className="badge badge-soft-success mb-0">{formatString(order.paymentStatus)}</p>
-                            <Dropdown>
-                                <Dropdown.Toggle variant="" className=" btn btn-white d-inline-flex align-items-center">
-                                    {formatString(order.status)}
-                                </Dropdown.Toggle>
-                                <Dropdown.Menu>
-                                    {statuses
-                                        .filter((status) => status !== order.status)
-                                        .map((status) => (
-                                            <Dropdown.Item
-                                                key={status}
-                                                onClick={() => handleRequestStatusUpdate(status)}
-                                            >
-                                                {formatString(status)}
-                                            </Dropdown.Item>
-                                        ))}
-                                </Dropdown.Menu>
-                            </Dropdown>
+                            {hasPermission(ROUTE_PERMISSION_MAP[pathname], 'edit') ? (
+                                <Dropdown>
+                                    <Dropdown.Toggle
+                                        variant=""
+                                        className=" btn btn-white d-inline-flex align-items-center"
+                                    >
+                                        {formatString(order.status)}
+                                    </Dropdown.Toggle>
+                                    <Dropdown.Menu>
+                                        {statuses
+                                            .filter((status) => status !== order.status)
+                                            .map((status) => (
+                                                <Dropdown.Item
+                                                    key={status}
+                                                    onClick={() => handleRequestStatusUpdate(status)}
+                                                >
+                                                    {formatString(status)}
+                                                </Dropdown.Item>
+                                            ))}
+                                    </Dropdown.Menu>
+                                </Dropdown>
+                            ) : (
+                                <div className="dropdown">
+                                    <Button
+                                        variant="default"
+                                        className=" btn btn-white d-inline-flex align-items-center"
+                                        disabled
+                                    >
+                                        {formatString(order.status)}
+                                    </Button>
+                                </div>
+                            )}
                         </div>
                     </Card.Body>
                 </Card>
