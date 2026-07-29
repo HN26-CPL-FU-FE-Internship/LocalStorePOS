@@ -17,6 +17,7 @@ const routes = {
     tables: '/tables',
     customers: '/customers',
     invoices: '/invoices',
+    invoiceDetails: '/invoices/:id',
     payments: '/payments',
     users: '/users',
     'role-permissions': '/role-permissions',

@@ -48,6 +48,7 @@ public enum ErrorCode {
         COUPON_NOT_FOUND(1030, HttpStatus.NOT_FOUND, "Coupon not found"),
         COUPON_CODE_ALREADY_EXISTS(1031, HttpStatus.BAD_REQUEST, "Coupon code already exists"),
         INVALID_COUPON_DATE_RANGE(1032, HttpStatus.BAD_REQUEST, "Expiry date must not be before start date"),
+        
         ORDER_ALREADY_COMPLETED_OR_CANCELLED(1033, HttpStatus.BAD_REQUEST, "Order is already completed or cancelled"),
         INSUFFICIENT_PAYMENT(1034, HttpStatus.BAD_REQUEST, "Given amount must be at least the final total"),
         ZERO_TOTAL(1035, HttpStatus.BAD_REQUEST,
@@ -57,6 +58,18 @@ public enum ErrorCode {
         NO_WAITER_CHOOSE_FOR_DINE_IN(1036, HttpStatus.BAD_REQUEST, "haven't selected a waiter for dine in yet."),
         CUSTOMER_NOT_FOUND(1037, HttpStatus.NOT_FOUND, "Customer not found."),
         WAITER_NOT_FOUND(1037, HttpStatus.NOT_FOUND, "Waiter not found."),
+
+        CUSTOMER_PHONE_ALREADY_EXISTS(1038, HttpStatus.BAD_REQUEST, "Phone number already exists"),
+
+        TABLE_AREA_NOT_FOUND(1039, HttpStatus.NOT_FOUND, "Table area not found"),
+        TABLE_AREA_NAME_ALREADY_EXISTS(1040, HttpStatus.BAD_REQUEST, "Table area name already exists"),
+        RESTAURANT_TABLE_NOT_FOUND(1041, HttpStatus.NOT_FOUND, "Table not found"),
+        TABLE_NUMBER_ALREADY_EXISTS(1042, HttpStatus.BAD_REQUEST, "Table number already exists"),
+        TABLE_NOT_AVAILABLE(1043, HttpStatus.BAD_REQUEST, "Table is not available"),
+
+        RESERVATION_NOT_FOUND(1044, HttpStatus.NOT_FOUND, "Reservation not found"),
+
+        INVOICE_NOT_FOUND(1045, HttpStatus.NOT_FOUND, "Invoice not found"),
         ;
 
         int code;

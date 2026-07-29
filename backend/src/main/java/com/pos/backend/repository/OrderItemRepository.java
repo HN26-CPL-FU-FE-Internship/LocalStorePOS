@@ -49,4 +49,12 @@ public interface OrderItemRepository extends JpaRepository<OrderItem, Long> {
             GROUP BY c.id, c.name, o.id
             """)
     List<Object[]> findCategorySalesByOrderIds(@Param("orderIds") List<Long> orderIds);
+
+    @Query("""
+                SELECT oi FROM OrderItem oi
+                LEFT JOIN FETCH oi.variation v
+                WHERE oi.order.id = :orderId
+                ORDER BY oi.id ASC
+            """)
+    List<OrderItem> findByOrderId(@Param("orderId") Long orderId);
 }
