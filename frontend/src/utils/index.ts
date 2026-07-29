@@ -3,7 +3,15 @@ export { formatString, toTitleCase, formatAddonNote } from './string';
 
 export { toggleHidePassword } from './password';
 export { tokenUtils } from './token';
-export { formatHourAndMinute, formatDateTimeKitchen, formatDateTimeOrder, formatDateFilter } from './date';
+export {
+    formatHourAndMinute,
+    formatDateTimeKitchen,
+    formatDateTimeOrder,
+    formatDateFilter,
+    formatHourAndMinute2,
+    formatMonthDay,
+    getYear,
+} from './date';
 export { default as orderUtils, calcPriceWithTax, calculateDiscount, calculateOrderTotals } from './order';
 export { notifyTimerExpired, warmUpAudio } from './notification';
 export type { CalculateOrderTotalsParams, CalculateOrderTotalsResult } from './order';

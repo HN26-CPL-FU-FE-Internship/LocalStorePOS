@@ -23,6 +23,10 @@ import {
 } from '@/api/table.api';
 import { getCustomerOptions } from '@/api/customer.api';
 import type { Option } from '@/api/item.api';
+import useContextData from '@/hooks/useContextData';
+import { ToastContext } from '@/provider/ToastProvider/ToastContext';
+import styles from './Tables.module.scss';
+import { bindCx } from '@/utils';
 
 const statusBadgeClass: Record<TableStatus, string> = {
     available: 'badge-soft-success',
@@ -45,7 +49,14 @@ const reservationBadgeClass: Record<string, string> = {
 };
 
 const emptyTableForm = { tableNumber: '', areaId: '', seats: '4' };
-const emptyReservationForm = { customerId: '', tableId: '', reservationTime: '', guests: '2', notes: '', status: 'booked' as ReservationStatus };
+const emptyReservationForm = {
+    customerId: '',
+    tableId: '',
+    reservationTime: '',
+    guests: '2',
+    notes: '',
+    status: 'booked' as ReservationStatus,
+};
 
 const getTableColor = (seats: number) => {
     if (seats <= 4) return { table: '#ccfbf1', seat: '#99f6e4' };
@@ -75,6 +86,8 @@ const formatDateTime = (value: string) =>
         hour: '2-digit',
         minute: '2-digit',
     });
+
+const cx = bindCx(styles);
 
 const TablesPage = () => {
     const [tables, setTables] = useState<TableEntry[]>([]);
@@ -119,7 +132,7 @@ const TablesPage = () => {
         try {
             const [tablesData, reservationsData] = await Promise.all([
                 getTables({ areaId: areaFilter || undefined, status: statusFilter || undefined }),
-                getReservations({})
+                getReservations({}),
             ]);
             setTables(tablesData);
             setAllReservations(reservationsData);
@@ -170,6 +183,8 @@ const TablesPage = () => {
         setShowAddTable(true);
     };
 
+    const { showToast } = useContextData(ToastContext);
+
     const handleAddTable = async () => {
         setSaving(true);
         setError(null);
@@ -181,9 +196,11 @@ const TablesPage = () => {
             });
             setShowAddTable(false);
             setNotice('Thêm bàn thành công.');
+            showToast('success', 'Thêm bàn thành công.');
             await loadTables();
         } catch (err) {
             setError(extractErrorMessage(err, 'Thêm bàn thất bại.'));
+            showToast('error', 'Thêm bàn thất bại.');
         } finally {
             setSaving(false);
         }
@@ -448,13 +465,10 @@ const TablesPage = () => {
             </div>
 
             <div className="d-flex flex-wrap gap-2 mb-4">
-                <Button
-                    variant={areaFilter === '' ? 'dark' : 'outline-warning'}
-                    onClick={() => setAreaFilter('')}
-                >
+                <Button variant={areaFilter === '' ? 'dark' : 'outline-warning'} onClick={() => setAreaFilter('')}>
                     All Floors
                 </Button>
-                {areas.map(a => (
+                {areas.map((a) => (
                     <Button
                         key={a.id}
                         variant={areaFilter === a.id ? 'dark' : 'outline-warning'}
@@ -483,53 +497,76 @@ const TablesPage = () => {
                 </div>
             )}
 
-            {!loading && tables.length === 0 && (
-                <div className="text-center py-5 text-muted">No tables found.</div>
-            )}
+            {!loading && tables.length === 0 && <div className="text-center py-5 text-muted">No tables found.</div>}
 
             {!loading && (
                 <Row>
-                    {tables.map(table => {
-                        const tableReservation = allReservations.find(r => r.tableId === table.id && (r.status === 'booked' || r.status === 'seated'));
+                    {tables.map((table) => {
+                        const tableReservation = allReservations.find(
+                            (r) => r.tableId === table.id && (r.status === 'booked' || r.status === 'seated'),
+                        );
                         return (
                             <Col xxl={3} lg={4} md={6} key={table.id}>
                                 <Card className="mb-4 text-center">
                                     <Card.Body className="position-relative">
                                         <div className="position-absolute top-0 end-0 p-2">
                                             <Dropdown align="end">
-                                                <Dropdown.Toggle as="a" className="text-dark" style={{ cursor: 'pointer' }}>
+                                                <Dropdown.Toggle
+                                                    as="a"
+                                                    className={cx('text-dark drop-down-custom table-menu ')}
+                                                    style={{ cursor: 'pointer' }}
+                                                >
                                                     <Icon name="ellipsis-vertical" />
                                                 </Dropdown.Toggle>
                                                 <Dropdown.Menu>
                                                     {table.status === 'available' && (
-                                                        <Dropdown.Item onClick={() => openReserve(table)}>
+                                                        <Dropdown.Item
+                                                            className="d-flex align-items-center"
+                                                            onClick={() => openReserve(table)}
+                                                        >
                                                             <Icon name="calendar-plus" className="me-2" />
                                                             Reserve
                                                         </Dropdown.Item>
                                                     )}
-                                                    {(table.status === 'booked' || table.status === 'occupied') && tableReservation && (
-                                                        <Dropdown.Item onClick={() => openReservationInfo(table)}>
-                                                            <Icon name="eye" className="me-2" />
-                                                            View Reservation
-                                                        </Dropdown.Item>
-                                                    )}
-                                                    <Dropdown.Item onClick={() => openEditTable(table)}>
+                                                    {(table.status === 'booked' || table.status === 'occupied') &&
+                                                        tableReservation && (
+                                                            <Dropdown.Item
+                                                                className="d-flex align-items-center"
+                                                                onClick={() => openReservationInfo(table)}
+                                                            >
+                                                                <Icon name="eye" className="me-2" />
+                                                                View Reservation
+                                                            </Dropdown.Item>
+                                                        )}
+                                                    <Dropdown.Item
+                                                        className="d-flex align-items-center"
+                                                        onClick={() => openEditTable(table)}
+                                                    >
                                                         <Icon name="pencil-line" className="me-2" />
                                                         Edit
                                                     </Dropdown.Item>
                                                     {table.status === 'occupied' && (
-                                                        <Dropdown.Item onClick={() => handleFreeTable(table)}>
+                                                        <Dropdown.Item
+                                                            className="d-flex align-items-center"
+                                                            onClick={() => handleFreeTable(table)}
+                                                        >
                                                             <Icon name="check" className="me-2" />
                                                             Mark Available
                                                         </Dropdown.Item>
                                                     )}
                                                     {table.status === 'available' && (
-                                                        <Dropdown.Item onClick={() => handleMarkOccupied(table)}>
+                                                        <Dropdown.Item
+                                                            className="d-flex align-items-center"
+                                                            onClick={() => handleMarkOccupied(table)}
+                                                        >
                                                             <Icon name="users" className="me-2" />
                                                             Mark Occupied
                                                         </Dropdown.Item>
                                                     )}
-                                                    <Dropdown.Item onClick={() => openDeleteTable(table)}>
+                                                    <Dropdown.Item
+                                                        className="d-flex align-items-center"
+                                                        onClick={() => openDeleteTable(table)}
+                                                    >
                                                         <Icon name="trash-2" className="me-2" />
                                                         Delete
                                                     </Dropdown.Item>
@@ -556,7 +593,16 @@ const TablesPage = () => {
                                                 <div className="text-center">
                                                     <h6 className="mb-1 fw-bold">{tableReservation.customerName}</h6>
                                                     <div className="text-warning small">
-                                                        {new Date(tableReservation.reservationTime).toLocaleDateString('en-US', { month: 'short', day: '2-digit' })} &bull; {new Date(tableReservation.reservationTime).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })} &bull; {tableReservation.guests} guests
+                                                        {new Date(tableReservation.reservationTime).toLocaleDateString(
+                                                            'en-US',
+                                                            { month: 'short', day: '2-digit' },
+                                                        )}{' '}
+                                                        &bull;{' '}
+                                                        {new Date(tableReservation.reservationTime).toLocaleTimeString(
+                                                            'en-US',
+                                                            { hour: '2-digit', minute: '2-digit' },
+                                                        )}{' '}
+                                                        &bull; {tableReservation.guests} guests
                                                     </div>
                                                 </div>
                                             </>
@@ -576,7 +622,7 @@ const TablesPage = () => {
                     {showReservations ? 'Hide' : 'Show'}
                 </Button>
             </div>
-            
+
             {showReservations && (
                 <Row>
                     {allReservations.length === 0 && (
@@ -584,38 +630,75 @@ const TablesPage = () => {
                             <p className="text-muted">No upcoming reservations.</p>
                         </Col>
                     )}
-                    {allReservations.map(res => (
+                    {allReservations.map((res) => (
                         <Col xl={4} md={6} key={res.id}>
                             <Card className="mb-4 shadow-sm border-0">
                                 <Card.Body>
                                     <div className="d-flex justify-content-between mb-3">
                                         <div className="d-flex align-items-center gap-3">
-                                            <div className="bg-dark text-white text-center rounded p-2" style={{ minWidth: '60px' }}>
-                                                <div className="fw-bold">{new Date(res.reservationTime).toLocaleDateString('en-US', { month: 'short', day: '2-digit' })}</div>
-                                                <div className="small text-muted">{new Date(res.reservationTime).getFullYear()}</div>
+                                            <div
+                                                className="bg-dark text-white text-center rounded p-2"
+                                                style={{ minWidth: '60px' }}
+                                            >
+                                                <div className="fw-bold">
+                                                    {new Date(res.reservationTime).toLocaleDateString('en-US', {
+                                                        month: 'short',
+                                                        day: '2-digit',
+                                                    })}
+                                                </div>
+                                                <div className="small text-muted">
+                                                    {new Date(res.reservationTime).getFullYear()}
+                                                </div>
                                             </div>
                                             <div>
                                                 <h6 className="mb-1 fw-bold">{res.customerName}</h6>
                                                 <div className="text-muted small d-flex align-items-center gap-2">
-                                                    <span><Icon name="clock" className="me-1" />{new Date(res.reservationTime).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}</span>
-                                                    <span><Icon name="armchair" className="me-1" />Table {res.tableNumber}</span>
-                                                    <span><Icon name="users" className="me-1" />{res.guests}</span>
+                                                    <span>
+                                                        <Icon name="clock" className="me-1" />
+                                                        {new Date(res.reservationTime).toLocaleTimeString('en-US', {
+                                                            hour: '2-digit',
+                                                            minute: '2-digit',
+                                                        })}
+                                                    </span>
+                                                    <span>
+                                                        <Icon name="armchair" className="me-1" />
+                                                        Table {res.tableNumber}
+                                                    </span>
+                                                    <span>
+                                                        <Icon name="users" className="me-1" />
+                                                        {res.guests}
+                                                    </span>
                                                 </div>
                                             </div>
                                         </div>
                                         <div>
-                                            <Badge bg="" className={reservationBadgeClass[res.status] || 'badge-soft-primary'}>
+                                            <Badge
+                                                bg=""
+                                                className={reservationBadgeClass[res.status] || 'badge-soft-primary'}
+                                            >
                                                 {res.status.charAt(0).toUpperCase() + res.status.slice(1)}
                                             </Badge>
                                         </div>
                                     </div>
                                     <div className="d-flex justify-content-between align-items-center border-top pt-3">
-                                        <span className="text-muted small">Created {formatDateTime(res.createdAt)}</span>
+                                        <span className="text-muted small">
+                                            Created {formatDateTime(res.createdAt)}
+                                        </span>
                                         <div className="d-flex gap-2">
-                                            <Button variant="white" size="sm" className="btn-icon rounded-circle" onClick={() => openEditReservation(res)}>
+                                            <Button
+                                                variant="white"
+                                                size="sm"
+                                                className="btn-icon rounded-circle"
+                                                onClick={() => openEditReservation(res)}
+                                            >
                                                 <Icon name="pencil-line" />
                                             </Button>
-                                            <Button variant="white" size="sm" className="btn-icon rounded-circle text-danger" onClick={() => openDeleteReservation(res)}>
+                                            <Button
+                                                variant="white"
+                                                size="sm"
+                                                className="btn-icon rounded-circle text-danger"
+                                                onClick={() => openDeleteReservation(res)}
+                                            >
                                                 <Icon name="trash-2" />
                                             </Button>
                                         </div>
@@ -738,7 +821,10 @@ const TablesPage = () => {
                     </div>
                     <ul className="list-unstyled mb-0">
                         {areas.map((a) => (
-                            <li key={a.id} className="d-flex align-items-center justify-content-between border-bottom py-2">
+                            <li
+                                key={a.id}
+                                className="d-flex align-items-center justify-content-between border-bottom py-2"
+                            >
                                 {a.name}
                                 <Button
                                     variant="white"
@@ -772,9 +858,7 @@ const TablesPage = () => {
                             </Form.Label>
                             <Form.Select
                                 value={reservationForm.customerId}
-                                onChange={(e) =>
-                                    setReservationForm((p) => ({ ...p, customerId: e.target.value }))
-                                }
+                                onChange={(e) => setReservationForm((p) => ({ ...p, customerId: e.target.value }))}
                                 required
                             >
                                 <option value="">Select</option>
@@ -792,9 +876,7 @@ const TablesPage = () => {
                             <Form.Control
                                 type="datetime-local"
                                 value={reservationForm.reservationTime}
-                                onChange={(e) =>
-                                    setReservationForm((p) => ({ ...p, reservationTime: e.target.value }))
-                                }
+                                onChange={(e) => setReservationForm((p) => ({ ...p, reservationTime: e.target.value }))}
                                 required
                             />
                         </Form.Group>
@@ -849,9 +931,7 @@ const TablesPage = () => {
                             </Form.Label>
                             <Form.Select
                                 value={reservationForm.customerId}
-                                onChange={(e) =>
-                                    setReservationForm((p) => ({ ...p, customerId: e.target.value }))
-                                }
+                                onChange={(e) => setReservationForm((p) => ({ ...p, customerId: e.target.value }))}
                                 required
                             >
                                 <option value="">Select</option>
@@ -868,9 +948,7 @@ const TablesPage = () => {
                             </Form.Label>
                             <Form.Select
                                 value={reservationForm.tableId}
-                                onChange={(e) =>
-                                    setReservationForm((p) => ({ ...p, tableId: e.target.value }))
-                                }
+                                onChange={(e) => setReservationForm((p) => ({ ...p, tableId: e.target.value }))}
                                 required
                             >
                                 <option value="">Select</option>
@@ -888,9 +966,7 @@ const TablesPage = () => {
                             <Form.Control
                                 type="datetime-local"
                                 value={reservationForm.reservationTime}
-                                onChange={(e) =>
-                                    setReservationForm((p) => ({ ...p, reservationTime: e.target.value }))
-                                }
+                                onChange={(e) => setReservationForm((p) => ({ ...p, reservationTime: e.target.value }))}
                                 required
                             />
                         </Form.Group>
@@ -951,14 +1027,17 @@ const TablesPage = () => {
                         </span>
                     </div>
                     <h4 className="mb-1">Delete Confirmation</h4>
-                    <p className="mb-4">
-                        Are you sure you want to delete this reservation?
-                    </p>
+                    <p className="mb-4">Are you sure you want to delete this reservation?</p>
                     <div className="d-flex justify-content-center gap-2">
                         <Button variant="light" className="w-100" onClick={() => setShowDeleteReservation(false)}>
                             Close
                         </Button>
-                        <Button variant="danger" className="w-100" onClick={handleDeleteReservation} disabled={deleting}>
+                        <Button
+                            variant="danger"
+                            className="w-100"
+                            onClick={handleDeleteReservation}
+                            disabled={deleting}
+                        >
                             {deleting ? 'Deleting...' : 'Delete'}
                         </Button>
                     </div>

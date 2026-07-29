@@ -55,11 +55,19 @@ public interface OrderItemRepository extends JpaRepository<OrderItem, Long> {
             """)
     List<Object[]> findCategorySalesByOrderIds(@Param("orderIds") List<Long> orderIds);
 
+    @Modifying
     @Query("""
-                SELECT oi FROM OrderItem oi
-                LEFT JOIN FETCH oi.variation v
+                UPDATE OrderItem oi
+                SET oi.status = :status
                 WHERE oi.order.id = :orderId
-                ORDER BY oi.id ASC
             """)
-    List<OrderItem> findByOrderId(@Param("orderId") Long orderId);
+    void updateStatusByOrderId(Long orderId, OrderItemStatus status);
+
+    // @Query("""
+    // SELECT oi FROM OrderItem oi
+    // LEFT JOIN FETCH oi.variation v
+    // WHERE oi.order.id = :orderId
+    // ORDER BY oi.id ASC
+    // """)
+    // List<OrderItem> findByOrderId(@Param("orderId") Long orderId);
 }
