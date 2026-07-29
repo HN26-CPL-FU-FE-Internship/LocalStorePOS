@@ -7,6 +7,8 @@ import com.pos.backend.dto.request.Settings.StoreSettingRequest;
 import com.pos.backend.dto.response.Settings.StoreSettingResponse;
 import com.pos.backend.entity.Store;
 import com.pos.backend.repository.StoreRepository;
+import com.pos.backend.constant.enums.AuditAction;
+import com.pos.backend.service.Audit.AuditLogService;
 import com.pos.backend.util.FileStorageUtil;
 
 import lombok.RequiredArgsConstructor;
@@ -19,6 +21,7 @@ public class SettingsServiceImpl implements SettingsService {
 
     private final StoreRepository storeRepository;
     private final FileStorageUtil fileStorageUtil;
+    private final AuditLogService auditLogService;
 
     private Store getOrCreateStore() {
         return storeRepository.findAll()
@@ -73,6 +76,11 @@ public class SettingsServiceImpl implements SettingsService {
         }
 
         store = storeRepository.save(store);
+
+        auditLogService.log(null, AuditAction.SETTINGS_UPDATED, "SETTINGS", "Store", store.getId(),
+                "Store settings updated: " + store.getName(),
+                null, null, "SUCCESS", null);
+
         return toResponse(store);
     }
 

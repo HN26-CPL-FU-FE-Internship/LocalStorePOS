@@ -33,6 +33,7 @@ const PaymentSettingsPage = () => {
         }
     }, []);
 
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     useEffect(() => { loadMethods(); }, [loadMethods]);
 
     useEffect(() => {
@@ -88,7 +89,7 @@ const PaymentSettingsPage = () => {
                                     <Card.Body>
                                         <div className="w-100 d-flex justify-content-between align-items-center">
                                             <div className="d-flex align-items-center">
-                                                <div className="avatar avatar-md bg-light p-2 me-2 d-flex align-items-center justify-content-center rounded">
+                                                <div className="avatar-md bg-light p-2 me-2 d-flex align-items-center justify-content-center rounded">
                                                     <Icon name={PAYMENT_ICONS[method.code] || 'circle-dollar-sign'} className="fs-5" />
                                                 </div>
                                                 <p className="mb-0 text-dark fw-medium">{method.name}</p>

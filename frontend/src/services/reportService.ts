@@ -1,6 +1,6 @@
 import { api } from '@/lib';
 import type { ApiResponse } from '@/types/auth';
-import type { EarningReportItem, OrderReportItem, SalesReportItem, CustomerReportItem, ReportFilter } from '@/types/report';
+import type { AuditLogFilter, AuditLogItem, EarningReportItem, OrderReportItem, SalesReportItem, CustomerReportItem, ReportFilter } from '@/types/report';
 
 interface PageResult<T> {
     items: T[];
@@ -60,6 +60,27 @@ const reportService = {
                 size: filter.size ?? 10,
             },
         });
+        return res.data;
+    },
+
+    getAuditLogs: async (filter: AuditLogFilter) => {
+        const res = await api.get<ApiResponse<PageResult<AuditLogItem>>>('/audit-logs', {
+            params: {
+                module: filter.module || undefined,
+                action: filter.action || undefined,
+                status: filter.status || undefined,
+                search: filter.search || undefined,
+                fromDate: filter.fromDate || undefined,
+                toDate: filter.toDate || undefined,
+                page: filter.page ?? 0,
+                size: filter.size ?? 10,
+            },
+        });
+        return res.data;
+    },
+
+    getAuditModules: async () => {
+        const res = await api.get<ApiResponse<string[]>>('/audit-logs/modules');
         return res.data;
     },
 };

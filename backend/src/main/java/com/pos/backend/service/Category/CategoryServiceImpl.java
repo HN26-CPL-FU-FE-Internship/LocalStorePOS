@@ -12,6 +12,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.pos.backend.constant.ErrorCode;
+import com.pos.backend.constant.enums.AuditAction;
 import com.pos.backend.constant.enums.CommonStatus;
 import com.pos.backend.dto.request.Category.CategoryRequest;
 import com.pos.backend.dto.response.Category.CategoryListItemResponse;
@@ -21,6 +22,7 @@ import com.pos.backend.exception.AppException;
 import com.pos.backend.repository.CategoryRepository;
 import com.pos.backend.repository.ItemRepository;
 import com.pos.backend.service.Common.PageResponse;
+import com.pos.backend.service.Audit.AuditLogService;
 import com.pos.backend.util.FileStorageUtil;
 
 import lombok.RequiredArgsConstructor;
@@ -28,6 +30,8 @@ import lombok.RequiredArgsConstructor;
 @Service
 @RequiredArgsConstructor
 public class CategoryServiceImpl implements CategoryService {
+
+    private final AuditLogService auditLogService;
 
     private static final String IMAGE_SUB_FOLDER = "categories";
 
@@ -109,6 +113,9 @@ public class CategoryServiceImpl implements CategoryService {
 
         category = categoryRepository.save(category);
 
+        auditLogService.log(null, AuditAction.CATEGORY_CREATED, "MENU_PRICE", "Category", category.getId(),
+                "Category created: " + category.getName(), null, null, "SUCCESS", null);
+
         return toResponse(category, 0L);
     }
 
@@ -140,7 +147,12 @@ public class CategoryServiceImpl implements CategoryService {
 
         long itemCount = itemRepository.countByCategory_Id(id);
 
-        return toResponse(category, itemCount);
+        CategoryListItemResponse response = toResponse(category, itemCount);
+
+        auditLogService.log(null, AuditAction.CATEGORY_UPDATED, "MENU_PRICE", "Category", id,
+                "Category updated: " + category.getName(), null, null, "SUCCESS", null);
+
+        return response;
     }
 
     @Override
@@ -152,7 +164,13 @@ public class CategoryServiceImpl implements CategoryService {
 
         long itemCount = itemRepository.countByCategory_Id(id);
 
-        return toResponse(category, itemCount);
+        CategoryListItemResponse statusResponse = toResponse(category, itemCount);
+
+        auditLogService.log(null, AuditAction.CATEGORY_UPDATED, "MENU_PRICE", "Category", id,
+                "Category status changed to " + status.name() + ": " + category.getName(),
+                null, null, "SUCCESS", null);
+
+        return statusResponse;
     }
 
     @Override
@@ -166,6 +184,9 @@ public class CategoryServiceImpl implements CategoryService {
 
         categoryRepository.delete(category);
         fileStorageUtil.deleteFile(category.getImagePath());
+
+        auditLogService.log(null, AuditAction.CATEGORY_DELETED, "MENU_PRICE", "Category", id,
+                "Category deleted: " + category.getName(), null, null, "SUCCESS", null);
     }
 
     private Category findCategoryOrThrow(Long id) {

@@ -9,15 +9,25 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
 import com.pos.backend.constant.ErrorCode;
+import com.pos.backend.constant.enums.AuditAction;
 import com.pos.backend.dto.response.ApiResponse;
+import com.pos.backend.service.Audit.AuditLogService;
 
 import jakarta.servlet.http.HttpServletResponse;
+import lombok.RequiredArgsConstructor;
 
 @RestControllerAdvice
+@RequiredArgsConstructor
 public class GlobalExceptionHandler {
+
+    private final AuditLogService auditLogService;
 
     @ExceptionHandler(Exception.class)
     public ApiResponse<?> exceptionHandler(Exception exception, HttpServletResponse response) {
+
+        auditLogService.logSystemError(
+                "Unhandled exception: " + exception.getClass().getSimpleName() + " - " + exception.getMessage(),
+                null);
 
         response.setStatus(ErrorCode.UNCATEGORIZED_EXCEPTION.getStatus().value());
 

@@ -4,6 +4,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import com.pos.backend.constant.ErrorCode;
+import com.pos.backend.constant.enums.AuditAction;
 import com.pos.backend.constant.enums.CommonStatus;
 import com.pos.backend.dto.request.User.UserCreationRequest;
 import com.pos.backend.dto.response.User.UserCreationResponse;
@@ -13,6 +14,7 @@ import com.pos.backend.exception.AppException;
 import com.pos.backend.mapper.UserMapper;
 import com.pos.backend.repository.RoleRepository;
 import com.pos.backend.repository.UserRepository;
+import com.pos.backend.service.Audit.AuditLogService;
 
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
@@ -26,6 +28,7 @@ public class RegisterService {
     RoleRepository roleRepository;
     UserMapper userMapper;
     PasswordEncoder passwordEncoder;
+    AuditLogService auditLogService;
 
     public UserCreationResponse registerUser(UserCreationRequest request) {
 
@@ -45,7 +48,13 @@ public class RegisterService {
         user.setRole(role);
         user.setStatus(CommonStatus.active);
 
-        return userMapper.toUserCreationResponse(userRepository.save(user));
+        UserCreationResponse response = userMapper.toUserCreationResponse(userRepository.save(user));
+
+        auditLogService.log(user, AuditAction.USER_CREATED, "USER_MANAGEMENT", "User", user.getId(),
+                "User registered: " + user.getEmail() + " (Role: " + role.getName() + ")",
+                null, null, "SUCCESS", null);
+
+        return response;
     }
 
 }

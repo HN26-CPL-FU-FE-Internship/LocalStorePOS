@@ -15,6 +15,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.pos.backend.constant.ErrorCode;
+import com.pos.backend.constant.enums.AuditAction;
 import com.pos.backend.constant.enums.CouponStatus;
 import com.pos.backend.constant.enums.DiscountType;
 import com.pos.backend.constant.enums.KitchenStatus;
@@ -40,6 +41,7 @@ import com.pos.backend.exception.AppException;
 import com.pos.backend.mapper.CouponMapper;
 import com.pos.backend.mapper.OrderMapper;
 import com.pos.backend.repository.CouponRepository;
+import com.pos.backend.service.Audit.AuditLogService;
 import com.pos.backend.repository.OrderItemAddonRepository;
 import com.pos.backend.repository.OrderItemRepository;
 import com.pos.backend.repository.OrderRepository;
@@ -67,6 +69,7 @@ public class OrderService {
     OrderMapper orderMapper;
     CouponMapper couponMapper;
     OrderCommonService orderCommonService;
+    AuditLogService auditLogService;
 
     public Map<String, Long> getOrderCountByStatus(DateFilter filter) {
 
@@ -168,7 +171,13 @@ public class OrderService {
             table.setStatus(TableStatus.available);
         }
 
-        return orderMapper.toOrderResponse(order);
+        OrderResponse response = orderMapper.toOrderResponse(order);
+
+        auditLogService.log(null, AuditAction.ORDER_STATUS_CHANGED, "ORDER", "Order", id,
+                "Order #" + order.getOrderNumber() + " status changed to " + request.getStatus(),
+                null, null, "SUCCESS", null);
+
+        return response;
     }
 
     private KitchenStatus getKitchenStatusByOrderStatus(OrderStatus status) {
@@ -237,6 +246,18 @@ public class OrderService {
                     .findFirst()
                     .orElse(null);
             order.setCoupon(found);
+        }
+
+        // ── Audit log for discount/coupon applied ────────────────────
+        if (request.getDiscountAmount() != null && request.getDiscountAmount().compareTo(BigDecimal.ZERO) > 0) {
+            auditLogService.log(null, AuditAction.DISCOUNT_APPLIED, "DISCOUNT", "Order", id,
+                    "Discount applied to order #" + order.getOrderNumber() + ": $" + request.getDiscountAmount(),
+                    null, null, "SUCCESS", null);
+        }
+        if (request.getCouponCode() != null && !request.getCouponCode().isBlank()) {
+            auditLogService.log(null, AuditAction.COUPON_APPLIED, "DISCOUNT", "Order", id,
+                    "Coupon applied to order #" + order.getOrderNumber() + ": " + request.getCouponCode(),
+                    null, null, "SUCCESS", null);
         }
 
         // ── Recalculate grand total after modifiers ────────────────────
@@ -313,7 +334,14 @@ public class OrderService {
 
         paymentRepository.save(payment);
 
-        return orderMapper.toOrderResponse(order);
+        OrderResponse orderResponse = orderMapper.toOrderResponse(order);
+
+        auditLogService.log(null, AuditAction.PAYMENT_PROCESSED, "PAYMENT", "Order", id,
+                "Payment processed for order #" + order.getOrderNumber() + ": $" + order.getGrandTotal()
+                        + " via " + request.getPaymentType(),
+                null, null, "SUCCESS", null);
+
+        return orderResponse;
     }
 
     /**

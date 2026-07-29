@@ -1,6 +1,7 @@
 package com.pos.backend.controller.Administration;
 
 import com.pos.backend.constant.ErrorCode;
+import com.pos.backend.constant.enums.AuditAction;
 import com.pos.backend.dto.request.Administration.RoleCreateRequest;
 import com.pos.backend.dto.request.Administration.RolePermissionsUpdateRequest;
 import com.pos.backend.dto.response.ApiResponse;
@@ -11,6 +12,7 @@ import com.pos.backend.exception.AppException;
 import com.pos.backend.repository.RolePermissionRepository;
 import com.pos.backend.repository.RoleRepository;
 import com.pos.backend.service.Administration.Permission.PermissionService;
+import com.pos.backend.service.Audit.AuditLogService;
 
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -32,9 +34,10 @@ import java.util.List;
 @RequiredArgsConstructor
 public class RoleController {
 
-        private final RoleRepository roleRepository;
-        private final RolePermissionRepository rolePermissionRepository;
-        private final PermissionService permissionService;
+    private final RoleRepository roleRepository;
+    private final RolePermissionRepository rolePermissionRepository;
+    private final PermissionService permissionService;
+    private final AuditLogService auditLogService;
 
         @GetMapping
         @PreAuthorize("@perm.hasPermission(authentication, 'Manage Staffs', 'view')")
@@ -59,7 +62,10 @@ public class RoleController {
                                 .name(request.getName())
                                 .isSystemRole(false)
                                 .build());
-                return ApiResponse.<RoleResponse>builder()
+                auditLogService.log(null, AuditAction.ROLE_CREATED, "USER_MANAGEMENT", "Role", role.getId(),
+                "Role created: " + role.getName(), null, null, "SUCCESS", null);
+
+        return ApiResponse.<RoleResponse>builder()
                                 .result(RoleResponse.builder()
                                                 .id(role.getId())
                                                 .name(role.getName())
@@ -79,6 +85,10 @@ public class RoleController {
                 }
                 rolePermissionRepository.deleteByRole(role);
                 roleRepository.delete(role);
+
+                auditLogService.log(null, AuditAction.ROLE_DELETED, "USER_MANAGEMENT", "Role", id,
+                        "Role deleted: " + role.getName(), null, null, "SUCCESS", null);
+
                 return ApiResponse.<Void>builder()
                                 .message("Role deleted successfully")
                                 .build();
@@ -98,6 +108,10 @@ public class RoleController {
                         @PathVariable Long roleId,
                         @Valid @RequestBody RolePermissionsUpdateRequest request) {
                 permissionService.updateRolePermissions(roleId, request);
+
+                auditLogService.log(null, AuditAction.PERMISSION_UPDATED, "USER_MANAGEMENT", "Role", roleId,
+                        "Permissions updated for role ID: " + roleId, null, null, "SUCCESS", null);
+
                 return ApiResponse.<Void>builder()
                                 .message("Permissions updated successfully")
                                 .build();
@@ -107,6 +121,10 @@ public class RoleController {
         @PreAuthorize("@perm.hasPermission(authentication, 'Manage Staffs', 'edit')")
         public ApiResponse<Void> resetRolePermissions(@PathVariable Long roleId) {
                 permissionService.resetRolePermissions(roleId);
+
+                auditLogService.log(null, AuditAction.PERMISSION_UPDATED, "USER_MANAGEMENT", "Role", roleId,
+                        "Permissions reset to default for role ID: " + roleId, null, null, "SUCCESS", null);
+
                 return ApiResponse.<Void>builder()
                                 .message("Permissions reset to default")
                                 .build();

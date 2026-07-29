@@ -12,6 +12,7 @@ import org.springframework.transaction.annotation.Transactional;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.pos.backend.constant.ErrorCode;
+import com.pos.backend.constant.enums.AuditAction;
 import com.pos.backend.constant.enums.FoodType;
 import com.pos.backend.constant.enums.ItemStatus;
 import com.pos.backend.dto.request.Item.ItemAddonRequest;
@@ -33,6 +34,7 @@ import com.pos.backend.repository.ItemRepository;
 import com.pos.backend.repository.ItemVariationRepository;
 import com.pos.backend.repository.TaxRepository;
 import com.pos.backend.service.Common.PageResponse;
+import com.pos.backend.service.Audit.AuditLogService;
 import com.pos.backend.util.FileStorageUtil;
 
 import lombok.RequiredArgsConstructor;
@@ -40,6 +42,8 @@ import lombok.RequiredArgsConstructor;
 @Service
 @RequiredArgsConstructor
 public class ItemServiceImpl implements ItemService {
+
+    private final AuditLogService auditLogService;
 
     private static final String IMAGE_SUB_FOLDER = "items";
 
@@ -114,9 +118,12 @@ public class ItemServiceImpl implements ItemService {
                 .build();
 
         item = itemRepository.save(item);
-
         replaceVariations(item, request.getVariations());
         replaceAddons(item, request.getAddons());
+
+        auditLogService.log(null, AuditAction.ITEM_CREATED, "MENU_PRICE", "Item", item.getId(),
+                "Item created: " + item.getName() + " ($" + item.getPrice() + ")",
+                null, null, "SUCCESS", null);
 
         return toDetailResponse(item);
     }
@@ -158,7 +165,12 @@ public class ItemServiceImpl implements ItemService {
             replaceAddons(item, request.getAddons());
         }
 
-        return toDetailResponse(item);
+        ItemDetailResponse response = toDetailResponse(item);
+
+        auditLogService.log(null, AuditAction.ITEM_UPDATED, "MENU_PRICE", "Item", id,
+                "Item updated: " + item.getName(), null, null, "SUCCESS", null);
+
+        return response;
     }
 
     @Override
@@ -166,8 +178,13 @@ public class ItemServiceImpl implements ItemService {
     public ItemDetailResponse updateStatus(Long id, ItemStatus status) {
         Item item = findItemOrThrow(id);
         item.setStatus(status);
-        item = itemRepository.save(item);
-        return toDetailResponse(item);
+        ItemDetailResponse statusResponse = toDetailResponse(itemRepository.save(item));
+
+        auditLogService.log(null, AuditAction.ITEM_UPDATED, "MENU_PRICE", "Item", id,
+                "Item status changed to " + status.name() + ": " + item.getName(),
+                null, null, "SUCCESS", null);
+
+        return statusResponse;
     }
 
     @Override
@@ -176,6 +193,9 @@ public class ItemServiceImpl implements ItemService {
         Item item = findItemOrThrow(id);
         itemRepository.delete(item);
         fileStorageUtil.deleteFile(item.getImagePath());
+
+        auditLogService.log(null, AuditAction.ITEM_DELETED, "MENU_PRICE", "Item", id,
+                "Item deleted: " + item.getName(), null, null, "SUCCESS", null);
     }
 
     /* ------------------------------------------------------------------ */

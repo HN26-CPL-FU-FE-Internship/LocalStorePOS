@@ -5,6 +5,7 @@ import java.util.List;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import com.pos.backend.constant.ErrorCode;
+import com.pos.backend.constant.enums.AuditAction;
 import com.pos.backend.constant.enums.CommonStatus;
 import com.pos.backend.dto.request.Settings.TaxSettingRequest;
 import com.pos.backend.dto.response.Common.OptionResponse;
@@ -12,12 +13,15 @@ import com.pos.backend.dto.response.Settings.TaxSettingResponse;
 import com.pos.backend.entity.Tax;
 import com.pos.backend.exception.AppException;
 import com.pos.backend.repository.TaxRepository;
+import com.pos.backend.service.Audit.AuditLogService;
 
 import lombok.RequiredArgsConstructor;
 
 @Service
 @RequiredArgsConstructor
 public class TaxSettingServiceImpl implements TaxSettingService {
+
+    private final AuditLogService auditLogService;
 
     private final TaxRepository taxRepository;
 
@@ -56,7 +60,11 @@ public class TaxSettingServiceImpl implements TaxSettingService {
                 .taxType(request.getTaxType())
                 .status(request.getStatus() != null ? request.getStatus() : CommonStatus.active)
                 .build();
-        return toResponse(taxRepository.save(tax));
+        TaxSettingResponse response = toResponse(taxRepository.save(tax));
+        auditLogService.log(null, AuditAction.TAX_SETTINGS_UPDATED, "SETTINGS", "Tax", tax.getId(),
+                "Tax created: " + tax.getTitle() + " (" + tax.getTaxRate() + "%)",
+                null, null, "SUCCESS", null);
+        return response;
     }
 
     @Override
@@ -69,7 +77,10 @@ public class TaxSettingServiceImpl implements TaxSettingService {
         if (request.getStatus() != null) {
             tax.setStatus(request.getStatus());
         }
-        return toResponse(taxRepository.save(tax));
+        TaxSettingResponse response = toResponse(taxRepository.save(tax));
+        auditLogService.log(null, AuditAction.TAX_SETTINGS_UPDATED, "SETTINGS", "Tax", id,
+                "Tax updated: " + tax.getTitle(), null, null, "SUCCESS", null);
+        return response;
     }
 
     @Override
@@ -77,7 +88,10 @@ public class TaxSettingServiceImpl implements TaxSettingService {
     public TaxSettingResponse updateTaxStatus(Long id, CommonStatus status) {
         Tax tax = findTaxOrThrow(id);
         tax.setStatus(status);
-        return toResponse(taxRepository.save(tax));
+        TaxSettingResponse response = toResponse(taxRepository.save(tax));
+        auditLogService.log(null, AuditAction.TAX_SETTINGS_UPDATED, "SETTINGS", "Tax", id,
+                "Tax status updated to " + status.name(), null, null, "SUCCESS", null);
+        return response;
     }
 
     @Override
@@ -85,6 +99,8 @@ public class TaxSettingServiceImpl implements TaxSettingService {
     public void deleteTax(Long id) {
         Tax tax = findTaxOrThrow(id);
         taxRepository.delete(tax);
+        auditLogService.log(null, AuditAction.TAX_SETTINGS_UPDATED, "SETTINGS", "Tax", id,
+                "Tax deleted: " + tax.getTitle(), null, null, "SUCCESS", null);
     }
 
     private Tax findTaxOrThrow(Long id) {
