@@ -38,6 +38,34 @@ export interface CustomerReportItem {
     grandTotal: number;
 }
 
+export interface AuditLogItem {
+    id: number;
+    userId: number | null;
+    userName: string;
+    userEmail: string | null;
+    action: string;
+    module: string;
+    entityType: string;
+    entityId: number | null;
+    description: string;
+    oldValue: string | null;
+    newValue: string | null;
+    actionStatus: string;
+    ipAddress: string | null;
+    createdAt: string;
+}
+
+export interface AuditLogFilter {
+    module?: string;
+    action?: string;
+    status?: string;
+    search?: string;
+    fromDate?: string;
+    toDate?: string;
+    page?: number;
+    size?: number;
+}
+
 export type ReportType = 'earning' | 'orders' | 'sales' | 'customers' | 'audit';
 
 export interface ReportFilter {

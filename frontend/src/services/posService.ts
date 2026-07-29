@@ -61,6 +61,11 @@ const posService = {
         const res = await api.post<ApiResponse<OrderSummary>>('/pos/orders', data);
         return res.data.result;
     },
+
+    updateOrder: async (orderNumber: string, data: PlaceOrder): Promise<OrderSummary> => {
+        const res = await api.put<ApiResponse<OrderSummary>>(`/pos/orders/${orderNumber}`, data);
+        return res.data.result;
+    },
 };
 
 export default posService;

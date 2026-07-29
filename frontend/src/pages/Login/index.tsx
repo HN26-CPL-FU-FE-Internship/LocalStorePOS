@@ -49,7 +49,7 @@ function Login() {
                         navigate(routes.dashboard);
                         break;
                     case 'Cashier':
-                        navigate(routes.pos);
+                        navigate(routes.orders);
                         break;
                     case 'Chef':
                         navigate(routes.kitchen);

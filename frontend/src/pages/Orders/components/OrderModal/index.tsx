@@ -100,7 +100,7 @@ function OrderModal({
 
                 {orderContent?.items.map((item) => {
                     return (
-                        <div className="mb-3">
+                        <div key={item.id} className="mb-3">
                             <div className="fw-semibold">
                                 {item.itemName} <span>x{item.quantity}</span>
                             </div>

@@ -1,8 +1,9 @@
 import Icon from '@/components/common/Icon';
 import { Dropdown, DropdownButton } from 'react-bootstrap';
 import { Link } from 'react-router-dom';
-import type { ModalActionProps, OrderStatus, OrderSummary } from '@/types';
+import { ROUTE_PERMISSION_MAP, type ModalActionProps, type OrderStatus, type OrderSummary } from '@/types';
 import { statuses } from '@/constants';
+import useAuth from '@/hooks/useAuth';
 
 type OrderActionDropdownProps = ModalActionProps & {
     cx: (value: string) => string;
@@ -31,42 +32,48 @@ function OrderActionDropdown({ actions, order }: { actions: OrderActionDropdownP
             key: 'edit',
             icon: 'pencil-line',
             label: 'Edit Order',
-            to: '/pos',
+            to: `/pos?edit=${order.orderNumber}`,
         },
         {
             key: 'cancel',
             icon: 'x',
             label: 'Cancel',
             onClick: handleCancel,
+            visible: ['admin / owner', 'waiter'],
         },
         {
             key: 'pay',
             icon: 'pointer',
             label: 'Pay & Complete',
             onClick: handlePay,
+            visible: ['cashier', 'admin / owner'],
         },
         {
             key: 'print',
             icon: 'printer',
             label: 'Print Receipt',
             onClick: handlePrint,
+            visible: ['cashier', 'admin / owner'],
         },
     ];
 
-    return (
+    const { hasPermission, user } = useAuth();
+    return user?.role.toLowerCase() !== 'chef' ? (
         <DropdownButton title as={'div'} drop={'start'} variant="" className={actions.cx('dropstart')}>
             {orderActions.map((action) =>
                 action.to ? (
-                    <Dropdown.Item
-                        key={action.key}
-                        as={Link}
-                        to={action.to}
-                        className="rounded d-flex align-items-center"
-                    >
-                        <Icon name={action.icon} className="me-2" />
-                        {action.label}
-                    </Dropdown.Item>
-                ) : (
+                    hasPermission(ROUTE_PERMISSION_MAP['/pos'], 'edit') ? (
+                        <Dropdown.Item
+                            key={action.key}
+                            as={Link}
+                            to={action.to}
+                            className="rounded d-flex align-items-center"
+                        >
+                            <Icon name={action.icon} className="me-2" />
+                            {action.label}
+                        </Dropdown.Item>
+                    ) : null
+                ) : action.visible?.includes(user?.role.toLowerCase() ?? '') ? (
                     <Dropdown.Item
                         key={action.key}
                         onClick={action.onClick}
@@ -75,10 +82,10 @@ function OrderActionDropdown({ actions, order }: { actions: OrderActionDropdownP
                         <Icon name={action.icon} className="me-2" />
                         {action.label}
                     </Dropdown.Item>
-                ),
+                ) : null,
             )}
         </DropdownButton>
-    );
+    ) : null;
 }
 
 export default OrderActionDropdown;

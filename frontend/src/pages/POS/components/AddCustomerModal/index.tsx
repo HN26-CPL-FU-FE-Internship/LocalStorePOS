@@ -4,9 +4,7 @@ import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Button, Form, Modal } from 'react-bootstrap';
 import Icon from '@/components/common/Icon';
-import posService from '@/services/posService';
-import { queryClient } from '@/lib/queryClient';
-import { POS_QUERY_KEYS } from '@/constants/pos';
+import { useCreateCustomer } from '@/hooks/pos';
 import usePOSCreateOrder from '@/stores/pos.store';
 
 /* ------------------------------------------------------------------ */
@@ -47,7 +45,7 @@ function AddCustomerModal({ show, onHide }: AddCustomerModalProps) {
     const {
         register,
         handleSubmit,
-        formState: { errors, isSubmitting, isValid },
+        formState: { errors, isValid },
         reset,
         setError,
     } = useForm<CustomerFormData>({
@@ -56,6 +54,7 @@ function AddCustomerModal({ show, onHide }: AddCustomerModalProps) {
         defaultValues: { name: '', phone: '', email: '', gender: null },
     });
 
+    const createCustomerMutation = useCreateCustomer();
     const setCustomer = usePOSCreateOrder((s) => s.setCustomer);
 
     const handleClose = useCallback(() => {
@@ -66,14 +65,12 @@ function AddCustomerModal({ show, onHide }: AddCustomerModalProps) {
     const onSubmit = useCallback(
         async (data: CustomerFormData) => {
             try {
-                const result = await posService.createCustomer({
+                const result = await createCustomerMutation.mutateAsync({
                     name: data.name.trim(),
                     phone: data.phone.trim(),
                     email: data.email?.trim() || undefined,
                     gender: data.gender ?? null,
                 });
-
-                queryClient.invalidateQueries({ queryKey: POS_QUERY_KEYS.customers() });
 
                 setCustomer({ label: result.name, value: String(result.id) });
                 handleClose();
@@ -86,7 +83,7 @@ function AddCustomerModal({ show, onHide }: AddCustomerModalProps) {
                 setError('root', { message: msg });
             }
         },
-        [handleClose, setCustomer, setError],
+        [handleClose, setCustomer, setError, createCustomerMutation],
     );
 
     return (
@@ -160,11 +157,11 @@ function AddCustomerModal({ show, onHide }: AddCustomerModalProps) {
                         variant="primary"
                         size="sm"
                         type="submit"
-                        disabled={isSubmitting || !isValid}
+                        disabled={createCustomerMutation.isPending || !isValid}
                         className="d-flex align-items-center gap-1"
                     >
-                        {isSubmitting ? <span className="spinner-border spinner-border-sm" /> : <Icon name="plus" />}
-                        {isSubmitting ? 'Creating...' : 'Create'}
+                        {createCustomerMutation.isPending ? <span className="spinner-border spinner-border-sm" /> : <Icon name="plus" />}
+                        {createCustomerMutation.isPending ? 'Creating...' : 'Create'}
                     </Button>
                 </Modal.Footer>
             </Form>

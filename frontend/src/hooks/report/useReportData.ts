@@ -1,6 +1,6 @@
 import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import reportService from '@/services/reportService';
-import type { ReportFilter } from '@/types/report';
+import type { AuditLogFilter, ReportFilter } from '@/types/report';
 
 const reportKeys = {
     all: ['reports'] as const,
@@ -8,6 +8,7 @@ const reportKeys = {
     orders: (filter: ReportFilter) => ['reports', 'orders', filter] as const,
     sales: (filter: ReportFilter) => ['reports', 'sales', filter] as const,
     customers: (filter: ReportFilter) => ['reports', 'customers', filter] as const,
+    audit: (filter: AuditLogFilter) => ['reports', 'audit', filter] as const,
 };
 
 export function useEarningReport(filter: ReportFilter, enabled = true) {
@@ -50,6 +51,26 @@ export function useCustomerReport(filter: ReportFilter, enabled = true) {
         staleTime: 1000 * 60 * 5,
         placeholderData: keepPreviousData,
         enabled,
+        select: (data) => data.result,
+    });
+}
+
+export function useAuditReport(filter: AuditLogFilter, enabled = true) {
+    return useQuery({
+        queryKey: reportKeys.audit(filter),
+        queryFn: () => reportService.getAuditLogs(filter),
+        staleTime: 1000 * 30,
+        placeholderData: keepPreviousData,
+        enabled,
+        select: (data) => data.result,
+    });
+}
+
+export function useAuditModules() {
+    return useQuery({
+        queryKey: ['reports', 'audit', 'modules'],
+        queryFn: () => reportService.getAuditModules(),
+        staleTime: 1000 * 60 * 30,
         select: (data) => data.result,
     });
 }

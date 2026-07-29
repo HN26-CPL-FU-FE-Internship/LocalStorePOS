@@ -22,6 +22,7 @@ export type OrderStat = {
 
 interface OrderItemAddon {
     id: number;
+    addonId: number;
     addonName: string;
     addonPrice: number;
     quantity: number;
@@ -29,12 +30,16 @@ interface OrderItemAddon {
 
 export interface OrderItem {
     id: number;
+    itemId: number;
     itemName: string;
     quantity: number;
     kitchenNote: string | null;
     sizeName: string | null;
     unitPrice: number;
     addons: OrderItemAddon[];
+    variationId: number | null;
+    status: string;
+    taxRate: number;
 }
 
 export type DiscountType = 'percentage' | 'fixed_amount';
@@ -43,7 +48,6 @@ export interface CouponOrder {
     discountAmount: number;
     discountType: DiscountType;
 }
-
 export type OrderSummary = {
     id: number;
     orderNumber: string;
@@ -51,7 +55,10 @@ export type OrderSummary = {
     orderType: string;
     tableNumber: string;
     orderedAt: string;
-
+    waiter: string;
+    waiterId: number | null;
+    customerId: number | null;
+    tableId: number | null;
     coupon: CouponOrder;
 
     status: OrderStatus;

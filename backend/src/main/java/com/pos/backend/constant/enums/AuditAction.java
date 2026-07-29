@@ -1,0 +1,76 @@
+package com.pos.backend.constant.enums;
+
+public enum AuditAction {
+    // Authentication & Security
+    LOGIN,
+    LOGOUT,
+    LOGIN_FAILED,
+    PASSWORD_RESET,
+    PASSWORD_CHANGE,
+    TOKEN_REFRESH,
+
+    // User, Role, Permission
+    USER_CREATED,
+    USER_UPDATED,
+    USER_DELETED,
+    USER_STATUS_CHANGED,
+    ROLE_CREATED,
+    ROLE_UPDATED,
+    ROLE_DELETED,
+    PERMISSION_UPDATED,
+
+    // Order
+    ORDER_CREATED,
+    ORDER_UPDATED,
+    ORDER_CANCELLED,
+    ORDER_COMPLETED,
+    ORDER_STATUS_CHANGED,
+
+    // Payment
+    PAYMENT_PROCESSED,
+    PAYMENT_FAILED,
+
+    // Refund
+    REFUND_PROCESSED,
+
+    // Void
+    VOID_PROCESSED,
+
+    // Discount
+    DISCOUNT_APPLIED,
+    COUPON_APPLIED,
+
+    // Cash Drawer
+    CASH_DRAWER_OPEN,
+    CASH_IN,
+    CASH_OUT,
+
+    // Inventory
+    INVENTORY_UPDATED,
+    STOCK_ADJUSTED,
+
+    // Settings
+    SETTINGS_UPDATED,
+    TAX_SETTINGS_UPDATED,
+    PRINT_SETTINGS_UPDATED,
+    PAYMENT_SETTINGS_UPDATED,
+    DELIVERY_SETTINGS_UPDATED,
+    NOTIFICATION_SETTINGS_UPDATED,
+    INTEGRATION_SETTINGS_UPDATED,
+
+    // Menu Price
+    MENU_PRICE_UPDATED,
+    ITEM_CREATED,
+    ITEM_UPDATED,
+    ITEM_DELETED,
+    CATEGORY_CREATED,
+    CATEGORY_UPDATED,
+    CATEGORY_DELETED,
+
+    // API
+    API_KEY_CREATED,
+    API_KEY_REVOKED,
+
+    // System Error
+    SYSTEM_ERROR,
+}

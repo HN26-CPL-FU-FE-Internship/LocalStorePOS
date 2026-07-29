@@ -77,7 +77,6 @@ const ItemDetailModal = ({ show, item, onHide }: ItemDetailModalProps) => {
             e.stopPropagation();
             setSelectedAddons((prev) => {
                 const next = new Map(prev);
-                console.log(next.get(addon.id));
                 next.set(addon.id, {
                     ...addon,
                     quantity: (next.get(addon.id)?.quantity ?? 0) + value,

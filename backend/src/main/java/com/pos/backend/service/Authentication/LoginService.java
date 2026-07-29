@@ -8,6 +8,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import com.pos.backend.constant.ErrorCode;
+import com.pos.backend.constant.enums.AuditAction;
 import com.pos.backend.constant.enums.CommonStatus;
 import com.pos.backend.dto.request.Authentication.LoginRequest;
 import com.pos.backend.dto.response.Administration.PermissionModuleResponse;
@@ -20,6 +21,7 @@ import com.pos.backend.repository.UserSessionRepository;
 import com.pos.backend.service.Administration.Permission.UserPermissionService;
 import com.pos.backend.service.Common.UserSessionService;
 import com.pos.backend.service.JWT.JwtService;
+import com.pos.backend.service.Audit.AuditLogService;
 import com.pos.backend.util.GenerateRefreshTokenUtil;
 import com.pos.backend.util.HashUtil;
 
@@ -41,6 +43,7 @@ public class LoginService {
     final JwtService jwtService;
     final PasswordEncoder passwordEncoder;
     final UserPermissionService userPermissionService;
+    final AuditLogService auditLogService;
 
     @Value("${jwt.signer-key}")
     String signerKey;
@@ -51,15 +54,23 @@ public class LoginService {
     public LoginResponse login(LoginRequest request) {
 
         User user = userRepository.findByEmailWithRole(request.getEmail())
-                .orElseThrow(() -> new AppException(ErrorCode.INVALID_CREDENTIALS));
+                .orElseThrow(() -> {
+                    auditLogService.log(null, AuditAction.LOGIN_FAILED, "AUTHENTICATION", null, null,
+                            "Login failed: email not found - " + request.getEmail(), null, null, "FAILED", null);
+                    return new AppException(ErrorCode.INVALID_CREDENTIALS);
+                });
 
         boolean isValid = passwordEncoder.matches(request.getPassword(), user.getPasswordHash());
 
         if (!isValid) {
+            auditLogService.log(user, AuditAction.LOGIN_FAILED, "AUTHENTICATION", null, null,
+                    "Login failed: invalid password for " + request.getEmail(), null, null, "FAILED", null);
             throw new AppException(ErrorCode.INVALID_CREDENTIALS);
         }
 
         if (user.getStatus() == CommonStatus.inactive) {
+            auditLogService.log(user, AuditAction.LOGIN_FAILED, "AUTHENTICATION", null, null,
+                    "Login failed: user inactive - " + request.getEmail(), null, null, "FAILED", null);
             throw new AppException(ErrorCode.USER_INACTIVE);
         }
 
@@ -68,6 +79,9 @@ public class LoginService {
 
         UserSession session = buildUserSession(refreshToken, user);
         userSessionRepository.save(session);
+
+        auditLogService.log(user, AuditAction.LOGIN, "AUTHENTICATION", null, null,
+                "User logged in: " + user.getEmail(), null, null, "SUCCESS", null);
 
         return buildLoginResponse(accessToken, refreshToken, user);
     }

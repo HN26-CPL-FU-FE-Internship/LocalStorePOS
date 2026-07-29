@@ -1,6 +1,7 @@
 package com.pos.backend.service.Administration.UserServices;
 
 import com.pos.backend.constant.ErrorCode;
+import com.pos.backend.constant.enums.AuditAction;
 import com.pos.backend.constant.enums.CommonStatus;
 import com.pos.backend.dto.request.User.UserCreationRequest;
 import com.pos.backend.dto.request.User.UserUpdateRequest;
@@ -11,6 +12,7 @@ import com.pos.backend.exception.AppException;
 import com.pos.backend.mapper.UserMapper;
 import com.pos.backend.repository.RoleRepository;
 import com.pos.backend.repository.UserRepository;
+import com.pos.backend.service.Audit.AuditLogService;
 import com.pos.backend.service.Common.PageResponse;
 
 import lombok.RequiredArgsConstructor;
@@ -47,6 +49,7 @@ public class UserServiceImpl implements UserService {
     RoleRepository roleRepository;
     UserMapper userMapper;
     PasswordEncoder passwordEncoder;
+    AuditLogService auditLogService;
 
     @Override
     public PageResponse<UserResponse> getAllUsers(int page, int size, String sortBy, String sortDir,
@@ -113,7 +116,13 @@ public class UserServiceImpl implements UserService {
             user.setAvatarPath(avatarPath);
         }
 
-        return toUserResponse(userRepository.save(user));
+        UserResponse response = toUserResponse(userRepository.save(user));
+
+        auditLogService.log(user, AuditAction.USER_CREATED, "USER_MANAGEMENT", "User", user.getId(),
+                "User created: " + user.getEmail() + " (Role: " + user.getRole().getName() + ")",
+                null, null, "SUCCESS", null);
+
+        return response;
     }
 
     @Override
@@ -160,7 +169,13 @@ public class UserServiceImpl implements UserService {
             user.setAvatarPath(avatarPath);
         }
 
-        return toUserResponse(userRepository.save(user));
+        UserResponse response = toUserResponse(userRepository.save(user));
+
+        auditLogService.log(user, AuditAction.USER_UPDATED, "USER_MANAGEMENT", "User", id,
+                "User updated: " + user.getEmail(),
+                null, null, "SUCCESS", null);
+
+        return response;
     }
 
     @Override
@@ -174,6 +189,10 @@ public class UserServiceImpl implements UserService {
         }
 
         userRepository.delete(user);
+
+        auditLogService.log(user, AuditAction.USER_DELETED, "USER_MANAGEMENT", "User", id,
+                "User deleted: " + user.getEmail(),
+                null, null, "SUCCESS", null);
     }
 
     /* ---------------------------------------------------------------- */

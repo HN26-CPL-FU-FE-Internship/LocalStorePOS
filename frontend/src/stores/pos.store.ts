@@ -1,4 +1,4 @@
-import type { CartItem, POSItem } from '@/types';
+import type { CartItem, OrderSummary, POSItem } from '@/types';
 import type { SingleValue } from 'react-select';
 import { create } from 'zustand';
 
@@ -12,6 +12,9 @@ type CreateOrderStore = {
     table: CartSelected | null;
     placingOrder: boolean;
     waiter: CartSelected | null;
+    /** Order number being edited (null = new order) */
+    editingOrderNumber: string | null;
+    setEditingOrderNumber: (value: string | null) => void;
     setWaiter: (value: SingleValue<CartSelected>) => void;
     setPlacingOrder: (value: boolean) => void;
     setTable: (value: SingleValue<CartSelected>) => void;
@@ -25,6 +28,8 @@ type CreateOrderStore = {
     updateCartNote: (id: string, note: string) => void;
     updateCartQuantity: (id: string, delta: number) => void;
     resetCart: () => void;
+    /** Populate the store from an existing order for editing */
+    loadFromOrder: (order: OrderSummary, menuItems: POSItem[]) => void;
 };
 
 export type CartPayLoad = {
@@ -51,6 +56,12 @@ const usePOSCreateOrder = create<CreateOrderStore>((set) => ({
     table: null,
     placingOrder: false,
     waiter: null,
+    editingOrderNumber: null,
+
+    setEditingOrderNumber: (value) =>
+        set(() => ({
+            editingOrderNumber: value,
+        })),
 
     setSearchText: (value) =>
         set(() => ({
@@ -61,7 +72,15 @@ const usePOSCreateOrder = create<CreateOrderStore>((set) => ({
             orderActiveType: value,
         })),
     setActiveCategory: (value) => set(() => ({ activeCategory: value })),
-    resetCart: () => set(() => ({ cartItems: [] })),
+    resetCart: () =>
+        set(() => ({
+            cartItems: [],
+            editingOrderNumber: null,
+            orderActiveType: 'dine_in',
+            customer: null,
+            table: null,
+            waiter: null,
+        })),
     addToCart: (payload) => {
         const cartId = `${payload.item.id}-${payload.variationId ?? 'base'}-${payload.item.addons.map((a) => `${a.id}x${a.quantity}`).join('-') ?? 'no-addons'}`;
 
@@ -151,6 +170,68 @@ const usePOSCreateOrder = create<CreateOrderStore>((set) => ({
         set(() => ({
             waiter: value,
         })),
+
+    loadFromOrder: (order, menuItems) => {
+        // Build minimal POSItem for each order item
+        const cartItems: CartItem[] = order.items.map((item) => {
+            const addonKey = item.addons.map((a) => `${a.addonId}x${a.quantity}`).join('-');
+            const cartId = `${item.itemId}-${item.sizeName ?? 'base'}-${addonKey || 'no-addons'}`;
+            const matchItem = menuItems.find((menuItem) => menuItem.id === item.itemId);
+            return {
+                id: cartId,
+                item: {
+                    id: item.itemId,
+                    name: item.itemName,
+                    description: null,
+                    imagePath: null,
+                    price: item.unitPrice,
+                    netPrice: null,
+                    foodType: 'veg',
+                    categoryId: 0,
+                    categoryName: '',
+                    taxId: null,
+                    taxTitle: null,
+                    taxRate: matchItem?.taxRate ?? 0,
+                    variations: item.sizeName
+                        ? [
+                              {
+                                  id: item.variationId ?? item.itemId,
+                                  sizeName: item.sizeName,
+                                  price: item.unitPrice,
+                              },
+                          ]
+                        : [],
+                    addons: item.addons.map((a) => ({
+                        id: a.addonId,
+                        name: a.addonName,
+                        price: a.addonPrice,
+                        description: null,
+                        quantity: a.quantity,
+                    })),
+                    badge: null,
+                },
+                variationId: item.variationId ?? null,
+                variationName: item.sizeName ?? null,
+                addonIds: item.addons.map((a) => a.addonId),
+                quantity: item.quantity,
+                unitPrice: item.unitPrice,
+                note: item.kitchenNote ?? undefined,
+            };
+        });
+
+        set(() => ({
+            cartItems,
+            orderActiveType: order.orderType,
+            customer:
+                order.customerName && order.customerId
+                    ? { value: String(order.customerId), label: order.customerName }
+                    : null,
+            table:
+                order.tableNumber && order.tableId ? { value: String(order.tableId), label: order.tableNumber } : null,
+            waiter: order.waiter && order.waiterId ? { value: String(order.waiterId), label: order.waiter } : null,
+            editingOrderNumber: order.orderNumber,
+        }));
+    },
 }));
 
 export default usePOSCreateOrder;

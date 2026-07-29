@@ -41,6 +41,14 @@ public class PrintSetting extends BaseEntity {
     @Column(name = "page_size", nullable = false, length = 10)
     private String pageSize = "A4";
 
+    @Builder.Default
+    @Column(name = "show_notes", nullable = false)
+    private Boolean showNotes = true;
+
+    @Builder.Default
+    @Column(name = "print_tokens", nullable = false)
+    private Boolean printTokens = true;
+
     @Column(name = "header_text", columnDefinition = "text")
     private String headerText;
 

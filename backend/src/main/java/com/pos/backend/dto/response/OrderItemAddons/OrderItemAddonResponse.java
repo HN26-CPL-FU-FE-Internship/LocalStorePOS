@@ -7,6 +7,7 @@ import lombok.Builder;
 @Builder
 public record OrderItemAddonResponse(
         Long id,
+        Long addonId,
         String addonName,
         BigDecimal addonPrice,
         Integer quantity) {

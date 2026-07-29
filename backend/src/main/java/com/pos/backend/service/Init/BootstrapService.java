@@ -40,27 +40,12 @@ public class BootstrapService {
     }
 
     // private void initRoles() {
-
-    // createRoleIfNotExists(DefaultRole.ADMIN.name(), true);
-    // createRoleIfNotExists(DefaultRole.SUPERVISOR.name(), false);
-    // createRoleIfNotExists(DefaultRole.ACCOUNTANT.name(), false);
-    // createRoleIfNotExists(DefaultRole.CASHIER.name(), false);
-    // createRoleIfNotExists(DefaultRole.CHEF.name(), false);
-    // createRoleIfNotExists(DefaultRole.DELIVERY.name(), false);
-    // createRoleIfNotExists(DefaultRole.WAITER.name(), false);
+    //     createRoleIfNotExists(DefaultRole.ADMIN.name(), true);
+    //     createRoleIfNotExists(DefaultRole.SUPERVISOR.name(), false);
+    //     ...
     // }
 
-    // private void initPermissionModules() {
-    // createPermissionModuleIfNotExists(DefaultPermissionModule.CATEGORIES.name());
-    // createPermissionModuleIfNotExists(DefaultPermissionModule.CUSTOMERS.name());
-    // createPermissionModuleIfNotExists(DefaultPermissionModule.DASHBOARD.name());
-    // createPermissionModuleIfNotExists(DefaultPermissionModule.POS.name());
-    // createPermissionModuleIfNotExists(DefaultPermissionModule.PRODUCTS.name());
-    // createPermissionModuleIfNotExists(DefaultPermissionModule.REPORTS.name());
-    // createPermissionModuleIfNotExists(DefaultPermissionModule.SETTINGS.name());
-    // createPermissionModuleIfNotExists(DefaultPermissionModule.REFUND.name());
-    // createPermissionModuleIfNotExists(DefaultPermissionModule.RESUME_SALE.name());
-    // }
+    // private void initPermissionModules() { ... }
 
     private void initOwner() {
 
@@ -68,7 +53,13 @@ public class BootstrapService {
             return;
         }
 
-        Role adminRole = roleRepository.findByName("Admin / Owner").orElseThrow();
+        // Create the "Admin / Owner" role if it doesn't exist
+        // (V1 migration seeds it, but integration tests may clean up)
+        Role adminRole = roleRepository.findByName("Admin / Owner")
+                .orElseGet(() -> roleRepository.save(Role.builder()
+                        .name("Admin / Owner")
+                        .isSystemRole(true)
+                        .build()));
 
         userRepository.save(User.builder()
                 .email("admin@pos.com")
@@ -82,7 +73,11 @@ public class BootstrapService {
     }
 
     private void grantAllPermissionsToOwner() {
-        Role admin = roleRepository.findByName("Admin / Owner").orElseThrow();
+        Role admin = roleRepository.findByName("Admin / Owner")
+                .orElseGet(() -> roleRepository.save(Role.builder()
+                        .name("Admin / Owner")
+                        .isSystemRole(true)
+                        .build()));
 
         List<PermissionModule> permissionModules = permissionModuleRepository.findAll();
 
@@ -104,18 +99,17 @@ public class BootstrapService {
     }
 
     // private Role createRoleIfNotExists(String name, boolean isSystemRole) {
-    // return roleRepository.findByName(name).orElseGet(() ->
-    // roleRepository.save(Role
-    // .builder()
-    // .name(name)
-    // .isSystemRole(isSystemRole)
-    // .build()));
+    //     return roleRepository.findByName(name).orElseGet(() ->
+    //             roleRepository.save(Role.builder()
+    //                     .name(name)
+    //                     .isSystemRole(isSystemRole)
+    //                     .build()));
     // }
 
     // private PermissionModule createPermissionModuleIfNotExists(String name) {
-    // return permissionModuleRepository.findByName(name)
-    // .orElseGet(() -> permissionModuleRepository.save(PermissionModule.builder()
-    // .name(name)
-    // .build()));
+    //     return permissionModuleRepository.findByName(name)
+    //             .orElseGet(() -> permissionModuleRepository.save(PermissionModule.builder()
+    //                     .name(name)
+    //                     .build()));
     // }
 }

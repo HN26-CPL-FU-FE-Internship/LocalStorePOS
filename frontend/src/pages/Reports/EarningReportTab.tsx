@@ -10,7 +10,6 @@ import { PAGE_SIZE, formatDate, formatCurrency, getStatusBadge } from './report-
 
 const EarningReportTab = () => {
     const [searchQuery, setSearchQuery] = useState('');
-    const [sortBy, setSortBy] = useState<SortValue>('newest');
     const [page, setPage] = useState(1);
     const [draftFromDate, setDraftFromDate] = useState('');
     const [draftToDate, setDraftToDate] = useState('');

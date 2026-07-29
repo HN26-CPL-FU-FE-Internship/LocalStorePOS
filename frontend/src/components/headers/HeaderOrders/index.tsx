@@ -2,6 +2,8 @@ import DateRangePicker from '@/components/common/DateRangePicker';
 import AddNewButton from '@/components/common/AddNewButton';
 import { useNavigate } from 'react-router-dom';
 import configs from '@/configs';
+import useAuth from '@/hooks/useAuth';
+import { ROUTE_PERMISSION_MAP } from '@/types';
 
 function HeaderOrders({ onDateRangeChange }: { onDateRangeChange?: (from: Date, to: Date) => void }) {
     const navigate = useNavigate();
@@ -10,6 +12,8 @@ function HeaderOrders({ onDateRangeChange }: { onDateRangeChange?: (from: Date, 
         navigate(configs.routes.pos);
     };
 
+    const { hasPermission } = useAuth();
+
     return (
         <>
             {/* The original date range picker relies on the daterangepicker jQuery
@@ -17,7 +21,9 @@ function HeaderOrders({ onDateRangeChange }: { onDateRangeChange?: (from: Date, 
               This preserves the same visual placeholder. */}
             <DateRangePicker className="calendar-orders" onDateRangeChange={onDateRangeChange} />
 
-            <AddNewButton name="circle-plus" onClick={handleClick} />
+            {hasPermission(ROUTE_PERMISSION_MAP['/pos'], 'view') && (
+                <AddNewButton name="circle-plus" onClick={handleClick} />
+            )}
         </>
     );
 }

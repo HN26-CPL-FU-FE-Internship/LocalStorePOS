@@ -91,6 +91,9 @@ public interface OrderRepository extends JpaRepository<Order, Long>, JpaSpecific
             @Param("fromDate") LocalDateTime fromDate,
             @Param("toDate") LocalDateTime toDate);
 
-    @EntityGraph(attributePaths = { "table" })
+    @EntityGraph(attributePaths = { "table", "customer", "waiter" })
     Optional<Order> findById(Long id);
+
+    @EntityGraph(attributePaths = { "table", "customer", "waiter" })
+    Optional<Order> findByOrderNumber(String orderNumber);
 }
