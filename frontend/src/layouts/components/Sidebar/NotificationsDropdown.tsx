@@ -66,7 +66,7 @@ const NotificationsDropdown = ({ groups, unreadCount = 0, className = '' }: Noti
         <Dropdown.Menu className="dropdown-menu-xl notification-dropdown">
             <div className="d-flex align-items-center justify-content-between notification-header">
                 <h5 className="mb-0">Notifications</h5>
-                <a href="lorem ipsum" className="link-primary">
+                <a href="#" className="link-primary">
                     Mark all as unread
                 </a>
             </div>

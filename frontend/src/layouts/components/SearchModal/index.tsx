@@ -1,6 +1,7 @@
-import { Modal, InputGroup, Form, Tabs, Tab, Button, Badge } from 'react-bootstrap';
+import { Modal, InputGroup, Form, Tabs, Tab, Badge } from 'react-bootstrap';
 import Icon from '@/components/common/Icon';
 import { customerSearchResults, orderSearchResults, kitchenSearchResults } from '@/data/dashboardData';
+import { Link } from 'react-router-dom';
 
 export interface SearchModalProps {
     show: boolean;
@@ -60,11 +61,10 @@ const SearchModal = ({ show, onHide }: SearchModalProps) => {
                                 </Badge>
                             </div>
                         ))}
-                        <Button variant="white" size="sm" href="lorem ipsum" className="w-100 mt-1">
+                        <Link to="/customers" className="w-100 mt-1 btn border">
                             View All <Icon name="arrow-right" className="ms-1" />
-                        </Button>
+                        </Link>
                     </Tab>
-
                     <Tab
                         eventKey="orders"
                         title={
@@ -103,9 +103,9 @@ const SearchModal = ({ show, onHide }: SearchModalProps) => {
                                 </Badge>
                             </div>
                         ))}
-                        <Button variant="white" size="sm" href="lorem ipsum" className="w-100 mt-1">
+                        <Link to="/orders" className="w-100 mt-1 btn border">
                             View All <Icon name="arrow-right" className="ms-1" />
-                        </Button>
+                        </Link>
                     </Tab>
 
                     <Tab
@@ -138,9 +138,9 @@ const SearchModal = ({ show, onHide }: SearchModalProps) => {
                                 </Badge>
                             </div>
                         ))}
-                        <Button variant="white" size="sm" href="lorem ipsum" className="w-100 mt-1">
+                        <Link to="/kitchen" className="w-100 mt-1 btn border">
                             View All <Icon name="arrow-right" className="ms-1" />
-                        </Button>
+                        </Link>
                     </Tab>
                 </Tabs>
             </Modal.Body>
