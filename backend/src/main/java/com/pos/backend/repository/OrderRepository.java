@@ -4,6 +4,7 @@ import com.pos.backend.entity.Order;
 import com.pos.backend.service.Kitchen.KitchenStatusCount;
 import com.pos.backend.service.Order.OrderStatusCount;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
@@ -53,13 +54,15 @@ public interface OrderRepository extends JpaRepository<Order, Long>, JpaSpecific
             LEFT JOIN FETCH o.customer
             WHERE o.orderedAt >= :fromDate
             AND o.orderedAt <= :toDate
-            AND o.status = 'completed'
-            AND o.paymentStatus = 'paid'
+            AND o.status = :completedStatus
+            AND o.paymentStatus = :paidStatus
             ORDER BY o.orderedAt DESC
             """)
     List<Order> findCompletedOrdersInRange(
             @Param("fromDate") LocalDateTime fromDate,
-            @Param("toDate") LocalDateTime toDate);
+            @Param("toDate") LocalDateTime toDate,
+            @Param("completedStatus") com.pos.backend.constant.enums.OrderStatus completedStatus,
+            @Param("paidStatus") com.pos.backend.constant.enums.OrderPaymentStatus paidStatus);
 
     @Query("""
             SELECT o FROM Order o
@@ -83,17 +86,93 @@ public interface OrderRepository extends JpaRepository<Order, Long>, JpaSpecific
             LEFT JOIN Customer c ON o.customer.id = c.id
             WHERE o.orderedAt >= :fromDate
             AND o.orderedAt <= :toDate
-            AND o.status = 'completed'
+            AND o.status = :completedStatus
             GROUP BY c.id, c.name, c.avatarPath
             ORDER BY totalOrders DESC
             """)
     List<Object[]> findCustomerSalesInRange(
             @Param("fromDate") LocalDateTime fromDate,
-            @Param("toDate") LocalDateTime toDate);
+            @Param("toDate") LocalDateTime toDate,
+            @Param("completedStatus") com.pos.backend.constant.enums.OrderStatus completedStatus);
 
     @EntityGraph(attributePaths = { "table", "customer", "waiter" })
     Optional<Order> findById(Long id);
 
     @EntityGraph(attributePaths = { "table", "customer", "waiter" })
     Optional<Order> findByOrderNumber(String orderNumber);
+
+    @Query("""
+                SELECT COUNT(o) FROM Order o
+                WHERE o.orderedAt >= :fromDate
+                AND o.orderedAt <= :toDate
+            """)
+    long countOrdersBetween(@Param("fromDate") LocalDateTime fromDate, @Param("toDate") LocalDateTime toDate);
+
+    @Query("""
+                SELECT COUNT(o) FROM Order o
+                WHERE o.orderedAt >= :fromDate
+                AND o.orderedAt <= :toDate
+                AND o.status = :completedStatus
+                AND o.paymentStatus = :paidStatus
+            """)
+    long countCompletedPaidOrdersBetween(@Param("fromDate") LocalDateTime fromDate,
+            @Param("toDate") LocalDateTime toDate,
+            @Param("completedStatus") com.pos.backend.constant.enums.OrderStatus completedStatus,
+            @Param("paidStatus") com.pos.backend.constant.enums.OrderPaymentStatus paidStatus);
+
+    @Query("""
+                SELECT COALESCE(SUM(o.grandTotal), 0) FROM Order o
+                WHERE o.orderedAt >= :fromDate
+                AND o.orderedAt <= :toDate
+                AND o.status = :completedStatus
+                AND o.paymentStatus = :paidStatus
+            """)
+    BigDecimal sumGrandTotalBetween(@Param("fromDate") LocalDateTime fromDate, @Param("toDate") LocalDateTime toDate,
+            @Param("completedStatus") com.pos.backend.constant.enums.OrderStatus completedStatus,
+            @Param("paidStatus") com.pos.backend.constant.enums.OrderPaymentStatus paidStatus);
+
+    @Query("""
+                SELECT FUNCTION('DATE', o.orderedAt), COALESCE(SUM(o.grandTotal), 0)
+                FROM Order o
+                WHERE o.orderedAt >= :fromDate
+                AND o.orderedAt <= :toDate
+                AND o.status = :completedStatus
+                AND o.paymentStatus = :paidStatus
+                GROUP BY FUNCTION('DATE', o.orderedAt)
+                ORDER BY FUNCTION('DATE', o.orderedAt) ASC
+            """)
+    List<Object[]> getRevenueByDateBetween(@Param("fromDate") LocalDateTime fromDate,
+            @Param("toDate") LocalDateTime toDate,
+            @Param("completedStatus") com.pos.backend.constant.enums.OrderStatus completedStatus,
+            @Param("paidStatus") com.pos.backend.constant.enums.OrderPaymentStatus paidStatus);
+
+    @Query("""
+                SELECT o FROM Order o
+                LEFT JOIN FETCH o.customer
+                LEFT JOIN FETCH o.table
+                WHERE o.status NOT IN (:inactiveStatuses)
+                ORDER BY o.orderedAt DESC
+            """)
+    List<Order> findActiveOrders(Pageable pageable,
+            @Param("inactiveStatuses") List<com.pos.backend.constant.enums.OrderStatus> inactiveStatuses);
+
+    @Query("""
+                SELECT
+                    u.firstName,
+                    u.lastName,
+                    u.avatarPath,
+                    COALESCE(SUM(o.grandTotal), 0)
+                FROM Order o
+                JOIN o.waiter u
+                WHERE o.waiter IS NOT NULL
+                AND o.orderedAt >= :fromDate
+                AND o.orderedAt <= :toDate
+                AND o.status = :completedStatus
+                GROUP BY u.id, u.firstName, u.lastName, u.avatarPath
+                ORDER BY SUM(o.grandTotal) DESC
+            """)
+    Page<Object[]> findTopUserBySalesInRange(@Param("fromDate") LocalDateTime fromDate,
+            @Param("toDate") LocalDateTime toDate,
+            @Param("completedStatus") com.pos.backend.constant.enums.OrderStatus completedStatus,
+            Pageable pageable);
 }

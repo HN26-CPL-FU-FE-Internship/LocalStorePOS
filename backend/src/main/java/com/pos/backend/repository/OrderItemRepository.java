@@ -3,7 +3,10 @@ package com.pos.backend.repository;
 import com.pos.backend.constant.enums.OrderItemStatus;
 import com.pos.backend.entity.OrderItem;
 
+import java.time.LocalDateTime;
 import java.util.List;
+
+import org.springframework.data.domain.Pageable;
 
 import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -70,4 +73,45 @@ public interface OrderItemRepository extends JpaRepository<OrderItem, Long> {
     // ORDER BY oi.id ASC
     // """)
     // List<OrderItem> findByOrderId(@Param("orderId") Long orderId);
+
+    @Query("""
+                SELECT oi.item.id, oi.itemName, i.imagePath, SUM(oi.quantity)
+                FROM OrderItem oi
+                JOIN oi.item i
+                JOIN oi.order o
+                WHERE o.orderedAt >= :fromDate
+                AND o.orderedAt <= :toDate
+                AND o.status = 'completed'
+                GROUP BY oi.item.id, oi.itemName, i.imagePath
+                ORDER BY SUM(oi.quantity) DESC
+            """)
+    List<Object[]> findTopSellingItemsBetween(@Param("fromDate") LocalDateTime fromDate,
+            @Param("toDate") LocalDateTime toDate, Pageable pageable);
+
+    @Query("""
+                SELECT c.name, COUNT(DISTINCT o.id), SUM(oi.quantity)
+                FROM OrderItem oi
+                JOIN oi.item i
+                JOIN i.category c
+                JOIN oi.order o
+                WHERE o.orderedAt >= :fromDate
+                AND o.orderedAt <= :toDate
+                AND o.status = 'completed'
+                GROUP BY c.id, c.name
+                ORDER BY COUNT(DISTINCT o.id) DESC
+            """)
+    List<Object[]> findCategoryStatsBetween(@Param("fromDate") LocalDateTime fromDate,
+            @Param("toDate") LocalDateTime toDate);
+
+    @Query("""
+                SELECT i.id, i.name, i.imagePath, i.foodType, COALESCE(SUM(oi.quantity), 0)
+                FROM Item i
+                LEFT JOIN OrderItem oi ON oi.item.id = i.id
+                LEFT JOIN oi.order o
+                WHERE (o IS NULL OR (o.orderedAt >= :fromDate AND o.orderedAt <= :toDate))
+                GROUP BY i.id, i.name, i.imagePath, i.foodType
+                ORDER BY COALESCE(SUM(oi.quantity), 0) DESC
+            """)
+    List<Object[]> findTrendingMenusBetween(@Param("fromDate") LocalDateTime fromDate,
+            @Param("toDate") LocalDateTime toDate, Pageable pageable);
 }
