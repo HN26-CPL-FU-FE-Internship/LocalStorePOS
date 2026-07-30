@@ -1,63 +1,86 @@
+import { memo } from 'react';
 import Badge from 'react-bootstrap/Badge';
-import SectionCard from '../../common/SectionCard';
+import Skeleton from '@/components/common/Skeleton';
 import Icon from '../../common/Icon';
-import type { ReservationItem } from '../../../types';
+import { DashboardCardShell } from '../common';
+import type { DashboardReservationResponse } from '@/api/dashboard.api';
 
 export interface ReservationsCardProps {
-    reservations: ReservationItem[];
+    reservations: DashboardReservationResponse[];
+    isLoading?: boolean;
+    errorMessage?: string;
 }
 
-const ReservationsCard = ({ reservations }: ReservationsCardProps) => (
-    <SectionCard
-        icon="file-clock"
-        title="Reservations"
-        bodyClassName="pb-1"
-        filterOptions={[
-            { label: 'All Orders' },
-            { label: 'Pending' },
-            { label: 'In Progress' },
-            { label: 'Completed' },
-            { label: 'Cancelled' },
-        ]}
-        activeFilterLabel="All Orders"
-    >
-        {reservations.map((reservation) => (
-            <div key={reservation.id} className="d-flex align-items-sm-center flex-column flex-sm-row gap-2 mb-3">
-                <div className="d-flex align-items-center gap-2 flex-fill">
-                    <div className="bg-dark reservation-date rounded p-2 text-center flex-shrink-0">
-                        <p className="text-white fw-semibold mb-0 position-relative">
-                            {reservation.day}
-                            <span className="fs-13 fw-normal d-block mt-1">{reservation.year}</span>
-                        </p>
-                    </div>
-                    <div>
-                        <h6 className="mb-2 fw-semibold text-truncate">{reservation.customerName}</h6>
-                        <div className="d-flex align-items-center flex-wrap gap-2">
-                            <p className="d-flex align-items-center mb-0">
-                                <Icon name="clock" className="me-1 text-dark" />
-                                {reservation.time}
-                            </p>
-                            <span className="even-line" />
-                            <p className="d-flex align-items-center mb-0">
-                                <Icon name="sofa" className="me-1 text-dark" />
-                                {reservation.tables}
-                            </p>
-                            <span className="even-line" />
-                            <p className="d-flex align-items-center mb-0">
-                                <Icon name="users-round" className="me-1 text-dark" />
-                                {reservation.guests}
-                            </p>
-                        </div>
-                    </div>
-                </div>
-                <div>
-                    <Badge bg={''} className={`badge-soft-${reservation.statusVariant}`}>
-                        {reservation.status}
-                    </Badge>
+const loadingSkeleton = (
+    <div className="d-flex flex-column gap-3 py-3">
+        {[1, 2, 3, 4].map((i) => (
+            <div key={i} className="d-flex align-items-center gap-3">
+                <Skeleton width={56} height={56} borderRadius="10px" className="flex-shrink-0" />
+                <div className="flex-grow-1">
+                    <Skeleton width="60%" height={14} className="mb-2" />
+                    <Skeleton width="40%" height={12} />
                 </div>
             </div>
         ))}
-    </SectionCard>
+    </div>
 );
+
+const ReservationsCard = memo(({ reservations, isLoading, errorMessage }: ReservationsCardProps) => {
+    const isEmpty = !isLoading && !errorMessage && reservations.length === 0;
+
+    return (
+        <DashboardCardShell
+            icon="file-clock"
+            title="Reservations"
+            bodyClassName="pb-1"
+            isLoading={isLoading}
+            errorMessage={errorMessage}
+            isEmpty={isEmpty}
+            emptyMessage="No upcoming reservations"
+            loadingSkeleton={loadingSkeleton}
+            filterOptions={[
+                { label: 'All Orders' },
+                { label: 'Pending' },
+                { label: 'In Progress' },
+                { label: 'Completed' },
+                { label: 'Cancelled' },
+            ]}
+            activeFilterLabel="All Orders"
+        >
+            {reservations.map((reservation) => (
+                <div key={reservation.id} className="reservation-item">
+                    <div className="reservation-date-block">
+                        <p className="text-white fw-bold mb-0 fs-14 lh-1">
+                            {reservation.day}
+                            <span className="fs-11 fw-normal d-block mt-1 opacity-75">{reservation.year}</span>
+                        </p>
+                    </div>
+                    <div className="flex-grow-1 min-w-0">
+                        <h6 className="mb-1 fw-semibold fs-13 text-truncate">{reservation.customerName}</h6>
+                        <div className="d-flex align-items-center flex-wrap gap-2">
+                            <span className="d-inline-flex align-items-center gap-1 fs-12 text-muted">
+                                <Icon name="clock" style={{ fontSize: '11px' }} />
+                                {reservation.time}
+                            </span>
+                            <span className="text-muted" style={{ fontSize: '8px' }}>|</span>
+                            <span className="d-inline-flex align-items-center gap-1 fs-12 text-muted">
+                                <Icon name="sofa" style={{ fontSize: '11px' }} />
+                                {reservation.tables} Table
+                            </span>
+                            <span className="text-muted" style={{ fontSize: '8px' }}>|</span>
+                            <span className="d-inline-flex align-items-center gap-1 fs-12 text-muted">
+                                <Icon name="users-round" style={{ fontSize: '11px' }} />
+                                {reservation.guests}
+                            </span>
+                        </div>
+                    </div>
+                    <Badge bg="" className={`badge-soft-${reservation.statusVariant} badge-dashboard flex-shrink-0`}>
+                        {reservation.status}
+                    </Badge>
+                </div>
+            ))}
+        </DashboardCardShell>
+    );
+});
 
 export default ReservationsCard;
