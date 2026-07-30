@@ -49,6 +49,7 @@ export const ROUTE_PERMISSION_MAP: Record<string, string> = {
     '/delivery-settings': 'Settings',
     '/notifications-settings': 'Settings',
     '/integrations-settings': 'Settings',
+    '/approval-requests': 'Manage Staffs',
 };
 
 /** Public routes that don't require authentication */

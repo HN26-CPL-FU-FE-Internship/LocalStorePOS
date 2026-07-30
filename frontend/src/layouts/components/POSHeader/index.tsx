@@ -31,7 +31,7 @@ const POSHeader = () => {
             <Container fluid className={cx('container-fluid')}>
                 <div className="header-menu">
                     <div className="header-logo">
-                        <Link to={routes.dashboard} className="logo-dark">
+                        <Link to={routes.dashboard} className="logo-dark"   >
                             <img src={logo} alt="logo" className="img-fluid" />
                         </Link>
                         <Link to={routes.dashboard} className="logo-light">

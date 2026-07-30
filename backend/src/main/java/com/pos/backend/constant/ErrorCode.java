@@ -58,6 +58,9 @@ public enum ErrorCode {
         CUSTOMER_NOT_FOUND(1037, HttpStatus.NOT_FOUND, "Customer not found."),
         WAITER_NOT_FOUND(1037, HttpStatus.NOT_FOUND, "Waiter not found."),
         ORDER_CANNOT_BE_EDITED(1038, HttpStatus.BAD_REQUEST, "Only unpaid pending orders can be edited."),
+        APPROVAL_REQUEST_NOT_FOUND(1039, HttpStatus.NOT_FOUND, "Approval request not found"),
+        APPROVAL_REQUEST_ALREADY_RESOLVED(1040, HttpStatus.BAD_REQUEST, "Approval request has already been resolved"),
+        NOTIFICATION_NOT_FOUND(1041, HttpStatus.NOT_FOUND, "Notification not found"),
         ;
 
         int code;

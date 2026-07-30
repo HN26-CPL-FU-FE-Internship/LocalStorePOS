@@ -20,6 +20,7 @@ import Users from '@/pages/Users';
 import Permissions from '@/pages/Permissions';
 import Addons from '@/pages/Addons';
 import Coupons from '@/pages/Coupons';
+import ApprovalRequests from '@/pages/ApprovalRequests';
 import StoreSettingsPage from '@/pages/Settings/StoreSettings';
 import TaxSettingsPage from '@/pages/Settings/TaxSettings';
 import PrintSettingsPage from '@/pages/Settings/PrintSettings';
@@ -50,6 +51,7 @@ export const publicRoutes = [
     { path: configs.routes.payments, component: Reservation, layout: AppLayout },
     { path: configs.routes.users, component: Users, layout: AppLayout },
     { path: configs.routes['role-permissions'], component: Permissions, layout: AppLayout },
+    { path: configs.routes['approval-requests'], component: ApprovalRequests, layout: AppLayout },
     { path: configs.routes['earning-reports'], component: Reports, layout: AppLayout },
     { path: configs.routes['order-reports'], component: Reports, layout: AppLayout },
     { path: configs.routes['sale-reports'], component: Reports, layout: AppLayout },

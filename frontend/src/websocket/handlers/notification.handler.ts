@@ -1,0 +1,24 @@
+import { queryClient } from '@/lib';
+import type { IMessage } from '@stomp/stompjs';
+
+const handleNotificationEvent = (message: IMessage) => {
+    try {
+        const event = JSON.parse(message.body);
+
+        // Invalidate notification queries to refresh the list and unread count
+        queryClient.invalidateQueries({
+            queryKey: ['notifications'],
+        });
+
+        // If there's an approval request update, also invalidate approval queries
+        if (event?.title?.toLowerCase().includes('yêu cầu') || event?.title?.toLowerCase().includes('approval')) {
+            queryClient.invalidateQueries({
+                queryKey: ['approval-requests'],
+            });
+        }
+    } catch (error) {
+        console.error('Failed to parse notification event:', error);
+    }
+};
+
+export default handleNotificationEvent;

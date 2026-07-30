@@ -128,6 +128,7 @@ export const sidebarTabs: SidebarTab[] = [
                     { id: 'users', label: 'Users', icon: 'users', href: routes.users },
                     { id: 'role-permission', label: 'Permissions', icon: 'shield', href: routes['role-permissions'] },
                     { id: 'reports', label: 'Reports', icon: 'file-spreadsheet', href: routes['earning-reports'] },
+                    { id: 'approval-requests', label: 'Approval Requests', icon: 'clipboard-check', href: routes['approval-requests'] },
                 ],
             },
         ],
