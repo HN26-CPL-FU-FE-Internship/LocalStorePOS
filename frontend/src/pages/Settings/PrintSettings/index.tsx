@@ -37,6 +37,7 @@ const PrintSettingsPage = () => {
         }
     }, []);
 
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     useEffect(() => { loadSetting(); }, [loadSetting]);
     useEffect(() => {
         if (!success) return;
