@@ -221,20 +221,20 @@ const TablesPage = () => {
         }
     };
 
-    const openDeleteTable = (table: TableEntry) => {
-        setCurrentTable(table);
-        setShowDeleteTableApproval(true);
-    };
+    // const openDeleteTable = (table: TableEntry) => {
+    //     setCurrentTable(table);
+    //     setShowDeleteTableApproval(true);
+    // };
 
-    const handleMarkOccupied = async (table: TableEntry) => {
-        try {
-            await updateTableStatus(table.id, 'occupied');
-            setNotice(`Table ${table.tableNumber} marked as Occupied.`);
-            await loadTables();
-        } catch (err) {
-            setError(extractErrorMessage(err, 'Unable to update table status.'));
-        }
-    };
+    // const handleMarkOccupied = async (table: TableEntry) => {
+    //     try {
+    //         await updateTableStatus(table.id, 'occupied');
+    //         setNotice(`Table ${table.tableNumber} marked as Occupied.`);
+    //         await loadTables();
+    //     } catch (err) {
+    //         setError(extractErrorMessage(err, 'Unable to update table status.'));
+    //     }
+    // };
 
     const handleFreeTable = async (table: TableEntry) => {
         try {
