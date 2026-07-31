@@ -38,6 +38,7 @@ import com.pos.backend.repository.OrderRepository;
 import com.pos.backend.repository.PaymentMethodRepository;
 import com.pos.backend.repository.PaymentRepository;
 import com.pos.backend.repository.RestaurantTableRepository;
+import com.pos.backend.service.NotificationService;
 import com.pos.backend.service.WebSocket.WebSocketService;
 import com.pos.backend.ws.WebSocketEvent;
 import com.pos.backend.ws.WebSocketPaymentEvent;
@@ -55,6 +56,7 @@ public class QrPaymentServiceImpl implements QrPaymentService {
     private final RestaurantTableRepository restaurantTableRepository;
     private final OrderMapper orderMapper;
     private final WebSocketService webSocketService;
+    private final NotificationService notificationService;
 
     @Value("${app.qr-payment.base-url:https://advertising-royal-temp-experimental.trycloudflare.com/restaurant-pos}")
     private String qrPaymentBaseUrl;
@@ -169,6 +171,11 @@ public class QrPaymentServiceImpl implements QrPaymentService {
                 .type(EventType.ORDER_UPDATED)
                 .data(orderResponse)
                 .build());
+
+        notificationService.notifyPaymentEvent(
+                "QR Payment Successful",
+                "Order #" + order.getOrderNumber() + " paid $" + payment.getAmount() + " via QR",
+                payment.getId());
 
         return QrPaymentConfirmResponse.builder()
                 .status("SUCCESS")

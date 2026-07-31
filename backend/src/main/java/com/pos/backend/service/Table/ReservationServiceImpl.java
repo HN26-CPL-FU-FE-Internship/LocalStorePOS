@@ -17,6 +17,7 @@ import com.pos.backend.exception.AppException;
 import com.pos.backend.repository.CustomerRepository;
 import com.pos.backend.repository.ReservationRepository;
 import com.pos.backend.repository.RestaurantTableRepository;
+import com.pos.backend.service.NotificationService;
 
 import lombok.RequiredArgsConstructor;
 
@@ -27,6 +28,7 @@ public class ReservationServiceImpl implements ReservationService {
     private final ReservationRepository reservationRepository;
     private final CustomerRepository customerRepository;
     private final RestaurantTableRepository restaurantTableRepository;
+    private final NotificationService notificationService;
 
     @Override
     @Transactional(readOnly = true)
@@ -37,11 +39,8 @@ public class ReservationServiceImpl implements ReservationService {
     @Override
     @Transactional
     public ReservationResponse createReservation(ReservationRequest request) {
-        Customer customer = customerRepository.findById(request.getCustomerId())
-                .orElseThrow(() -> new AppException(ErrorCode.CUSTOMER_NOT_FOUND));
-
-        RestaurantTable table = restaurantTableRepository.findById(request.getTableId())
-                .orElseThrow(() -> new AppException(ErrorCode.RESTAURANT_TABLE_NOT_FOUND));
+        Customer customer = findCustomerOrThrow(request.getCustomerId());
+        RestaurantTable table = findTableOrThrow(request.getTableId());
 
         Reservation reservation = Reservation.builder()
                 .customer(customer)
@@ -57,6 +56,9 @@ public class ReservationServiceImpl implements ReservationService {
         restaurantTableRepository.save(table);
 
         reservation = reservationRepository.save(reservation);
+
+        notifyReservation("New Reservation", "booked table", reservation, customer, table);
+
         return toResponse(reservation);
     }
 
@@ -65,11 +67,8 @@ public class ReservationServiceImpl implements ReservationService {
     public ReservationResponse updateReservation(Long id, ReservationRequest request) {
         Reservation reservation = findOrThrow(id);
 
-        Customer customer = customerRepository.findById(request.getCustomerId())
-                .orElseThrow(() -> new AppException(ErrorCode.CUSTOMER_NOT_FOUND));
-
-        RestaurantTable table = restaurantTableRepository.findById(request.getTableId())
-                .orElseThrow(() -> new AppException(ErrorCode.RESTAURANT_TABLE_NOT_FOUND));
+        Customer customer = findCustomerOrThrow(request.getCustomerId());
+        RestaurantTable table = findTableOrThrow(request.getTableId());
 
         reservation.setCustomer(customer);
         reservation.setTable(table);
@@ -82,7 +81,30 @@ public class ReservationServiceImpl implements ReservationService {
         }
 
         reservation = reservationRepository.save(reservation);
+
+        notifyReservation("Reservation Updated", "updated reservation for table", reservation, customer, table);
+
         return toResponse(reservation);
+    }
+
+    private Customer findCustomerOrThrow(Long customerId) {
+        return customerRepository.findById(customerId)
+                .orElseThrow(() -> new AppException(ErrorCode.CUSTOMER_NOT_FOUND));
+    }
+
+    private RestaurantTable findTableOrThrow(Long tableId) {
+        return restaurantTableRepository.findById(tableId)
+                .orElseThrow(() -> new AppException(ErrorCode.RESTAURANT_TABLE_NOT_FOUND));
+    }
+
+    private void notifyReservation(String title, String action, Reservation reservation,
+            Customer customer, RestaurantTable table) {
+        notificationService.notifyReservationEvent(
+                title,
+                customer.getName() + " " + action + " " + table.getTableNumber()
+                        + " - " + reservation.getGuests() + " guests"
+                        + " at " + reservation.getReservationTime(),
+                reservation.getId());
     }
 
     @Override
@@ -99,6 +121,21 @@ public class ReservationServiceImpl implements ReservationService {
         }
 
         reservation = reservationRepository.save(reservation);
+
+        String statusLabel = switch (status) {
+            case booked -> "booked";
+            case seated -> "seated";
+            case cancelled -> "cancelled";
+            case completed -> "completed";
+            case paid -> "paid";
+        };
+
+        notificationService.notifyReservationEvent(
+                "Reservation Status Changed",
+                "Reservation #" + reservation.getId() + " - Table " + reservation.getTable().getTableNumber()
+                        + " changed to status " + statusLabel,
+                reservation.getId());
+
         return toResponse(reservation);
     }
 

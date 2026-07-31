@@ -27,6 +27,7 @@ import com.pos.backend.exception.AppException;
 import com.pos.backend.repository.OrderItemAddonRepository;
 import com.pos.backend.repository.OrderItemRepository;
 import com.pos.backend.repository.OrderRepository;
+import com.pos.backend.service.NotificationService;
 import com.pos.backend.service.Order.OrderCommonService;
 import com.pos.backend.service.WebSocket.WebSocketService;
 import com.pos.backend.ws.WebSocketEvent;
@@ -45,6 +46,7 @@ public class KitchenService {
     OrderItemAddonRepository orderItemAddonRepository;
     OrderCommonService orderCommonService;
     WebSocketService webSocketService;
+    NotificationService notificationService;
 
     public Map<String, Long> getKitchenStats() {
 
@@ -67,7 +69,10 @@ public class KitchenService {
         Page<Order> orders = orderRepository.findAll(pageable);
         List<Long> orderIds = orders.stream().map(order -> order.getId()).toList();
 
-        List<OrderItem> orderItems = orderItemRepository.findByOrderIdIn(orderIds);
+        // Do not show items that were cancelled (e.g. removed when editing the order)
+        List<OrderItem> orderItems = orderItemRepository.findByOrderIdIn(orderIds).stream()
+                .filter(item -> item.getStatus() != OrderItemStatus.cancelled)
+                .toList();
         List<Long> orderItemIds = orderItems.stream().map(item -> item.getId()).toList();
 
         List<OrderItemAddon> addons = orderItemAddonRepository.findByOrderItemIdIn(orderItemIds);
@@ -110,6 +115,12 @@ public class KitchenService {
                 .type(EventType.ORDER_UPDATED)
                 .data(response)
                 .build());
+
+        notificationService.notifyOrderEvent(
+                "Cooking Started",
+                "Order #" + order.getOrderNumber() + " started cooking - Estimated " + request.getEstimatedMinutes() + " minutes",
+                order.getId());
+
         return response;
     }
 
@@ -127,6 +138,12 @@ public class KitchenService {
                 .type(EventType.ORDER_UPDATED)
                 .data(response)
                 .build());
+
+        notificationService.notifyOrderEvent(
+                "Order Ready",
+                "Order #" + order.getOrderNumber() + " is complete - Ready to serve",
+                order.getId());
+
         return response;
     }
 
@@ -144,6 +161,12 @@ public class KitchenService {
                 .type(EventType.ORDER_UPDATED)
                 .data(response)
                 .build());
+
+        notificationService.notifyOrderEvent(
+                "Order Delayed",
+                "Order #" + order.getOrderNumber() + " is delayed - Please pay attention",
+                order.getId());
+
         return response;
     }
 
