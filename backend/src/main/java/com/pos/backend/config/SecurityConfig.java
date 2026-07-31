@@ -37,7 +37,8 @@ import lombok.experimental.FieldDefaults;
 @FieldDefaults(level = AccessLevel.PRIVATE)
 public class SecurityConfig {
 
-    final String[] publicEndPoints = { "/api/auth/login", "/api/auth/register", "/api/auth/refresh" };
+    final String[] publicEndPoints = { "/api/auth/login", "/api/auth/register", "/api/auth/refresh",
+            "/api/payments/*/confirm", "/api/payments/*/cancel" };
 
     final JwtAuthenticationEntryPoint jwtAuthenticationEntryPoint;
     final JwtAccessDeniedHandler jwtAccessDeniedHandler;
@@ -50,6 +51,7 @@ public class SecurityConfig {
 
         httpSecurity.authorizeHttpRequests(request -> request
                 .requestMatchers(HttpMethod.POST, publicEndPoints).permitAll()
+                .requestMatchers(HttpMethod.GET, "/api/payments/*").permitAll()
                 .requestMatchers("/uploads/**").permitAll()
                 .requestMatchers("/ws/**").permitAll()
                 .anyRequest().authenticated());
@@ -78,7 +80,8 @@ public class SecurityConfig {
 
         configuration.setAllowedOrigins(List.of(
                 "http://localhost:5173",
-                "http://localhost:3000"));
+                "http://localhost:3000",
+                "https://advertising-royal-temp-experimental.trycloudflare.com"));
         configuration.setAllowedMethods(List.of(
                 "GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
         configuration.setAllowedHeaders(List.of(

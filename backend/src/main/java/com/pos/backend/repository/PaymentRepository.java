@@ -9,6 +9,8 @@ import org.springframework.data.repository.query.Param;
 import com.pos.backend.constant.enums.PaymentStatus;
 import com.pos.backend.entity.Payment;
 
+import java.util.Optional;
+
 public interface PaymentRepository extends JpaRepository<Payment, Long> {
 
     @Query("""
@@ -25,4 +27,6 @@ public interface PaymentRepository extends JpaRepository<Payment, Long> {
             @Param("search") String search,
             @Param("status") PaymentStatus status,
             Pageable pageable);
+
+    Optional<Payment> findByPaymentCode(String paymentCode);
 }
