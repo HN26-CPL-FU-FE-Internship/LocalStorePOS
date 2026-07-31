@@ -82,14 +82,14 @@ describe('PaymentExtra', () => {
     // ── Icon checks ──────────────────────────────────────────────────
 
     it('renders a plus icon inside the Add button', () => {
-        const { container } = render(<PaymentExtra label="Discount" />);
+        render(<PaymentExtra label="Discount" />);
         const addBtn = screen.getByRole('button', { name: /add/i });
         expect(addBtn.querySelector('.lucide-plus')).toBeInTheDocument();
     });
 
     it('renders an X icon inside the Remove button', () => {
         const onRemove = vi.fn();
-        const { container } = render(<PaymentExtra label="Discount" valueText="$10.00" onRemove={onRemove} />);
+        render(<PaymentExtra label="Discount" valueText="$10.00" onRemove={onRemove} />);
         const removeBtn = screen.getByRole('button', { name: /remove/i });
         expect(removeBtn.querySelector('.lucide-x')).toBeInTheDocument();
     });

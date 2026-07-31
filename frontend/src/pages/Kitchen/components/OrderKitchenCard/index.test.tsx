@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import React from 'react';
@@ -6,7 +7,7 @@ import type { OrderSummary } from '@/types';
 
 // ── Mock child components ──────────────────────────────────────────
 vi.mock('./MinutesInputModal', () => ({
-    default: ({ show, onConfirm, onHide, isLoading, minutesInput, onMinutesChange, orderNumber, customerName }: any) =>
+    default: ({ show, onConfirm, onHide, isLoading, minutesInput, orderNumber, customerName }: any) =>
         show
             ? React.createElement('div', { 'data-testid': 'minutes-modal' },
                 React.createElement('span', null, `MinutesInputModal: ${customerName} - ${orderNumber}`),
