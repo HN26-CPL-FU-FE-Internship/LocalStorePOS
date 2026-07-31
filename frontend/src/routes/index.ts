@@ -20,6 +20,11 @@ import Users from '@/pages/Users';
 import Permissions from '@/pages/Permissions';
 import Addons from '@/pages/Addons';
 import Coupons from '@/pages/Coupons';
+import Tables from '@/pages/Tables';
+import Customers from '@/pages/Customers';
+import Invoices from '@/pages/Invoices';
+import InvoiceDetails from '@/pages/InvoiceDetails';
+import Payments from '@/pages/Payments';
 import ApprovalRequests from '@/pages/ApprovalRequests';
 import StoreSettingsPage from '@/pages/Settings/StoreSettings';
 import TaxSettingsPage from '@/pages/Settings/TaxSettings';
@@ -45,10 +50,11 @@ export const publicRoutes = [
     { path: configs.routes.items, component: Items, layout: AppLayout },
     { path: configs.routes.addons, component: Addons, layout: AppLayout },
     { path: configs.routes.coupons, component: Coupons, layout: AppLayout },
-    { path: configs.routes.tables, component: Reservation, layout: AppLayout },
-    { path: configs.routes.customers, component: Reservation, layout: AppLayout },
-    { path: configs.routes.invoices, component: Reservation, layout: AppLayout },
-    { path: configs.routes.payments, component: Reservation, layout: AppLayout },
+    { path: configs.routes.tables, component: Tables, layout: AppLayout },
+    { path: configs.routes.customers, component: Customers, layout: AppLayout },
+    { path: configs.routes.invoices, component: Invoices, layout: AppLayout },
+    { path: configs.routes.invoiceDetails, component: InvoiceDetails, layout: AppLayout },
+    { path: configs.routes.payments, component: Payments, layout: AppLayout },
     { path: configs.routes.users, component: Users, layout: AppLayout },
     { path: configs.routes['role-permissions'], component: Permissions, layout: AppLayout },
     { path: configs.routes['approval-requests'], component: ApprovalRequests, layout: AppLayout },
