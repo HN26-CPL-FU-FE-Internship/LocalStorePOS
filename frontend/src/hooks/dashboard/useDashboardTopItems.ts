@@ -1,14 +1,13 @@
 import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import { getTopSellingItems, type DashboardFilterRequest } from '@/api/dashboard.api';
+import { DASHBOARD_QUERY_KEYS } from '@/constants/dashboard';
 import type { TopSellingItem, BootstrapVariant } from '@/types';
-
-export const DASHBOARD_TOP_ITEMS_QUERY_KEY = 'dashboard-top-items';
 
 const ITEM_COLORS: BootstrapVariant[] = ['primary', 'primary', 'secondary', 'success', 'purple'];
 
 const useDashboardTopItems = (filter: DashboardFilterRequest = {}, limit = 5) => {
     const { data, isLoading, isError, isFetching } = useQuery({
-        queryKey: [DASHBOARD_TOP_ITEMS_QUERY_KEY, filter, limit],
+        queryKey: [...DASHBOARD_QUERY_KEYS.topItems, filter, limit],
         queryFn: () => getTopSellingItems(filter, limit),
         staleTime: 1000 * 60 * 2,
         placeholderData: keepPreviousData,

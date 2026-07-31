@@ -1,11 +1,10 @@
 import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import { getRevenueChart, type DashboardFilterRequest } from '@/api/dashboard.api';
-
-export const DASHBOARD_REVENUE_CHART_QUERY_KEY = 'dashboard-revenue-chart';
+import { DASHBOARD_QUERY_KEYS } from '@/constants/dashboard';
 
 const useDashboardRevenueChart = (filter: DashboardFilterRequest = {}) => {
     const { data, isLoading, isError, isFetching } = useQuery({
-        queryKey: [DASHBOARD_REVENUE_CHART_QUERY_KEY, filter],
+        queryKey: [...DASHBOARD_QUERY_KEYS.revenueChart, filter],
         queryFn: () => getRevenueChart(filter),
         staleTime: 1000 * 60 * 2,
         placeholderData: keepPreviousData,

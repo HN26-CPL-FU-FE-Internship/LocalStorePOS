@@ -1,12 +1,11 @@
 import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import { getCategoryStats, type DashboardFilterRequest } from '@/api/dashboard.api';
+import { DASHBOARD_QUERY_KEYS } from '@/constants/dashboard';
 import type { CategoryStat } from '@/types';
-
-export const DASHBOARD_CATEGORY_STATS_QUERY_KEY = 'dashboard-category-stats';
 
 const useDashboardCategoryStats = (filter: DashboardFilterRequest = {}) => {
     const { data, isLoading, isError, isFetching } = useQuery({
-        queryKey: [DASHBOARD_CATEGORY_STATS_QUERY_KEY, filter],
+        queryKey: [...DASHBOARD_QUERY_KEYS.categoryStats, filter],
         queryFn: () => getCategoryStats(filter),
         staleTime: 1000 * 60 * 2,
         placeholderData: keepPreviousData,

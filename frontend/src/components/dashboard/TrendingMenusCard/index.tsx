@@ -6,6 +6,7 @@ import Skeleton from '@/components/common/Skeleton';
 import { DashboardCardShell } from '../common';
 import type { TrendingMenu } from '../../../types';
 import { getCategoryImageUrl } from '@/api/category.api';
+import { Link } from 'react-router-dom';
 
 export interface TrendingMenusCardProps {
     menus: TrendingMenu[];
@@ -54,17 +55,19 @@ const TrendingMenusCard = memo(({ menus, isLoading, errorMessage }: TrendingMenu
                     <Col md={4} sm={6} key={menu.id}>
                         <div className="trending-menu-item">
                             <div className="trending-menu-img-wrap">
-                                <a href="/items">
+                                <Link to="/items">
                                     <img
                                         src={getCategoryImageUrl(menu.imageUrl)}
                                         alt={menu.name}
                                         className="trending-menu-img"
                                     />
-                                </a>
+                                </Link>
                             </div>
                             <div>
                                 <h6 className="fs-14 fw-semibold text-truncate mb-2">
-                                    <a href="/items" className="text-decoration-none text-dark">{menu.name}</a>
+                                    <a href="/items" className="text-decoration-none text-dark">
+                                        {menu.name}
+                                    </a>
                                 </h6>
                                 <div className="d-flex align-items-center justify-content-between">
                                     <span className="fs-12 text-muted fw-medium">Orders : {menu.orders}</span>

@@ -1,5 +1,6 @@
 import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import { getUserStatistics, type DashboardFilterRequest } from '@/api/dashboard.api';
+import { DASHBOARD_QUERY_KEYS } from '@/constants/dashboard';
 import type { AvatarStackItem } from '@/types';
 
 export interface DashboardUserStatsData {
@@ -14,11 +15,10 @@ export interface DashboardUserStatsData {
     newUsersChart: { label: string; value: number }[];
 }
 
-const DASHBOARD_USER_STATISTICS_QUERY_KEY = 'dashboard-user-statistics';
 
 const useDashboardUserStatistics = (filter: DashboardFilterRequest = {}) => {
     const { data, isLoading, isError, isFetching } = useQuery({
-        queryKey: [DASHBOARD_USER_STATISTICS_QUERY_KEY, filter],
+        queryKey: [...DASHBOARD_QUERY_KEYS.userStatistics, filter],
         queryFn: () => getUserStatistics(filter),
         staleTime: 1000 * 60 * 2,
         placeholderData: keepPreviousData,

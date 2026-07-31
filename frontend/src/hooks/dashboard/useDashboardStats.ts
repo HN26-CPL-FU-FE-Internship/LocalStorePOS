@@ -1,9 +1,7 @@
 import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import { getDashboardStats, getSalesPerformance, type DashboardFilterRequest } from '@/api/dashboard.api';
+import { DASHBOARD_QUERY_KEYS } from '@/constants/dashboard';
 import type { StatCardData } from '@/types';
-import { DASHBOARD_SALES_PERFORMANCE_QUERY_KEY } from './useDashboardSalesPerformance';
-
-export const DASHBOARD_STATS_QUERY_KEY = 'dashboard-stats';
 
 const useDashboardStats = (filter: DashboardFilterRequest = {}) => {
     const {
@@ -12,7 +10,7 @@ const useDashboardStats = (filter: DashboardFilterRequest = {}) => {
         isError: statsError,
         isFetching: statsFetching,
     } = useQuery({
-        queryKey: [DASHBOARD_STATS_QUERY_KEY, filter],
+        queryKey: [...DASHBOARD_QUERY_KEYS.stats, filter],
         queryFn: () => getDashboardStats(filter),
         staleTime: 1000 * 60 * 2,
         placeholderData: keepPreviousData,
@@ -24,7 +22,7 @@ const useDashboardStats = (filter: DashboardFilterRequest = {}) => {
         isError: perfError,
         isFetching: isPerfFetching,
     } = useQuery({
-        queryKey: [DASHBOARD_SALES_PERFORMANCE_QUERY_KEY, filter],
+        queryKey: [...DASHBOARD_QUERY_KEYS.salesPerformance, filter],
         queryFn: () => getSalesPerformance(filter),
         staleTime: 1000 * 60 * 2,
         placeholderData: keepPreviousData,

@@ -1,12 +1,11 @@
 import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import { getSalesPerformance, type DashboardFilterRequest } from '@/api/dashboard.api';
+import { DASHBOARD_QUERY_KEYS } from '@/constants/dashboard';
 import type { SalesSummaryItem } from '@/types';
-
-export const DASHBOARD_SALES_PERFORMANCE_QUERY_KEY = 'dashboard-sales-performance';
 
 const useDashboardSalesPerformance = (filter: DashboardFilterRequest = {}) => {
     const { data, isLoading, isError, isFetching } = useQuery({
-        queryKey: [DASHBOARD_SALES_PERFORMANCE_QUERY_KEY, filter],
+        queryKey: [...DASHBOARD_QUERY_KEYS.salesPerformance, filter],
         queryFn: () => getSalesPerformance(filter),
         staleTime: 1000 * 60 * 2,
         placeholderData: keepPreviousData,

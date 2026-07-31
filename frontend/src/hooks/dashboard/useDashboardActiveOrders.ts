@@ -1,12 +1,11 @@
 import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import { getActiveOrders } from '@/api/dashboard.api';
+import { DASHBOARD_QUERY_KEYS } from '@/constants/dashboard';
 import type { ActiveOrder } from '@/types';
-
-export const DASHBOARD_ACTIVE_ORDERS_QUERY_KEY = 'dashboard-active-orders';
 
 const useDashboardActiveOrders = (limit = 5) => {
     const { data, isLoading, isError, isFetching } = useQuery({
-        queryKey: [DASHBOARD_ACTIVE_ORDERS_QUERY_KEY, limit],
+        queryKey: [...DASHBOARD_QUERY_KEYS.activeOrders, limit],
         queryFn: () => getActiveOrders(limit),
         staleTime: 1000 * 60 * 2,
         placeholderData: keepPreviousData,
