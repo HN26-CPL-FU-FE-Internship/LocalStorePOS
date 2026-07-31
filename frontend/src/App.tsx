@@ -37,7 +37,6 @@ function App() {
 
                         const Page = route.component;
                         const isPublic = PUBLIC_ROUTES.includes(route.path);
-                        console.log(isPublic);
                         return (
                             <Route
                                 key={index}

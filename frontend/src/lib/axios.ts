@@ -3,7 +3,6 @@ import { tokenUtils } from '@/utils';
 import type { ApiResponse, LoginResponse } from '@/types/auth';
 
 const BASE_URL = import.meta.env.VITE_API_QUICK_URL;
-console.log(import.meta.env);
 export const api = axios.create({
     baseURL: BASE_URL,
 });
