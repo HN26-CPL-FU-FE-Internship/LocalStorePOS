@@ -37,10 +37,10 @@ const statusLabel: Record<TableStatus, string> = {
 };
 
 const reservationBadgeClass: Record<string, string> = {
-    booked: 'badge-soft-success',
-    seated: 'badge-soft-warning',
+    booked: 'badge-soft-warning',
+    seated: 'badge-soft-danger',
     completed: 'badge-soft-info',
-    cancelled: 'badge-soft-danger',
+    cancelled: 'badge-soft-secondary',
     paid: 'badge-soft-purple',
 };
 
@@ -253,6 +253,7 @@ const TablesPage = () => {
         try {
             await updateTableStatus(table.id, 'available');
             setNotice(`Đã chuyển bàn ${table.tableNumber} sang Available.`);
+            setShowReservationInfo(false);
             await loadTables();
         } catch (err) {
             setError(extractErrorMessage(err, 'Không thể cập nhật trạng thái bàn.'));
@@ -295,6 +296,11 @@ const TablesPage = () => {
 
     const handleReserve = async () => {
         if (!currentTable) return;
+
+        if (new Date(reservationForm.reservationTime).getTime() < Date.now()) {
+            return;
+        }
+
         setSaving(true);
         setError(null);
         try {
@@ -306,6 +312,11 @@ const TablesPage = () => {
                 notes: reservationForm.notes || undefined,
                 status: reservationForm.status,
             });
+            if (reservationForm.status === 'booked') {
+                await updateTableStatus(currentTable.id, 'booked');
+            } else if (reservationForm.status === 'seated') {
+                await updateTableStatus(currentTable.id, 'occupied');
+            }
             setShowReserve(false);
             setCurrentTable(null);
             setNotice('Đặt bàn thành công.');
@@ -336,6 +347,11 @@ const TablesPage = () => {
 
     const handleEditReservation = async () => {
         if (!currentReservation) return;
+
+        if (new Date(reservationForm.reservationTime).getTime() < Date.now()) {
+            return;
+        }
+
         setSaving(true);
         setError(null);
         try {
@@ -369,6 +385,9 @@ const TablesPage = () => {
         setError(null);
         try {
             await deleteReservation(currentReservation.id);
+            if (currentReservation.status === 'booked' || currentReservation.status === 'seated') {
+                await updateTableStatus(currentReservation.tableId, 'available');
+            }
             setShowDeleteReservation(false);
             setCurrentReservation(null);
             setNotice('Xóa đặt bàn thành công.');
@@ -381,22 +400,20 @@ const TablesPage = () => {
         }
     };
 
-    const openReservationInfo = async (table: TableEntry) => {
+    const openReservationInfo = (table: TableEntry) => {
         setCurrentTable(table);
-        setCurrentReservation(null);
+        const activeRes = allReservations.find(r => r.tableId === table.id && (r.status === 'booked' || r.status === 'seated'));
+        setCurrentReservation(activeRes ?? null);
         setShowReservationInfo(true);
-        try {
-            const list = await getReservations({ tableId: table.id, status: 'booked' });
-            setCurrentReservation(list[0] ?? null);
-        } catch (err) {
-            setError(extractErrorMessage(err, 'Không thể tải thông tin đặt bàn.'));
-        }
     };
 
     const handleCancelReservation = async () => {
         if (!currentReservation) return;
         try {
             await updateReservationStatus(currentReservation.id, 'cancelled');
+            if (currentTable) {
+                await updateTableStatus(currentTable.id, 'available');
+            }
             setShowReservationInfo(false);
             setNotice('Đã hủy đặt bàn.');
             await loadTables();
@@ -417,6 +434,10 @@ const TablesPage = () => {
             setError(extractErrorMessage(err, 'Không thể cập nhật.'));
         }
     };
+
+    const now = new Date();
+    const todayStr = new Date(now.getTime() - (now.getTimezoneOffset() * 60000)).toISOString().split('T')[0];
+    const currentTimeStr = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
 
     return (
         <>
@@ -493,50 +514,18 @@ const TablesPage = () => {
                         const tableReservation = allReservations.find(r => r.tableId === table.id && (r.status === 'booked' || r.status === 'seated'));
                         return (
                             <Col xxl={3} lg={4} md={6} key={table.id}>
-                                <Card className="mb-4 text-center">
+                                <Card 
+                                    className="mb-4 text-center" 
+                                    style={{ cursor: 'pointer' }}
+                                    onClick={() => {
+                                        if (table.status === 'available') {
+                                            openReserve(table);
+                                        } else {
+                                            openReservationInfo(table);
+                                        }
+                                    }}
+                                >
                                     <Card.Body className="position-relative">
-                                        <div className="position-absolute top-0 end-0 p-2">
-                                            <Dropdown align="end">
-                                                <Dropdown.Toggle as="a" className="text-dark" style={{ cursor: 'pointer' }}>
-                                                    <Icon name="ellipsis-vertical" />
-                                                </Dropdown.Toggle>
-                                                <Dropdown.Menu>
-                                                    {table.status === 'available' && (
-                                                        <Dropdown.Item onClick={() => openReserve(table)}>
-                                                            <Icon name="calendar-plus" className="me-2" />
-                                                            Reserve
-                                                        </Dropdown.Item>
-                                                    )}
-                                                    {(table.status === 'booked' || table.status === 'occupied') && tableReservation && (
-                                                        <Dropdown.Item onClick={() => openReservationInfo(table)}>
-                                                            <Icon name="eye" className="me-2" />
-                                                            View Reservation
-                                                        </Dropdown.Item>
-                                                    )}
-                                                    <Dropdown.Item onClick={() => openEditTable(table)}>
-                                                        <Icon name="pencil-line" className="me-2" />
-                                                        Edit
-                                                    </Dropdown.Item>
-                                                    {table.status === 'occupied' && (
-                                                        <Dropdown.Item onClick={() => handleFreeTable(table)}>
-                                                            <Icon name="check" className="me-2" />
-                                                            Mark Available
-                                                        </Dropdown.Item>
-                                                    )}
-                                                    {table.status === 'available' && (
-                                                        <Dropdown.Item onClick={() => handleMarkOccupied(table)}>
-                                                            <Icon name="users" className="me-2" />
-                                                            Mark Occupied
-                                                        </Dropdown.Item>
-                                                    )}
-                                                    <Dropdown.Item onClick={() => openDeleteTable(table)}>
-                                                        <Icon name="trash-2" className="me-2" />
-                                                        Delete
-                                                    </Dropdown.Item>
-                                                </Dropdown.Menu>
-                                            </Dropdown>
-                                        </div>
-
                                         <div className="mt-3 mb-4">
                                             <TableGraphic seats={table.seats} />
                                         </div>
@@ -785,19 +774,56 @@ const TablesPage = () => {
                                 ))}
                             </Form.Select>
                         </Form.Group>
-                        <Form.Group className="mb-3">
-                            <Form.Label>
-                                Reservation Time<span className="text-danger"> *</span>
-                            </Form.Label>
-                            <Form.Control
-                                type="datetime-local"
-                                value={reservationForm.reservationTime}
-                                onChange={(e) =>
-                                    setReservationForm((p) => ({ ...p, reservationTime: e.target.value }))
-                                }
-                                required
-                            />
-                        </Form.Group>
+                        <Row className="mb-3">
+                            <Col sm={6}>
+                                <Form.Group>
+                                    <Form.Label>
+                                        Date<span className="text-danger"> *</span>
+                                    </Form.Label>
+                                    <Form.Control
+                                        type="date"
+                                        min={todayStr}
+                                        value={reservationForm.reservationTime.split('T')[0] || ''}
+                                        onChange={(e) => {
+                                            const newDate = e.target.value;
+                                            let timePart = reservationForm.reservationTime.split('T')[1] || '12:00';
+                                            if (newDate === todayStr && timePart < currentTimeStr) {
+                                                timePart = currentTimeStr;
+                                            }
+                                            setReservationForm((p) => ({
+                                                ...p,
+                                                reservationTime: `${newDate}T${timePart}`
+                                            }));
+                                        }}
+                                        required
+                                    />
+                                </Form.Group>
+                            </Col>
+                            <Col sm={6}>
+                                <Form.Group>
+                                    <Form.Label>
+                                        Time<span className="text-danger"> *</span>
+                                    </Form.Label>
+                                    <Form.Control
+                                        type="time"
+                                        min={reservationForm.reservationTime.split('T')[0] === todayStr ? currentTimeStr : undefined}
+                                        value={reservationForm.reservationTime.split('T')[1] || ''}
+                                        onChange={(e) => {
+                                            let newTime = e.target.value;
+                                            const datePart = reservationForm.reservationTime.split('T')[0] || todayStr;
+                                            if (datePart === todayStr && newTime < currentTimeStr) {
+                                                newTime = currentTimeStr;
+                                            }
+                                            setReservationForm((p) => ({
+                                                ...p,
+                                                reservationTime: `${datePart}T${newTime}`
+                                            }));
+                                        }}
+                                        required
+                                    />
+                                </Form.Group>
+                            </Col>
+                        </Row>
                         <Form.Group className="mb-3">
                             <Form.Label>
                                 Guests<span className="text-danger"> *</span>
@@ -881,19 +907,56 @@ const TablesPage = () => {
                                 ))}
                             </Form.Select>
                         </Form.Group>
-                        <Form.Group className="mb-3">
-                            <Form.Label>
-                                Reservation Time<span className="text-danger"> *</span>
-                            </Form.Label>
-                            <Form.Control
-                                type="datetime-local"
-                                value={reservationForm.reservationTime}
-                                onChange={(e) =>
-                                    setReservationForm((p) => ({ ...p, reservationTime: e.target.value }))
-                                }
-                                required
-                            />
-                        </Form.Group>
+                        <Row className="mb-3">
+                            <Col sm={6}>
+                                <Form.Group>
+                                    <Form.Label>
+                                        Date<span className="text-danger"> *</span>
+                                    </Form.Label>
+                                    <Form.Control
+                                        type="date"
+                                        min={todayStr}
+                                        value={reservationForm.reservationTime.split('T')[0] || ''}
+                                        onChange={(e) => {
+                                            const newDate = e.target.value;
+                                            let timePart = reservationForm.reservationTime.split('T')[1] || '12:00';
+                                            if (newDate === todayStr && timePart < currentTimeStr) {
+                                                timePart = currentTimeStr;
+                                            }
+                                            setReservationForm((p) => ({
+                                                ...p,
+                                                reservationTime: `${newDate}T${timePart}`
+                                            }));
+                                        }}
+                                        required
+                                    />
+                                </Form.Group>
+                            </Col>
+                            <Col sm={6}>
+                                <Form.Group>
+                                    <Form.Label>
+                                        Time<span className="text-danger"> *</span>
+                                    </Form.Label>
+                                    <Form.Control
+                                        type="time"
+                                        min={reservationForm.reservationTime.split('T')[0] === todayStr ? currentTimeStr : undefined}
+                                        value={reservationForm.reservationTime.split('T')[1] || ''}
+                                        onChange={(e) => {
+                                            let newTime = e.target.value;
+                                            const datePart = reservationForm.reservationTime.split('T')[0] || todayStr;
+                                            if (datePart === todayStr && newTime < currentTimeStr) {
+                                                newTime = currentTimeStr;
+                                            }
+                                            setReservationForm((p) => ({
+                                                ...p,
+                                                reservationTime: `${datePart}T${newTime}`
+                                            }));
+                                        }}
+                                        required
+                                    />
+                                </Form.Group>
+                            </Col>
+                        </Row>
                         <Form.Group className="mb-3">
                             <Form.Label>
                                 Guests<span className="text-danger"> *</span>
@@ -968,33 +1031,58 @@ const TablesPage = () => {
             {/* ---- Reservation Info Modal ---- */}
             <Modal show={showReservationInfo} onHide={() => setShowReservationInfo(false)} centered>
                 <Modal.Header closeButton className="border-0 p-4 pb-3">
-                    <h4 className="modal-title">Reservation — {currentTable?.tableNumber}</h4>
+                    <h4 className="modal-title">{currentTable?.tableNumber} — Reservation</h4>
                 </Modal.Header>
                 <Modal.Body className="p-4 pt-1">
-                    {!currentReservation && <p className="text-muted mb-0">No active reservation found.</p>}
+                    {!currentReservation && (
+                        <div className="text-center py-4">
+                            <p className="text-muted mb-4">No active reservation found.</p>
+                            <Button 
+                                variant="outline-primary" 
+                                onClick={() => currentTable && handleFreeTable(currentTable)}
+                            >
+                                <Icon name="check" className="me-2" />
+                                Mark as Available
+                            </Button>
+                        </div>
+                    )}
                     {currentReservation && (
                         <>
-                            <p className="mb-2">
-                                <strong>Customer:</strong> {currentReservation.customerName} (
-                                {currentReservation.customerPhone})
-                            </p>
-                            <p className="mb-2">
-                                <strong>Time:</strong> {formatDateTime(currentReservation.reservationTime)}
-                            </p>
-                            <p className="mb-2">
-                                <strong>Guests:</strong> {currentReservation.guests}
-                            </p>
-                            {currentReservation.notes && (
-                                <p className="mb-3">
-                                    <strong>Notes:</strong> {currentReservation.notes}
-                                </p>
-                            )}
-                            <div className="d-flex gap-2 pt-2">
-                                <Button variant="light" className="w-100" onClick={handleCancelReservation}>
-                                    Cancel Reservation
+                            <div className="text-center mb-4">
+                                <Badge bg="" className={reservationBadgeClass[currentReservation.status] || 'badge-soft-primary'}>
+                                    {currentReservation.status.charAt(0).toUpperCase() + currentReservation.status.slice(1)}
+                                </Badge>
+                            </div>
+                            <div className="d-flex justify-content-between mb-2">
+                                <span className="text-warning">Customer</span>
+                                <span className="fw-medium text-dark">{currentReservation.customerName}</span>
+                            </div>
+                            <div className="d-flex justify-content-between mb-2">
+                                <span className="text-warning">Date</span>
+                                <span className="fw-medium text-dark">{new Date(currentReservation.reservationTime).toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' })}</span>
+                            </div>
+                            <div className="d-flex justify-content-between mb-2">
+                                <span className="text-warning">Time</span>
+                                <span className="fw-medium text-dark">{new Date(currentReservation.reservationTime).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}</span>
+                            </div>
+                            <div className="d-flex justify-content-between mb-2">
+                                <span className="text-warning">Guests</span>
+                                <span className="fw-medium text-dark">{currentReservation.guests}</span>
+                            </div>
+                            <div className="d-flex justify-content-between mb-4">
+                                <span className="text-warning">Seats</span>
+                                <span className="fw-medium text-dark">{currentTable?.seats}</span>
+                            </div>
+                            <div className="d-flex gap-2">
+                                <Button variant="outline-warning" className="w-100" onClick={() => {
+                                    setShowReservationInfo(false);
+                                    openEditReservation(currentReservation);
+                                }}>
+                                    <Icon name="pencil-line" size={16} className="me-2" />
+                                    Edit
                                 </Button>
-                                <Button variant="primary" className="w-100" onClick={handleSeatReservation}>
-                                    Seat Customer
+                                <Button variant="outline-danger" className="w-100" onClick={handleCancelReservation}>
+                                    Cancel
                                 </Button>
                             </div>
                         </>
