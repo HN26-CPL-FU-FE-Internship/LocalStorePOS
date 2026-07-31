@@ -35,16 +35,28 @@ public class NotificationService {
 
     /**
      * Get paginated notifications. If userId is null, get broadcast notifications.
+     * Supports optional date filtering via fromDate / toDate (ISO local-date strings).
      */
     @Transactional(readOnly = true)
-    public PageResponse<NotificationResponse> getNotifications(Long userId, int page, int size) {
+    public PageResponse<NotificationResponse> getNotifications(
+            Long userId, int page, int size,
+            String fromDate, String toDate) {
         PageRequest pageRequest = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createdAt"));
+
+        LocalDateTime from = (fromDate != null)
+                ? LocalDate.parse(fromDate).atStartOfDay()
+                : LocalDateTime.of(2020, 1, 1, 0, 0);
+        LocalDateTime to = (toDate != null)
+                ? LocalDate.parse(toDate).plusDays(1).atStartOfDay()
+                : LocalDateTime.of(2099, 12, 31, 23, 59);
 
         Page<Notification> notificationPage;
         if (userId != null) {
-            notificationPage = notificationRepository.findByUserIdOrderByCreatedAtDesc(userId, pageRequest);
+            notificationPage = notificationRepository.findByUserIdAndCreatedAtBetweenOrderByCreatedAtDesc(
+                    userId, from, to, pageRequest);
         } else {
-            notificationPage = notificationRepository.findByUserIsNullOrderByCreatedAtDesc(pageRequest);
+            notificationPage = notificationRepository.findByUserIsNullAndCreatedAtBetweenOrderByCreatedAtDesc(
+                    from, to, pageRequest);
         }
 
         return PageResponse.<NotificationResponse>builder()
@@ -56,6 +68,26 @@ public class NotificationService {
                 .first(notificationPage.isFirst())
                 .last(notificationPage.isLast())
                 .build();
+    }
+
+    /**
+     * Get all notifications from the last 2 days (no pagination).
+     */
+    @Transactional(readOnly = true)
+    public List<NotificationResponse> getRecentNotifications(Long userId) {
+        LocalDateTime from = LocalDateTime.now().minusDays(2);
+        LocalDateTime to = LocalDateTime.now().plusDays(1);
+
+        List<Notification> notifications;
+        if (userId != null) {
+            notifications = notificationRepository
+                    .findByUserIdAndCreatedAtBetweenOrderByCreatedAtDesc(userId, from, to);
+        } else {
+            notifications = notificationRepository
+                    .findByUserIsNullAndCreatedAtBetweenOrderByCreatedAtDesc(from, to);
+        }
+
+        return notifications.stream().map(this::toResponse).toList();
     }
 
     /**
@@ -143,6 +175,8 @@ public class NotificationService {
                 .message(message)
                 .user(null) // broadcast
                 .isRead(false)
+                .targetType(request.getRequestType().name())
+                .targetId(request.getId())
                 .build();
 
         notification = notificationRepository.save(notification);
@@ -160,7 +194,9 @@ public class NotificationService {
             String message,
             Boolean isRead,
             Long userId,
-            LocalDateTime createdAt) {
+            LocalDateTime createdAt,
+            String targetType,
+            Long targetId) {
     }
 
     private NotificationResponse toResponse(Notification notification) {
@@ -170,6 +206,8 @@ public class NotificationService {
                 notification.getMessage(),
                 notification.isRead(),
                 notification.getUser() != null ? notification.getUser().getId() : null,
-                notification.getCreatedAt());
+                notification.getCreatedAt(),
+                notification.getTargetType(),
+                notification.getTargetId());
     }
 }

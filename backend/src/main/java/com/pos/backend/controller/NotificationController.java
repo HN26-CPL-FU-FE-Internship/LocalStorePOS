@@ -11,6 +11,8 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.util.List;
+
 import com.pos.backend.constant.ErrorCode;
 import com.pos.backend.dto.request.Administration.ApprovalActionRequest;
 import com.pos.backend.dto.response.ApiResponse;
@@ -36,16 +38,32 @@ public class NotificationController {
 
     /**
      * Get paginated notifications for the current user.
+     * Supports optional date filtering via fromDate / toDate (ISO format).
      */
     @GetMapping
     public ApiResponse<PageResponse<NotificationService.NotificationResponse>> getNotifications(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size,
+            @RequestParam(required = false) String fromDate,
+            @RequestParam(required = false) String toDate,
             Authentication authentication) {
 
         Long userId = getUserId(authentication);
         return ApiResponse.<PageResponse<NotificationService.NotificationResponse>>builder()
-                .result(notificationService.getNotifications(userId, page, size))
+                .result(notificationService.getNotifications(userId, page, size, fromDate, toDate))
+                .build();
+    }
+
+    /**
+     * Get all notifications from the last 2 days (no pagination).
+     */
+    @GetMapping("/recent")
+    public ApiResponse<List<NotificationService.NotificationResponse>> getRecentNotifications(
+            Authentication authentication) {
+
+        Long userId = getUserId(authentication);
+        return ApiResponse.<List<NotificationService.NotificationResponse>>builder()
+                .result(notificationService.getRecentNotifications(userId))
                 .build();
     }
 

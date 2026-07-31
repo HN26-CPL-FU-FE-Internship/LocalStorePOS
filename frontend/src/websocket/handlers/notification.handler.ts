@@ -9,6 +9,9 @@ const handleNotificationEvent = (message: IMessage) => {
         queryClient.invalidateQueries({
             queryKey: ['notifications'],
         });
+        queryClient.invalidateQueries({
+            queryKey: ['notifications', 'unread-count'],
+        });
 
         // If there's an approval request update, also invalidate approval queries
         if (event?.title?.toLowerCase().includes('yêu cầu') || event?.title?.toLowerCase().includes('approval')) {

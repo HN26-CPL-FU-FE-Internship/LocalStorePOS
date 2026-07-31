@@ -35,4 +35,10 @@ public class Notification extends CreatedAtEntity {
     @Builder.Default
     @Column(name = "is_read", nullable = false)
     private boolean isRead = false;
+
+    @Column(name = "target_type", length = 50)
+    private String targetType;
+
+    @Column(name = "target_id")
+    private Long targetId;
 }

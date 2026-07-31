@@ -1,6 +1,5 @@
 import { api } from '@/lib/axios';
 import type { ApiResponse } from '@/types/auth';
-import type { PageResponse } from '@/types';
 
 export interface NotificationResponse {
     id: number;
@@ -9,22 +8,18 @@ export interface NotificationResponse {
     isRead: boolean;
     userId: number | null;
     createdAt: string;
-}
-
-export interface ApprovalActionPayload {
-    reason: string;
+    targetType: string | null;
+    targetId: number | null;
 }
 
 /**
- * Get paginated notifications for the current user.
+ * Backend PageResponse uses `items` instead of `content`.
  */
-export const getNotifications = async (
-    page = 0,
-    size = 20,
-): Promise<PageResponse<NotificationResponse>> => {
-    const { data } = await api.get<ApiResponse<PageResponse<NotificationResponse>>>('/notifications', {
-        params: { page, size },
-    });
+/**
+ * Get all notifications from the last 2 days (no pagination).
+ */
+export const getRecentNotifications = async (): Promise<NotificationResponse[]> => {
+    const { data } = await api.get<ApiResponse<NotificationResponse[]>>('/notifications/recent');
     return data.result;
 };
 

@@ -9,7 +9,7 @@ import { bindCx } from '@/utils';
 import { Button, Container } from 'react-bootstrap';
 import QuickLinkHeader from '../QuickLinkHeader';
 import NotificationsDropdown from '../Sidebar/NotificationsDropdown';
-import { notificationGroups } from '@/data/dashboardData';
+import { useNotifications } from '@/hooks';
 import ProfileDropdown from '../Sidebar/ProfileDropdown';
 import { logoutHref, profileMenuItems } from '@/data/navigationData';
 import useContextData from '@/hooks/useContextData';
@@ -25,6 +25,7 @@ const POSHeader = () => {
     const { routes } = configs;
     const [iconName, setIconName] = useState<ThemeType>('moon');
     const { toggleTheme } = useContextData<ThemeContextType>(ThemeContext);
+    const { groups: allGroups, unreadGroups, unreadCount, markAsRead, markAllAsRead, acceptAction, declineAction, isLoading, isError } = useNotifications();
 
     return (
         <header className="header">
@@ -67,11 +68,18 @@ const POSHeader = () => {
                                 </div>
                             </li>
                             <li>
-                                <NotificationsDropdown
-                                    className="notification btn-icon"
-                                    groups={notificationGroups}
-                                    unreadCount={4}
-                                />
+                            <NotificationsDropdown
+                                className="notification btn-icon"
+                                groups={allGroups}
+                                unreadOnlyGroups={unreadGroups}
+                                unreadCount={unreadCount}
+                                onMarkAsRead={markAsRead}
+                                onMarkAllAsRead={markAllAsRead}
+                                onAcceptAction={acceptAction}
+                                onDeclineAction={declineAction}
+                                isLoading={isLoading}
+                                isError={isError}
+                            />
                             </li>
                             <li>
                                 <Link to={routes['tax-settings']} className="btn-icon">
