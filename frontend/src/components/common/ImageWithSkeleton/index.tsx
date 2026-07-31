@@ -13,6 +13,7 @@ const ImageWithSkeleton = ({ containerClassName, ...imgProps }: ImageWithSkeleto
     const [error, setError] = useState(false);
 
     /* ---- handle already-cached images ---- */
+    /* eslint-disable react-hooks/set-state-in-effect */
     useEffect(() => {
         if (!imgProps.src) {
             setError(true);
@@ -25,6 +26,7 @@ const ImageWithSkeleton = ({ containerClassName, ...imgProps }: ImageWithSkeleto
             setLoaded(true);
         }
     }, [imgProps.src]);
+    /* eslint-enable react-hooks/set-state-in-effect */
 
     const showSkeleton = !loaded && !error;
 

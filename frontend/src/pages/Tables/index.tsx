@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Row, Col, Card, Button, Modal, Form, Alert, Spinner, Badge, Dropdown } from 'react-bootstrap';
 import { isAxiosError } from 'axios';
 import Icon from '@/components/common/Icon';
@@ -98,7 +98,6 @@ const TablesPage = () => {
     const [error, setError] = useState<string | null>(null);
     const [notice, setNotice] = useState<string | null>(null);
     const [areaFilter, setAreaFilter] = useState<number | ''>('');
-    const [statusFilter, setStatusFilter] = useState<TableStatus | ''>('');
 
     const [showAddTable, setShowAddTable] = useState(false);
     const [showEditTable, setShowEditTable] = useState(false);
@@ -131,7 +130,7 @@ const TablesPage = () => {
         setError(null);
         try {
             const [tablesData, reservationsData] = await Promise.all([
-                getTables({ areaId: areaFilter || undefined, status: statusFilter || undefined }),
+                getTables({ areaId: areaFilter || undefined, status: undefined }),
                 getReservations({}),
             ]);
             setTables(tablesData);
@@ -159,23 +158,13 @@ const TablesPage = () => {
         // eslint-disable-next-line react-hooks/set-state-in-effect
         loadTables();
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [areaFilter, statusFilter]);
+    }, [areaFilter]);
 
     useEffect(() => {
         if (!notice) return;
         const handle = setTimeout(() => setNotice(null), 3000);
         return () => clearTimeout(handle);
     }, [notice]);
-
-    const groupedByArea = useMemo(() => {
-        const groups = new Map<string, TableEntry[]>();
-        tables.forEach((t) => {
-            const list = groups.get(t.areaName) ?? [];
-            list.push(t);
-            groups.set(t.areaName, list);
-        });
-        return Array.from(groups.entries());
-    }, [tables]);
 
     /* ---------- Table CRUD ---------- */
     const openAddTable = () => {
