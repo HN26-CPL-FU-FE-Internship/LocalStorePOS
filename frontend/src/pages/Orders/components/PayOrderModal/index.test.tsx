@@ -4,7 +4,7 @@ import PayOrderModal from './index';
 import type { OrderSummary } from '@/types';
 import type { PaymentRequest } from '@/services/orderService';
 
-// ── Mock dependencies ──────────────────────────────────────────────────
+// Mock dependencies
 
 vi.mock('@/hooks/useContextData', () => ({
     default: () => ({ showToast: vi.fn() }),
@@ -124,9 +124,29 @@ vi.mock('../Payment', () => ({
             </div>
         ),
     ),
+    QrPaymentTab: vi.fn(
+        ({
+            note,
+            onNoteChange,
+            readOnly,
+        }: {
+            note: string | null;
+            onNoteChange: (n: string) => void;
+            readOnly?: boolean;
+        }) => (
+            <div data-testid="qr-tab">
+                <textarea
+                    data-testid="note-input"
+                    value={note ?? ''}
+                    onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => onNoteChange(e.target.value)}
+                    readOnly={readOnly}
+                />
+            </div>
+        ),
+    ),
 }));
 
-// ── Sample orders ──────────────────────────────────────────────────────
+// Sample orders
 
 const baseOrder: OrderSummary = {
     id: 1,
@@ -179,7 +199,7 @@ function setGivenAmount(value: string) {
     fireEvent.change(input, { target: { value } });
 }
 
-/** Helper: click the Pay & Complete Order button (role-based selector avoids title collision) */
+/** Helper: click the Pay & Complete Order button */
 function clickPayButton() {
     fireEvent.click(screen.getByRole('button', { name: /pay.*complete/i }));
 }
@@ -189,16 +209,15 @@ function confirmPayment() {
     fireEvent.click(screen.getByTestId('confirm-action'));
 }
 
-describe('PayOrderModal — note flow', () => {
+describe('PayOrderModal - note flow', () => {
     beforeEach(() => {
         vi.clearAllMocks();
     });
 
-    // ── Rendering ────────────────────────────────────────────────────
+    // Rendering
 
     it('renders the modal title when show is true and order is provided', () => {
         render(<PayOrderModal {...defaultProps} />);
-        // The Modal.Title <div> is the first match for this text
         const title = screen.getByText('Pay & Complete Order', { selector: 'div' });
         expect(title).toBeInTheDocument();
     });
@@ -213,7 +232,7 @@ describe('PayOrderModal — note flow', () => {
         expect(screen.queryByText('Pay & Complete Order')).not.toBeInTheDocument();
     });
 
-    // ── Note initialization ──────────────────────────────────────────
+    // Note initialization
 
     it('initialises note from order.note when order has a note', () => {
         render(<PayOrderModal {...defaultProps} order={{ ...baseOrder, note: 'Extra napkins' }} />);
@@ -225,7 +244,7 @@ describe('PayOrderModal — note flow', () => {
         expect(noteInput().value).toBe('');
     });
 
-    // ── Note editing via textarea ────────────────────────────────────
+    // Note editing via textarea
 
     it('updates note when user types in the CashPaymentTab textarea', () => {
         render(<PayOrderModal {...defaultProps} />);
@@ -237,10 +256,8 @@ describe('PayOrderModal — note flow', () => {
         const onPaymentComplete = vi.fn();
         render(<PayOrderModal {...defaultProps} onPaymentComplete={onPaymentComplete} />);
 
-        // Edit the note
         fireEvent.change(noteInput(), { target: { value: 'No onions' } });
 
-        // Provide a valid given amount (cash validation requires it)
         setGivenAmount('100');
         clickPayButton();
         confirmPayment();
@@ -267,7 +284,7 @@ describe('PayOrderModal — note flow', () => {
         expect(paymentData.note).toBe('');
     });
 
-    // ── Note reset on close ─────────────────────────────────────────
+    // Note reset on close
 
     it('resets paymentNote to empty string when Close is clicked and modal reopens', () => {
         const handleClose = vi.fn();
@@ -279,15 +296,12 @@ describe('PayOrderModal — note flow', () => {
             />,
         );
 
-        // Edit the note
         fireEvent.change(noteInput(), { target: { value: 'Changed note' } });
         expect(noteInput().value).toBe('Changed note');
 
-        // Close the modal
         fireEvent.click(screen.getByRole('button', { name: 'Close' }));
         expect(handleClose).toHaveBeenCalled();
 
-        // Re-open with the same order — handleModalClose has reset paymentNote to ''
         rerender(
             <PayOrderModal
                 {...defaultProps}
@@ -300,7 +314,7 @@ describe('PayOrderModal — note flow', () => {
         expect(noteInput().value).toBe('');
     });
 
-    // ── Read-only mode ───────────────────────────────────────────────
+    // Read-only mode
 
     it('sets readOnly on note textarea when order is completed', () => {
         render(
@@ -323,7 +337,7 @@ describe('PayOrderModal — note flow', () => {
         expect(noteInput()).not.toHaveAttribute('readOnly');
     });
 
-    // ── Pay button visibility ────────────────────────────────────────
+    // Pay button visibility
 
     it('shows Pay button when order is active', () => {
         render(<PayOrderModal {...defaultProps} order={{ ...baseOrder, status: 'pending' }} />);
@@ -340,7 +354,7 @@ describe('PayOrderModal — note flow', () => {
         expect(screen.queryByRole('button', { name: /pay.*complete/i })).not.toBeInTheDocument();
     });
 
-    // ── PaymentRequest structure ─────────────────────────────────────
+    // PaymentRequest structure
 
     it('includes all payment fields alongside note in PaymentRequest', () => {
         const onPaymentComplete = vi.fn();
@@ -360,7 +374,7 @@ describe('PayOrderModal — note flow', () => {
         expect(paymentData).toHaveProperty('note');
     });
 
-    // ── Edge cases ───────────────────────────────────────────────────
+    // Edge cases
 
     it('handles note with special characters', () => {
         render(
