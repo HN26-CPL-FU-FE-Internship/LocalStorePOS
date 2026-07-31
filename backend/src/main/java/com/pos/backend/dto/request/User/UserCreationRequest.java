@@ -43,8 +43,8 @@ public class UserCreationRequest {
     @Size(min = 8, max = 100, message = "Password must be between 8 and 100 characters")
     String password;
 
-    @NotNull(message = "Vui lòng chọn role cho nhân viên")
-    @Positive(message = "roleId không hợp lệ")
+    @NotNull(message = "Please select a role for the staff member")
+    @Positive(message = "Role id is invalid")
     Long role;
 
     String avatarPath;

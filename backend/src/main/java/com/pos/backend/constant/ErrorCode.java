@@ -70,7 +70,7 @@ public enum ErrorCode {
     RESERVATION_NOT_FOUND(1047, HttpStatus.NOT_FOUND, "Reservation not found"),
 
     INVOICE_NOT_FOUND(1048, HttpStatus.NOT_FOUND, "Invoice not found"),
-    ORDER_CANNOT_BE_EDITED(1049, HttpStatus.BAD_REQUEST, "Only unpaid pending orders can be edited."),
+    ORDER_CANNOT_BE_EDITED(1049, HttpStatus.BAD_REQUEST, "Order cannot be edited once it has been served, completed, cancelled, or paid."),
 
     PAYMENT_NOT_FOUND(1050, HttpStatus.NOT_FOUND, "Payment not found"),
     PAYMENT_ALREADY_PROCESSED(1051, HttpStatus.BAD_REQUEST, "Payment has already been processed or cancelled"),

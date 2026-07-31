@@ -140,7 +140,7 @@ const AddonsPage = () => {
             setTotalPages(result.totalPages || 1);
             setTotalElements(result.totalElements);
         } catch {
-            setError('Không thể tải danh sách addon. Vui lòng thử lại.');
+            setError('Failed to load addons. Please try again.');
         } finally {
             setLoading(false);
         }
@@ -208,11 +208,11 @@ const AddonsPage = () => {
             await createAddon(buildPayload());
             setShowAdd(false);
             resetForm();
-            setNotice('Thêm addon thành công.');
+            setNotice('Addon added successfully.');
             setPage(1);
             await loadAddons();
         } catch (err) {
-            setError(extractErrorMessage(err, 'Thêm addon thất bại.'));
+            setError(extractErrorMessage(err, 'Failed to add addon.'));
         } finally {
             setSaving(false);
         }
@@ -241,10 +241,10 @@ const AddonsPage = () => {
             setShowEdit(false);
             setCurrentAddon(null);
             resetForm();
-            setNotice('Cập nhật addon thành công.');
+            setNotice('Addon updated successfully.');
             await loadAddons();
         } catch (err) {
-            setError(extractErrorMessage(err, 'Cập nhật addon thất bại.'));
+            setError(extractErrorMessage(err, 'Failed to update addon.'));
         } finally {
             setSaving(false);
         }
@@ -263,10 +263,10 @@ const AddonsPage = () => {
             await deleteAddon(currentAddon.id);
             setShowDelete(false);
             setCurrentAddon(null);
-            setNotice('Xóa addon thành công.');
+            setNotice('Addon deleted successfully.');
             await loadAddons();
         } catch (err) {
-            setError(extractErrorMessage(err, 'Không thể xóa addon này.'));
+            setError(extractErrorMessage(err, 'Cannot delete this addon.'));
             setShowDelete(false);
         } finally {
             setDeleting(false);
@@ -279,7 +279,7 @@ const AddonsPage = () => {
             await updateAddonStatus(addon.id, nextStatus);
             setAddons((prev) => prev.map((a) => (a.id === addon.id ? { ...a, status: nextStatus } : a)));
         } catch (err) {
-            setError(extractErrorMessage(err, 'Không thể cập nhật trạng thái.'));
+            setError(extractErrorMessage(err, 'Cannot update status.'));
         }
     };
 

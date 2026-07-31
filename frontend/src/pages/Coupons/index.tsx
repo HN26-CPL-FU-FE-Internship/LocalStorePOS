@@ -137,7 +137,7 @@ const CouponsPage = () => {
             setTotalPages(result.totalPages || 1);
             setTotalElements(result.totalElements);
         } catch {
-            setError('Không thể tải danh sách coupon. Vui lòng thử lại.');
+            setError('Failed to load coupons. Please try again.');
         } finally {
             setLoading(false);
         }
@@ -194,11 +194,11 @@ const CouponsPage = () => {
             await createCoupon(buildPayload());
             setShowAdd(false);
             resetForm();
-            setNotice('Thêm coupon thành công.');
+            setNotice('Coupon added successfully.');
             setPage(1);
             await loadCoupons();
         } catch (err) {
-            setError(extractErrorMessage(err, 'Thêm coupon thất bại.'));
+            setError(extractErrorMessage(err, 'Failed to add coupon.'));
         } finally {
             setSaving(false);
         }
@@ -227,10 +227,10 @@ const CouponsPage = () => {
             setShowEdit(false);
             setCurrentCoupon(null);
             resetForm();
-            setNotice('Cập nhật coupon thành công.');
+            setNotice('Coupon updated successfully.');
             await loadCoupons();
         } catch (err) {
-            setError(extractErrorMessage(err, 'Cập nhật coupon thất bại.'));
+            setError(extractErrorMessage(err, 'Failed to update coupon.'));
         } finally {
             setSaving(false);
         }
@@ -266,10 +266,10 @@ const CouponsPage = () => {
             await deleteCoupon(currentCoupon.id);
             setShowDelete(false);
             setCurrentCoupon(null);
-            setNotice('Xóa coupon thành công.');
+            setNotice('Coupon deleted successfully.');
             await loadCoupons();
         } catch (err) {
-            setError(extractErrorMessage(err, 'Không thể xóa coupon này.'));
+            setError(extractErrorMessage(err, 'Cannot delete this coupon.'));
             setShowDelete(false);
         } finally {
             setDeleting(false);
@@ -282,7 +282,7 @@ const CouponsPage = () => {
             await updateCouponStatus(coupon.id, nextStatus);
             setCoupons((prev) => prev.map((c) => (c.id === coupon.id ? { ...c, status: nextStatus } : c)));
         } catch (err) {
-            setError(extractErrorMessage(err, 'Không thể cập nhật trạng thái.'));
+            setError(extractErrorMessage(err, 'Cannot update status.'));
         }
     };
 

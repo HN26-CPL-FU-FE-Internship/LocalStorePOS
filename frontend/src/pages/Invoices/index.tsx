@@ -89,7 +89,7 @@ const InvoicesPage = () => {
             setTotalPages(result.totalPages || 1);
             setTotalElements(result.totalElements);
         } catch {
-            setError('Không thể tải danh sách hóa đơn. Vui lòng thử lại.');
+            setError('Failed to load invoices. Please try again.');
         } finally {
             setLoading(false);
         }
@@ -128,10 +128,10 @@ const InvoicesPage = () => {
             await deleteInvoice(currentInvoice.id);
             setShowDelete(false);
             setCurrentInvoice(null);
-            setNotice('Xóa hóa đơn thành công.');
+            setNotice('Invoice deleted successfully.');
             await loadInvoices();
         } catch (err) {
-            setError(extractErrorMessage(err, 'Không thể xóa hóa đơn này.'));
+            setError(extractErrorMessage(err, 'Cannot delete this invoice.'));
             setShowDelete(false);
         } finally {
             setDeleting(false);

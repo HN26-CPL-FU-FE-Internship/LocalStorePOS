@@ -136,7 +136,7 @@ const TablesPage = () => {
             setTables(tablesData);
             setAllReservations(reservationsData);
         } catch {
-            setError('Không thể tải dữ liệu. Vui lòng thử lại.');
+            setError('Failed to load data. Please try again.');
         } finally {
             setLoading(false);
         }
@@ -184,12 +184,12 @@ const TablesPage = () => {
                 seats: Number(tableForm.seats),
             });
             setShowAddTable(false);
-            setNotice('Thêm bàn thành công.');
-            showToast('success', 'Thêm bàn thành công.');
+            setNotice('Table added successfully.');
+            showToast('success', 'Table added successfully.');
             await loadTables();
         } catch (err) {
-            setError(extractErrorMessage(err, 'Thêm bàn thất bại.'));
-            showToast('error', 'Thêm bàn thất bại.');
+            setError(extractErrorMessage(err, 'Failed to add table.'));
+            showToast('error', 'Failed to add table.');
         } finally {
             setSaving(false);
         }
@@ -213,10 +213,10 @@ const TablesPage = () => {
             });
             setShowEditTable(false);
             setCurrentTable(null);
-            setNotice('Cập nhật bàn thành công.');
+            setNotice('Table updated successfully.');
             await loadTables();
         } catch (err) {
-            setError(extractErrorMessage(err, 'Cập nhật bàn thất bại.'));
+            setError(extractErrorMessage(err, 'Failed to update table.'));
         } finally {
             setSaving(false);
         }
@@ -235,10 +235,10 @@ const TablesPage = () => {
             await deleteTable(currentTable.id);
             setShowDeleteTable(false);
             setCurrentTable(null);
-            setNotice('Xóa bàn thành công.');
+            setNotice('Table deleted successfully.');
             await loadTables();
         } catch (err) {
-            setError(extractErrorMessage(err, 'Không thể xóa bàn này.'));
+            setError(extractErrorMessage(err, 'Cannot delete this table.'));
             setShowDeleteTable(false);
         } finally {
             setDeleting(false);
@@ -251,18 +251,18 @@ const TablesPage = () => {
     //         setNotice(`Đã chuyển bàn ${table.tableNumber} sang Occupied.`);
     //         await loadTables();
     //     } catch (err) {
-    //         setError(extractErrorMessage(err, 'Không thể cập nhật trạng thái bàn.'));
+    //         setError(extractErrorMessage(err, 'Cannot update table status.'));
     //     }
     // };
 
     const handleFreeTable = async (table: TableEntry) => {
         try {
             await updateTableStatus(table.id, 'available');
-            setNotice(`Đã chuyển bàn ${table.tableNumber} sang Available.`);
+            setNotice(`Table ${table.tableNumber} marked as Available.`);
             setShowReservationInfo(false);
             await loadTables();
         } catch (err) {
-            setError(extractErrorMessage(err, 'Không thể cập nhật trạng thái bàn.'));
+            setError(extractErrorMessage(err, 'Cannot update table status.'));
         }
     };
 
@@ -275,9 +275,9 @@ const TablesPage = () => {
             await createTableArea(newAreaName.trim());
             setNewAreaName('');
             setAreas(await getTableAreas());
-            setNotice('Thêm khu vực thành công.');
+            setNotice('Table area added successfully.');
         } catch (err) {
-            setError(extractErrorMessage(err, 'Thêm khu vực thất bại.'));
+            setError(extractErrorMessage(err, 'Failed to add table area.'));
         } finally {
             setSaving(false);
         }
@@ -287,9 +287,9 @@ const TablesPage = () => {
         try {
             await deleteTableArea(id);
             setAreas(await getTableAreas());
-            setNotice('Xóa khu vực thành công.');
+            setNotice('Table area deleted successfully.');
         } catch (err) {
-            setError(extractErrorMessage(err, 'Không thể xóa khu vực (có thể vẫn còn bàn thuộc khu vực này).'));
+            setError(extractErrorMessage(err, 'Cannot delete table area (it may still have tables).'));
         }
     };
 
@@ -325,10 +325,10 @@ const TablesPage = () => {
             }
             setShowReserve(false);
             setCurrentTable(null);
-            setNotice('Đặt bàn thành công.');
+            setNotice('Reservation created successfully.');
             await loadTables();
         } catch (err) {
-            setError(extractErrorMessage(err, 'Đặt bàn thất bại.'));
+            setError(extractErrorMessage(err, 'Failed to create reservation.'));
         } finally {
             setSaving(false);
         }
@@ -371,10 +371,10 @@ const TablesPage = () => {
             });
             setShowEditReservation(false);
             setCurrentReservation(null);
-            setNotice('Cập nhật đặt bàn thành công.');
+            setNotice('Reservation updated successfully.');
             await loadTables();
         } catch (err) {
-            setError(extractErrorMessage(err, 'Cập nhật đặt bàn thất bại.'));
+            setError(extractErrorMessage(err, 'Failed to update reservation.'));
         } finally {
             setSaving(false);
         }
@@ -396,10 +396,10 @@ const TablesPage = () => {
             }
             setShowDeleteReservation(false);
             setCurrentReservation(null);
-            setNotice('Xóa đặt bàn thành công.');
+            setNotice('Reservation deleted successfully.');
             await loadTables();
         } catch (err) {
-            setError(extractErrorMessage(err, 'Không thể xóa đặt bàn.'));
+            setError(extractErrorMessage(err, 'Cannot delete reservation.'));
             setShowDeleteReservation(false);
         } finally {
             setDeleting(false);
@@ -423,10 +423,10 @@ const TablesPage = () => {
                 await updateTableStatus(currentTable.id, 'available');
             }
             setShowReservationInfo(false);
-            setNotice('Đã hủy đặt bàn.');
+            setNotice('Reservation cancelled.');
             await loadTables();
         } catch (err) {
-            setError(extractErrorMessage(err, 'Không thể hủy đặt bàn.'));
+            setError(extractErrorMessage(err, 'Cannot cancel reservation.'));
         }
     };
 

@@ -112,7 +112,7 @@ const CustomersPage = () => {
             setTotalPages(result.totalPages || 1);
             setTotalElements(result.totalElements);
         } catch {
-            setError('Không thể tải danh sách khách hàng. Vui lòng thử lại.');
+            setError('Failed to load customers. Please try again.');
         } finally {
             setLoading(false);
         }
@@ -179,11 +179,11 @@ const CustomersPage = () => {
             await createCustomer(buildPayload());
             setShowAdd(false);
             resetForm();
-            setNotice('Thêm khách hàng thành công.');
+            setNotice('Customer added successfully.');
             setPage(1);
             await loadCustomers();
         } catch (err) {
-            setError(extractErrorMessage(err, 'Thêm khách hàng thất bại.'));
+            setError(extractErrorMessage(err, 'Failed to add customer.'));
         } finally {
             setSaving(false);
         }
@@ -213,10 +213,10 @@ const CustomersPage = () => {
             setShowEdit(false);
             setCurrentCustomer(null);
             resetForm();
-            setNotice('Cập nhật khách hàng thành công.');
+            setNotice('Customer updated successfully.');
             await loadCustomers();
         } catch (err) {
-            setError(extractErrorMessage(err, 'Cập nhật khách hàng thất bại.'));
+            setError(extractErrorMessage(err, 'Failed to update customer.'));
         } finally {
             setSaving(false);
         }
@@ -235,10 +235,10 @@ const CustomersPage = () => {
             await deleteCustomer(currentCustomer.id);
             setShowDelete(false);
             setCurrentCustomer(null);
-            setNotice('Xóa khách hàng thành công.');
+            setNotice('Customer deleted successfully.');
             await loadCustomers();
         } catch (err) {
-            setError(extractErrorMessage(err, 'Không thể xóa khách hàng này.'));
+            setError(extractErrorMessage(err, 'Cannot delete this customer.'));
             setShowDelete(false);
         } finally {
             setDeleting(false);

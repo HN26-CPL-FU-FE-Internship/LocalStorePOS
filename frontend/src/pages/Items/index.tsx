@@ -174,7 +174,7 @@ const ItemsPage = () => {
             setTotalPages(result.totalPages || 1);
             setTotalElements(result.totalElements);
         } catch {
-            setError('Không thể tải danh sách món ăn. Vui lòng thử lại.');
+            setError('Failed to load items. Please try again.');
         } finally {
             setLoading(false);
         }
@@ -259,11 +259,11 @@ const ItemsPage = () => {
             await createItem(buildPayload());
             setShowAdd(false);
             resetForm();
-            setNotice('Thêm món ăn thành công.');
+            setNotice('Item added successfully.');
             setPage(1);
             await loadItems();
         } catch (err) {
-            setError(extractErrorMessage(err, 'Thêm món ăn thất bại.'));
+            setError(extractErrorMessage(err, 'Failed to add item.'));
         } finally {
             setSaving(false);
         }
@@ -291,7 +291,7 @@ const ItemsPage = () => {
             setVariations(full.variations.map((v) => ({ ...v })));
             setAddons(full.addons.map((a) => ({ ...a })));
         } catch (err) {
-            setError(extractErrorMessage(err, 'Không thể tải thông tin món ăn.'));
+            setError(extractErrorMessage(err, 'Failed to load item details.'));
             setShowEdit(false);
         }
     };
@@ -305,10 +305,10 @@ const ItemsPage = () => {
             setShowEdit(false);
             setCurrentItem(null);
             resetForm();
-            setNotice('Cập nhật món ăn thành công.');
+            setNotice('Item updated successfully.');
             await loadItems();
         } catch (err) {
-            setError(extractErrorMessage(err, 'Cập nhật món ăn thất bại.'));
+            setError(extractErrorMessage(err, 'Failed to update item.'));
         } finally {
             setSaving(false);
         }
@@ -323,7 +323,7 @@ const ItemsPage = () => {
             const full = await getItem(item.id);
             setDetail(full);
         } catch (err) {
-            setError(extractErrorMessage(err, 'Không thể tải chi tiết món ăn.'));
+            setError(extractErrorMessage(err, 'Failed to load item details.'));
             setShowDetails(false);
         } finally {
             setDetailLoading(false);
@@ -343,10 +343,10 @@ const ItemsPage = () => {
             await deleteItem(currentItem.id);
             setShowDelete(false);
             setCurrentItem(null);
-            setNotice('Xóa món ăn thành công.');
+            setNotice('Item deleted successfully.');
             await loadItems();
         } catch (err) {
-            setError(extractErrorMessage(err, 'Không thể xóa món ăn này.'));
+            setError(extractErrorMessage(err, 'Cannot delete this item.'));
             setShowDelete(false);
         } finally {
             setDeleting(false);
@@ -367,10 +367,10 @@ const ItemsPage = () => {
             await updateItemStatus(currentItem.id, nextStatus);
             setShowHide(false);
             setCurrentItem(null);
-            setNotice(nextStatus === 'hidden' ? 'Đã ẩn món ăn.' : 'Đã hiện lại món ăn.');
+            setNotice(nextStatus === 'hidden' ? 'Item hidden.' : 'Item made visible again.');
             await loadItems();
         } catch (err) {
-            setError(extractErrorMessage(err, 'Không thể cập nhật trạng thái món ăn.'));
+            setError(extractErrorMessage(err, 'Cannot update item status.'));
         } finally {
             setHiding(false);
         }

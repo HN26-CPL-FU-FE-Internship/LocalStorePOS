@@ -50,7 +50,7 @@ const PaymentsPage = () => {
             setTotalPages(result.totalPages || 1);
             setTotalElements(result.totalElements);
         } catch {
-            setError('Không thể tải danh sách giao dịch. Vui lòng thử lại.');
+            setError('Failed to load payments. Please try again.');
         } finally {
             setLoading(false);
         }
