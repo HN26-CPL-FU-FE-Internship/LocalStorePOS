@@ -144,7 +144,7 @@ const OrderKitchenCard = ({ order }: { order: OrderSummary }) => {
                             <div className="avatar rounded-circle bg-white">
                                 <Icon name="hand-platter" className="fs-24 text-dark" />
                             </div>
-                            <p className="mb-0 text-white fw-semibold fs-14">
+                            <p className="mb-0 text-white fw-semibold fs-11">
                                 {order.customerName}
                                 <span className="fs-13 fw-normal d-block mt-1">{toTitleCase(order.orderType)}</span>
                             </p>
