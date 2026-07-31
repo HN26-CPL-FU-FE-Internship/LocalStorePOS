@@ -54,28 +54,31 @@ public enum ErrorCode {
     ZERO_TOTAL(1035, HttpStatus.BAD_REQUEST,
             "Order total cannot be zero. Please adjust discount or coupon before payment."),
     TABLE_NOT_FOUND(1036, HttpStatus.NOT_FOUND, "Table not found."),
-    NO_TABLE_CHOOSE_FOR_DINE_IN(1036, HttpStatus.BAD_REQUEST, "haven't selected a table for dine in yet."),
-    NO_WAITER_CHOOSE_FOR_DINE_IN(1036, HttpStatus.BAD_REQUEST, "haven't selected a waiter for dine in yet."),
-    CUSTOMER_NOT_FOUND(1037, HttpStatus.NOT_FOUND, "Customer not found."),
-    WAITER_NOT_FOUND(1037, HttpStatus.NOT_FOUND, "Waiter not found."),
+    NO_TABLE_CHOOSE_FOR_DINE_IN(1037, HttpStatus.BAD_REQUEST, "haven't selected a table for dine in yet."),
+    NO_WAITER_CHOOSE_FOR_DINE_IN(1038, HttpStatus.BAD_REQUEST, "haven't selected a waiter for dine in yet."),
+    CUSTOMER_NOT_FOUND(1039, HttpStatus.NOT_FOUND, "Customer not found."),
+    WAITER_NOT_FOUND(1040, HttpStatus.NOT_FOUND, "Waiter not found."),
 
-    CUSTOMER_PHONE_ALREADY_EXISTS(1038, HttpStatus.BAD_REQUEST, "Phone number already exists"),
+    CUSTOMER_PHONE_ALREADY_EXISTS(1041, HttpStatus.BAD_REQUEST, "Phone number already exists"),
 
-    TABLE_AREA_NOT_FOUND(1039, HttpStatus.NOT_FOUND, "Table area not found"),
-    TABLE_AREA_NAME_ALREADY_EXISTS(1040, HttpStatus.BAD_REQUEST, "Table area name already exists"),
-    RESTAURANT_TABLE_NOT_FOUND(1041, HttpStatus.NOT_FOUND, "Table not found"),
-    TABLE_NUMBER_ALREADY_EXISTS(1042, HttpStatus.BAD_REQUEST, "Table number already exists"),
-    TABLE_NOT_AVAILABLE(1043, HttpStatus.BAD_REQUEST, "Table is not available"),
+    TABLE_AREA_NOT_FOUND(1042, HttpStatus.NOT_FOUND, "Table area not found"),
+    TABLE_AREA_NAME_ALREADY_EXISTS(1042, HttpStatus.BAD_REQUEST, "Table area name already exists"),
+    RESTAURANT_TABLE_NOT_FOUND(1044, HttpStatus.NOT_FOUND, "Table not found"),
+    TABLE_NUMBER_ALREADY_EXISTS(1045, HttpStatus.BAD_REQUEST, "Table number already exists"),
+    TABLE_NOT_AVAILABLE(1046, HttpStatus.BAD_REQUEST, "Table is not available"),
 
-    RESERVATION_NOT_FOUND(1044, HttpStatus.NOT_FOUND, "Reservation not found"),
+    RESERVATION_NOT_FOUND(1047, HttpStatus.NOT_FOUND, "Reservation not found"),
 
-    INVOICE_NOT_FOUND(1045, HttpStatus.NOT_FOUND, "Invoice not found"),
-    ORDER_CANNOT_BE_EDITED(1046, HttpStatus.BAD_REQUEST, "Only unpaid pending orders can be edited."),
+    INVOICE_NOT_FOUND(1048, HttpStatus.NOT_FOUND, "Invoice not found"),
+    ORDER_CANNOT_BE_EDITED(1049, HttpStatus.BAD_REQUEST, "Only unpaid pending orders can be edited."),
 
-    PAYMENT_NOT_FOUND(1047, HttpStatus.NOT_FOUND, "Payment not found"),
-    PAYMENT_ALREADY_PROCESSED(1048, HttpStatus.BAD_REQUEST, "Payment has already been processed or cancelled"),
-    INVALID_PAYMENT_AMOUNT(1049, HttpStatus.BAD_REQUEST, "Invalid payment amount"),
-    ORDER_NOT_ELIGIBLE_FOR_QR(1050, HttpStatus.BAD_REQUEST, "Order is not eligible for QR payment"),
+    PAYMENT_NOT_FOUND(1050, HttpStatus.NOT_FOUND, "Payment not found"),
+    PAYMENT_ALREADY_PROCESSED(1051, HttpStatus.BAD_REQUEST, "Payment has already been processed or cancelled"),
+    INVALID_PAYMENT_AMOUNT(1052, HttpStatus.BAD_REQUEST, "Invalid payment amount"),
+    ORDER_NOT_ELIGIBLE_FOR_QR(1053, HttpStatus.BAD_REQUEST, "Order is not eligible for QR payment"),
+    APPROVAL_REQUEST_NOT_FOUND(1054, HttpStatus.NOT_FOUND, "Approval request not found"),
+    APPROVAL_REQUEST_ALREADY_RESOLVED(1055, HttpStatus.BAD_REQUEST, "Approval request has already been resolved"),
+    NOTIFICATION_NOT_FOUND(1056, HttpStatus.NOT_FOUND, "Notification not found"),
     ;
 
     int code;

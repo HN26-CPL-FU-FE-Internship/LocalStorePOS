@@ -71,6 +71,11 @@ public enum AuditAction {
     API_KEY_CREATED,
     API_KEY_REVOKED,
 
+    // Approval System
+    APPROVAL_REQUEST_CREATED,
+    APPROVAL_REQUEST_APPROVED,
+    APPROVAL_REQUEST_REJECTED,
+
     // System Error
     SYSTEM_ERROR,
 }

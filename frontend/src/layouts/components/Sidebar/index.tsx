@@ -7,7 +7,7 @@ import NotificationsDropdown from './NotificationsDropdown';
 import ProfileDropdown from './ProfileDropdown';
 import StoreSwitcherDropdown from './StoreSwitcherDropdown';
 import { sidebarTabs, storeOptions, profileMenuItems, logoutHref } from '@/data/navigationData';
-import { notificationGroups } from '@/data/dashboardData';
+import { useNotifications } from '@/hooks';
 import { Link, useLocation } from 'react-router-dom';
 import configs from '@/configs';
 
@@ -30,6 +30,8 @@ const Sidebar = ({ onClose }: SidebarProps) => {
         () => sidebarTabs.find((tab) => tab.endpoints.includes(pathname)) ?? sidebarTabs[0],
     );
 
+    const { groups: allGroups, unreadGroups, unreadCount, markAsRead, markAllAsRead, acceptAction, declineAction, isLoading, isError } = useNotifications();
+
     return (
         <div className="two-col-sidebar" id="two-col-sidebar">
             <div className="sidebar sidebar-twocol">
@@ -42,7 +44,17 @@ const Sidebar = ({ onClose }: SidebarProps) => {
                         <IconRail tabs={sidebarTabs} activeTabId={activeTab.id} onSelectTab={setActiveTab} />
 
                         <div className="sidebar-profile ">
-                            <NotificationsDropdown groups={notificationGroups} unreadCount={4} />
+                            <NotificationsDropdown
+                                groups={allGroups}
+                                unreadOnlyGroups={unreadGroups}
+                                unreadCount={unreadCount}
+                                onMarkAsRead={markAsRead}
+                                onMarkAllAsRead={markAllAsRead}
+                                onAcceptAction={acceptAction}
+                                onDeclineAction={declineAction}
+                                isLoading={isLoading}
+                                isError={isError}
+                            />
                             <ProfileDropdown menuItems={profileMenuItems} logoutHref={logoutHref} />
                         </div>
                     </div>

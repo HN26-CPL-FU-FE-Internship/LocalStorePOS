@@ -34,6 +34,7 @@ const routes = {
     'delivery-settings': '/delivery-settings',
     'notifications-settings': '/notifications-settings',
     'integrations-settings': '/integrations-settings',
+    'approval-requests': '/approval-requests',
 };
 
 export default routes;
