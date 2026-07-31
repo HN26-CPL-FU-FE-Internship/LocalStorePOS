@@ -4,14 +4,12 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
-import java.time.temporal.ChronoUnit;
 
-import org.junit.jupiter.api.AfterAll;
-import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.TestInstance;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.transaction.annotation.Transactional;
 
 import com.pos.backend.constant.enums.CommonStatus;
 import com.pos.backend.constant.enums.FoodType;
@@ -28,7 +26,7 @@ import com.pos.backend.entity.Role;
 import com.pos.backend.entity.User;
 
 @SpringBootTest
-@TestInstance(TestInstance.Lifecycle.PER_CLASS)
+@Transactional
 class OrderRepositoryIntegrationTest {
 
     @Autowired
@@ -52,10 +50,8 @@ class OrderRepositoryIntegrationTest {
     private LocalDateTime periodStart;
     private LocalDateTime periodEnd;
 
-    @BeforeAll
+    @BeforeEach
     void setUp() {
-        cleanDatabase();
-
         Category cat = categoryRepository.save(Category.builder()
                 .name("Count Test Cat")
                 .status(CommonStatus.active)
@@ -87,8 +83,9 @@ class OrderRepositoryIntegrationTest {
                 .status(TableStatus.available)
                 .build());
 
-        periodStart = LocalDateTime.now().minus(2, ChronoUnit.DAYS);
-        periodEnd = LocalDateTime.now().plus(2, ChronoUnit.DAYS);
+        // Use a distant future range so existing seed data never interferes.
+        periodStart = LocalDateTime.of(2100, 1, 1, 0, 0);
+        periodEnd = periodStart.plusDays(4);
 
         saveOrder("ORD-001", item, waiter, table, periodStart.plusHours(1), OrderStatus.completed,
                 OrderPaymentStatus.paid);
@@ -100,20 +97,6 @@ class OrderRepositoryIntegrationTest {
                 OrderPaymentStatus.paid);
         saveOrder("ORD-005", item, waiter, table, periodStart.minusDays(5), OrderStatus.completed,
                 OrderPaymentStatus.paid);
-    }
-
-    @AfterAll
-    void tearDown() {
-        cleanDatabase();
-    }
-
-    private void cleanDatabase() {
-        orderRepository.deleteAll();
-        itemRepository.deleteAll();
-        categoryRepository.deleteAll();
-        restaurantTableRepository.deleteAll();
-        userRepository.deleteAll();
-        roleRepository.deleteAll();
     }
 
     @Test
