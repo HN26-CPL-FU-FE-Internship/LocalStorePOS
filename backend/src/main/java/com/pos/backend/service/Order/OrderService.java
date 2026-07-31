@@ -52,6 +52,7 @@ import com.pos.backend.repository.OrderRepository;
 import com.pos.backend.repository.PaymentMethodRepository;
 import com.pos.backend.repository.PaymentRepository;
 import com.pos.backend.repository.RestaurantTableRepository;
+import com.pos.backend.service.NotificationService;
 import com.pos.backend.service.WebSocket.WebSocketService;
 import com.pos.backend.specification.OrderSpecification;
 import com.pos.backend.util.OrderUtil;
@@ -77,6 +78,7 @@ public class OrderService {
     OrderCommonService orderCommonService;
     WebSocketService webSocketService;
     AuditLogService auditLogService;
+    NotificationService notificationService;
 
     public Map<String, Long> getOrderCountByStatus(DateFilter filter) {
 
@@ -107,24 +109,8 @@ public class OrderService {
 
         Page<Order> orders = orderRepository.findAll(OrderSpecification.filter(filter), pageable);
 
-        // Lấy list orderItem dựa trên list orderId
-        List<Long> orderIds = orders.map(Order::getId).toList();
-        List<OrderItem> orderItems = orderIds.isEmpty() ? List.of()
-                : orderItemRepository.findByOrderIdIn(orderIds);
-
-        // lay list orderItemAddons dua tren list orderItemId
-        List<Long> orderItemIds = orderItems.stream().map(OrderItem::getId).toList();
-        List<OrderItemAddon> orderItemAddons = orderItemIds.isEmpty() ? List.of()
-                : orderItemAddonRepository
-                        .findByOrderItemIdIn(orderItemIds);
-
-        // Gom nhóm addon theo order_item_id
-        Map<Long, List<OrderItemAddonResponse>> addonsByItemIds = orderCommonService
-                .groupAddonsByItemId(orderItemAddons);
-
-        // Gom nhóm order_item theo order_id
-        Map<Long, List<OrderItemResponse>> orderItemsByOrderId = orderCommonService.groupItemsByOrderId(orderItems,
-                addonsByItemIds);
+        Map<Long, List<OrderItemResponse>> orderItemsByOrderId = loadOrderItemsGroupedByOrderId(
+                orders.map(Order::getId).toList());
 
         return orders.map(order -> OrderResponse.builder()
                 .id(order.getId())
@@ -191,6 +177,12 @@ public class OrderService {
         auditLogService.log(null, AuditAction.ORDER_STATUS_CHANGED, "ORDER", "Order", id,
                 "Order #" + order.getOrderNumber() + " status changed to " + request.getStatus(),
                 null, null, "SUCCESS", null);
+
+        notificationService.notifyOrderEvent(
+                "Order Status Changed",
+                "Order #" + order.getOrderNumber() + " status changed to " + request.getStatus(),
+                order.getId());
+
         return orderResponse;
     }
 
@@ -212,7 +204,47 @@ public class OrderService {
             throw new AppException(ErrorCode.ORDER_ALREADY_COMPLETED_OR_CANCELLED);
         }
 
-        // Update discount
+        applyPaymentModifiers(order, request);
+        order.setGrandTotal(recalculateGrandTotal(order));
+        applyGivenAmount(order, request);
+
+        if (request.getPaymentType() != null && !request.getPaymentType().isBlank()) {
+            order.setPaymentType(request.getPaymentType());
+        }
+
+        // Mark order as completed and paid
+        order.setStatus(OrderStatus.completed);
+        order.setPaymentStatus(OrderPaymentStatus.paid);
+        order.setKitchenStatus(KitchenStatus.completed);
+        orderRepository.save(order);
+
+        Payment payment = createPaymentRecord(order, request);
+
+        OrderResponse orderResponse = orderMapper.toOrderResponse(order);
+
+        auditLogService.log(null, AuditAction.PAYMENT_PROCESSED, "PAYMENT", "Order", id,
+                "Payment processed for order #" + order.getOrderNumber() + ": $" + order.getGrandTotal()
+                        + " via " + request.getPaymentType(),
+                null, null, "SUCCESS", null);
+        webSocketService.sendTopic("/orders", WebSocketEvent.builder()
+                .type(EventType.ORDER_UPDATED)
+                .data(orderResponse)
+                .build());
+
+        notificationService.notifyPaymentEvent(
+                "Payment Successful",
+                "Order #" + order.getOrderNumber() + " paid $" + order.getGrandTotal()
+                        + " via " + request.getPaymentType(),
+                payment.getId());
+
+        return orderResponse;
+    }
+
+    /**
+     * Apply discount / tip / note / table-release / coupon modifiers and log the
+     * corresponding audit events.
+     */
+    private void applyPaymentModifiers(Order order, OrderPaymentRequest request) {
         if (request.getDiscountAmount() != null) {
             order.setDiscountAmount(request.getDiscountAmount());
         }
@@ -229,12 +261,10 @@ public class OrderService {
             order.setDiscountType(null);
         }
 
-        // Update tip
         if (request.getTipAmount() != null) {
             order.setTipAmount(request.getTipAmount());
         }
 
-        // Update note from payment
         if (request.getNote() != null && !request.getNote().isBlank()) {
             order.setNote(request.getNote());
         } else if (request.getNote() != null) {
@@ -242,7 +272,23 @@ public class OrderService {
             order.setNote(null);
         }
 
-        // Update table
+        releaseTableOnPayment(order);
+        applyCoupon(order, request);
+
+        // Audit log for discount/coupon applied
+        if (request.getDiscountAmount() != null && request.getDiscountAmount().compareTo(BigDecimal.ZERO) > 0) {
+            auditLogService.log(null, AuditAction.DISCOUNT_APPLIED, "DISCOUNT", "Order", order.getId(),
+                    "Discount applied to order #" + order.getOrderNumber() + ": $" + request.getDiscountAmount(),
+                    null, null, "SUCCESS", null);
+        }
+        if (request.getCouponCode() != null && !request.getCouponCode().isBlank()) {
+            auditLogService.log(null, AuditAction.COUPON_APPLIED, "DISCOUNT", "Order", order.getId(),
+                    "Coupon applied to order #" + order.getOrderNumber() + ": " + request.getCouponCode(),
+                    null, null, "SUCCESS", null);
+        }
+    }
+
+    private void releaseTableOnPayment(Order order) {
         if (order.getTable() != null) {
             RestaurantTable table = restaurantTableRepository
                     .findByTableNumber(order.getTable().getTableNumber())
@@ -251,8 +297,9 @@ public class OrderService {
             table.setStatus(TableStatus.available);
             order.setTable(table);
         }
+    }
 
-        // Set coupon if provided
+    private void applyCoupon(Order order, OrderPaymentRequest request) {
         if (request.getCouponCode() != null && !request.getCouponCode().isBlank()) {
             List<Coupon> activeCoupons = couponRepository.findByStatus(CouponStatus.active);
             Coupon found = activeCoupons.stream()
@@ -261,20 +308,13 @@ public class OrderService {
                     .orElse(null);
             order.setCoupon(found);
         }
+    }
 
-        // ── Audit log for discount/coupon applied ────────────────────
-        if (request.getDiscountAmount() != null && request.getDiscountAmount().compareTo(BigDecimal.ZERO) > 0) {
-            auditLogService.log(null, AuditAction.DISCOUNT_APPLIED, "DISCOUNT", "Order", id,
-                    "Discount applied to order #" + order.getOrderNumber() + ": $" + request.getDiscountAmount(),
-                    null, null, "SUCCESS", null);
-        }
-        if (request.getCouponCode() != null && !request.getCouponCode().isBlank()) {
-            auditLogService.log(null, AuditAction.COUPON_APPLIED, "DISCOUNT", "Order", id,
-                    "Coupon applied to order #" + order.getOrderNumber() + ": " + request.getCouponCode(),
-                    null, null, "SUCCESS", null);
-        }
-
-        // ── Recalculate grand total after modifiers ────────────────────
+    /**
+     * Recalculate the grand total after discounts/coupons/tips are applied.
+     * Rejects the payment if the total falls to zero or below.
+     */
+    private BigDecimal recalculateGrandTotal(Order order) {
         BigDecimal subtotal = order.getSubtotal();
         BigDecimal discVal = calculateDiscountValue(
                 subtotal, order.getDiscountAmount(), order.getDiscountType());
@@ -283,7 +323,7 @@ public class OrderService {
                         order.getCoupon().getDiscountAmount(),
                         order.getCoupon().getDiscountType())
                 : BigDecimal.ZERO;
-        BigDecimal calculatedGrandTotal = subtotal
+        BigDecimal grandTotal = subtotal
                 .subtract(discVal)
                 .subtract(coupVal)
                 .add(order.getTaxAmount())
@@ -295,14 +335,18 @@ public class OrderService {
 
         // Reject payment if the total is zero (100% discount + coupon wiped out
         // everything)
-        if (calculatedGrandTotal.compareTo(BigDecimal.ZERO) <= 0) {
+        if (grandTotal.compareTo(BigDecimal.ZERO) <= 0) {
             throw new AppException(ErrorCode.ZERO_TOTAL);
         }
-        order.setGrandTotal(calculatedGrandTotal);
+        return grandTotal;
+    }
 
-        // Validate & process given amount based on payment type
+    /**
+     * Set paid/balance amounts based on the payment type. Cash must cover the
+     * grand total; card/scan payments use the exact total.
+     */
+    private void applyGivenAmount(Order order, OrderPaymentRequest request) {
         if ("cash".equalsIgnoreCase(request.getPaymentType())) {
-            // Cash payment must be at least the calculated grand total
             if (request.getGivenAmount() == null
                     || request.getGivenAmount().compareTo(BigDecimal.ZERO) <= 0
                     || request.getGivenAmount().compareTo(order.getGrandTotal()) < 0) {
@@ -311,23 +355,12 @@ public class OrderService {
             order.setPaidAmount(request.getGivenAmount());
             order.setBalanceAmount(request.getGivenAmount().subtract(order.getGrandTotal()));
         } else {
-            // Card/scan payments use the exact grand total
             order.setPaidAmount(order.getGrandTotal());
             order.setBalanceAmount(BigDecimal.ZERO);
         }
+    }
 
-        // Persist payment type on the order
-        if (request.getPaymentType() != null && !request.getPaymentType().isBlank()) {
-            order.setPaymentType(request.getPaymentType());
-        }
-
-        // Mark order as completed and paid
-        order.setStatus(OrderStatus.completed);
-        order.setPaymentStatus(OrderPaymentStatus.paid);
-        order.setKitchenStatus(KitchenStatus.completed);
-        orderRepository.save(order);
-
-        // Create payment record
+    private Payment createPaymentRecord(Order order, OrderPaymentRequest request) {
         String transactionId = "TXN-" + UUID.randomUUID().toString().substring(0, 8).toUpperCase();
 
         PaymentMethod paymentMethod = null;
@@ -348,19 +381,7 @@ public class OrderService {
                 .paidAt(LocalDateTime.now())
                 .build();
 
-        paymentRepository.save(payment);
-
-        OrderResponse orderResponse = orderMapper.toOrderResponse(order);
-
-        auditLogService.log(null, AuditAction.PAYMENT_PROCESSED, "PAYMENT", "Order", id,
-                "Payment processed for order #" + order.getOrderNumber() + ": $" + order.getGrandTotal()
-                        + " via " + request.getPaymentType(),
-                null, null, "SUCCESS", null);
-        webSocketService.sendTopic("/orders", WebSocketEvent.builder()
-                .type(EventType.ORDER_UPDATED)
-                .data(orderResponse)
-                .build());
-        return orderResponse;
+        return paymentRepository.save(payment);
     }
 
     public OrderResponse getOrderDetail(String orderNumber) {
@@ -370,6 +391,16 @@ public class OrderService {
 
         OrderResponse response = orderMapper.toOrderResponse(order);
 
+        populateDetailFields(response, order);
+        response.setItems(loadOrderItemsGroupedByOrderId(List.of(order.getId())).get(order.getId()));
+        return response;
+    }
+
+    /**
+     * Resolve the order's customer / table / waiter references onto the response
+     * (these are not populated by the mapper).
+     */
+    private void populateDetailFields(OrderResponse response, Order order) {
         Customer customer = order.getCustomer();
         RestaurantTable table = order.getTable();
         User waiter = order.getWaiter();
@@ -382,23 +413,27 @@ public class OrderService {
                 ? waiter.getFirstName() + " " + waiter.getLastName()
                 : null);
         response.setWaiterId(waiter != null ? waiter.getId() : null);
-        List<OrderItem> items = orderItemRepository.findByOrderId(order.getId());
-        List<Long> itemIds = items.stream().map(OrderItem::getId).toList();
+    }
 
-        List<OrderItemAddon> orderItemAddons = itemIds.isEmpty() ? List.of()
-                : orderItemAddonRepository
-                        .findByOrderItemIdIn(itemIds);
+    /**
+     * Batch-load order items + their addons for the given order ids and group
+     * them as {@code orderId -> items}. Used by both list and detail queries.
+     */
+    private Map<Long, List<OrderItemResponse>> loadOrderItemsGroupedByOrderId(List<Long> orderIds) {
+        if (orderIds.isEmpty()) {
+            return Map.of();
+        }
 
-        // Gom nhóm addon theo order_item_id
+        List<OrderItem> orderItems = orderItemRepository.findByOrderIdIn(orderIds);
+        List<Long> orderItemIds = orderItems.stream().map(OrderItem::getId).toList();
+
+        List<OrderItemAddon> orderItemAddons = orderItemIds.isEmpty() ? List.of()
+                : orderItemAddonRepository.findByOrderItemIdIn(orderItemIds);
+
         Map<Long, List<OrderItemAddonResponse>> addonsByItemIds = orderCommonService
                 .groupAddonsByItemId(orderItemAddons);
 
-        // Gom nhóm order_item theo order_id
-        Map<Long, List<OrderItemResponse>> orderItemsByOrderId = orderCommonService.groupItemsByOrderId(
-                items,
-                addonsByItemIds);
-        response.setItems(orderItemsByOrderId.get(order.getId()));
-        return response;
+        return orderCommonService.groupItemsByOrderId(orderItems, addonsByItemIds);
     }
 
     /**
