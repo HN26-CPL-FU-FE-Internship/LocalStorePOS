@@ -13,6 +13,8 @@ const baseItem: OrderItemType = {
     unitPrice: 10,
     addons: [],
     variationId: null,
+    status: 'pending',
+    taxRate: 0,
 };
 
 describe('KitchenOrderItemRow', () => {
@@ -108,6 +110,8 @@ describe('KitchenOrderItemRow', () => {
                 { id: 1, addonId: 301, addonName: 'Pepperoni', addonPrice: 2, quantity: 1 },
             ],
             variationId: 10,
+            status: 'pending',
+            taxRate: 0,
         };
         render(<KitchenOrderItemRow item={item} />);
         expect(screen.getByText(/Pizza/)).toBeInTheDocument();

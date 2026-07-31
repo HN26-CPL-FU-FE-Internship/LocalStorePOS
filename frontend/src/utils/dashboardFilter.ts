@@ -6,6 +6,7 @@ const DAYS_BACK: Record<TimePeriod, number> = {
     Weekly: 7,
     Monthly: 30,
     Yearly: 365,
+    Custom: 0,
 };
 
 /**

@@ -91,15 +91,15 @@ const baseOrder: OrderSummary = {
     discountAmount: 0,
     discountType: undefined,
     estimatedMinutes: 15,
-    cookingStartedAt: null,
+    cookingStartedAt: '',
     kitchenStatus: 'new_order',
     grandTotal: 55,
     paidAmount: 0,
     balanceAmount: 0,
     note: null,
     items: [
-        { id: 1, itemId: 101, itemName: 'Burger', quantity: 2, kitchenNote: null, sizeName: null, unitPrice: 10, addons: [], variationId: null },
-        { id: 2, itemId: 102, itemName: 'Fries', quantity: 1, kitchenNote: 'Extra salt', sizeName: 'Large', unitPrice: 5, addons: [{ id: 1, addonId: 201, addonName: 'Cheese', addonPrice: 2, quantity: 1 }], variationId: 20 },
+        { id: 1, itemId: 101, itemName: 'Burger', quantity: 2, kitchenNote: null, sizeName: null, unitPrice: 10, addons: [], variationId: null, status: 'pending', taxRate: 0 },
+        { id: 2, itemId: 102, itemName: 'Fries', quantity: 1, kitchenNote: 'Extra salt', sizeName: 'Large', unitPrice: 5, addons: [{ id: 1, addonId: 201, addonName: 'Cheese', addonPrice: 2, quantity: 1 }], variationId: 20, status: 'pending', taxRate: 0 },
     ],
 };
 

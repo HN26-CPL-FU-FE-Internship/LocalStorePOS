@@ -108,7 +108,7 @@ const UserStatisticsCard = memo(({
                     },
                     dataLabels: { enabled: false },
                     grid: { show: false },
-                    xaxis: { show: false },
+                    xaxis: { axisTicks: { show: false }, axisBorder: { show: false }, labels: { show: false } },
                     yaxis: { show: false },
                     tooltip: { enabled: false },
                 }}

@@ -1,5 +1,6 @@
 import { memo } from 'react';
 import Chart from 'react-apexcharts';
+import type { ApexOptions } from 'apexcharts';
 import Icon from '@/components/common/Icon';
 import Skeleton from '@/components/common/Skeleton';
 import { DashboardCardShell } from '../common';
@@ -22,7 +23,7 @@ const RevenueCard = memo(({ totalRevenue, chartData, activeFilter = 'Weekly', on
         },
     ];
 
-    const chartOptions = {
+    const chartOptions: ApexOptions = {
         chart: {
             type: 'area' as const,
             height: 310,
