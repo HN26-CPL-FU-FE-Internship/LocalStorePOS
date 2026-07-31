@@ -1,11 +1,13 @@
 import { useCallback, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Button, Card, Col, Container, Row, Spinner } from 'react-bootstrap';
 import { useGetQrPayment, useConfirmQrPayment, useCancelQrPayment } from '@/hooks/payment';
 import useContextData from '@/hooks/useContextData';
 import { ToastContext } from '@/provider/ToastProvider/ToastContext';
 import PaymentStatus from '@/components/PaymentStatus';
-import Icon from '@/components/common/Icon';
+import bindCx from '@/utils/bindCx';
+import styles from './Payment.module.scss';
+
+const cx = bindCx(styles);
 
 const FakeBankPaymentPage = () => {
     const { paymentCode } = useParams<{ paymentCode: string }>();
@@ -52,90 +54,171 @@ const FakeBankPaymentPage = () => {
         });
     }, [paymentCode, cancel, navigate, showToast]);
 
+    const handleBack = () => {
+        if (window.history.length > 1) {
+            navigate(-1);
+        } else {
+            navigate('/');
+        }
+    };
+
+    // ── Loading State ──
     if (isLoading) {
         return (
-            <Container className="d-flex vh-100 align-items-center justify-content-center">
-                <Spinner animation="border" />
-            </Container>
+            <div className={cx('page')}>
+                <div className={cx('card')}>
+                    <div className={cx('body')}>
+                        <div className={cx('loadingContainer')}>
+                            <div className={cx('loadingSpinner')} />
+                            <p className={cx('loadingText')}>Loading payment info...</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
         );
     }
 
+    // ── Error State ──
     if (isError || !data) {
         return (
-            <Container className="d-flex vh-100 align-items-center justify-content-center">
-                <Card body className="text-center">
-                    <Icon name="circle-alert" className="fs-1 text-danger mb-3" />
-                    <h5>Payment not found</h5>
-                    <p className="text-muted">{(error as Error)?.message}</p>
-                </Card>
-            </Container>
+            <div className={cx('page')}>
+                <div className={cx('card')}>
+                    <div className={cx('body')}>
+                        <div className={cx('errorSection')}>
+                            <div className={cx('errorIcon')}>⚠</div>
+                            <h2 className={cx('errorTitle')}>Payment Not Found</h2>
+                            <p className={cx('errorMessage')}>
+                                {(error as Error)?.message || 'This payment link may have expired or is invalid.'}
+                            </p>
+                        </div>
+                        <div className={cx('actions')}>
+                            <button type="button" className={cx('btnCancel')} onClick={handleBack}>
+                                Go Back
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
         );
     }
 
+    const statusLabel = data.status
+        ? data.status.charAt(0).toUpperCase() + data.status.slice(1)
+        : 'Pending';
+
+    const statusDotClass = cx('statusDot', {
+        statusDotSuccess: hasPaid,
+        statusDotPending: !hasPaid,
+    });
+
     return (
-        <Container className="d-flex vh-100 align-items-center justify-content-center">
-            <Row className="w-100 justify-content-center">
-                <Col md={8} lg={6} xl={5}>
-                    <Card className="shadow-sm">
-                        <Card.Body className="p-4 text-center">
-                            <div className="mb-4">
-                                <Icon name="building-2" className="fs-1 text-primary mb-2" />
-                                <h4 className="mb-0">{data.merchantName}</h4>
+        <div className={cx('page')}>
+            <div className={cx('card')}>
+                {/* ── Header ── */}
+                <div className={cx('header')}>
+                    <button type="button" className={cx('headerBack')} onClick={handleBack} aria-label="Go back">
+                        ←
+                    </button>
+                    <span className={cx('headerTitle')}>Confirm Payment</span>
+                    <span className={cx('headerAmount')}>${data.amount.toFixed(2)}</span>
+                </div>
+
+                {/* ── Body ── */}
+                <div className={cx('body')}>
+                    {hasPaid ? (
+                        /* ── Success State ── */
+                        <div className={cx('successSection')}>
+                            <div className={cx('successIcon')}>
+                                <span className={cx('iconCheck')} />
+                            </div>
+                            <h2 className={cx('successTitle')}>Payment Successful!</h2>
+                            <p className={cx('successSub')}>
+                                ${data.amount.toFixed(2)} paid to {data.merchantName}
+                            </p>
+                            <div className={cx('statusSection')}>
+                                <span className={cx('statusDot', 'statusDotSuccess')} />
+                                <span className={cx('statusText')}>Completed</span>
+                            </div>
+                            <div className={cx('actions')}>
+                                <button type="button" className={cx('btnCancel')} onClick={handleBack}>
+                                    Done
+                                </button>
+                            </div>
+                        </div>
+                    ) : (
+                        <>
+                            {/* ── Merchant Info ── */}
+                            <div className={cx('merchantRow')}>
+                                <div className={cx('merchantAvatar')}>
+                                    {data.merchantName?.charAt(0)?.toUpperCase() || 'M'}
+                                </div>
+                                <div className={cx('merchantInfo')}>
+                                    <div className={cx('merchantName')}>{data.merchantName}</div>
+                                    <div className={cx('merchantOrder')}>Order #{data.orderNumber}</div>
+                                </div>
                             </div>
 
-                            <div className="mb-4">
-                                <p className="text-muted mb-1">Order</p>
-                                <h5 className="fw-bold">#{data.orderNumber}</h5>
+                            {/* ── Amount ── */}
+                            <div className={cx('amountSection')}>
+                                <p className={cx('amountLabel')}>Amount Due</p>
+                                <h1 className={cx('amountValue')}>
+                                    <span className={cx('amountCurrency')}>$</span>
+                                    {data.amount.toFixed(2)}
+                                </h1>
                             </div>
 
-                            <div className="mb-4">
-                                <p className="text-muted mb-1">Amount</p>
-                                <h2 className="fw-bold">${data.amount.toFixed(2)}</h2>
+                            {/* ── Details ── */}
+                            <div className={cx('detailRow')}>
+                                <span className={cx('detailLabel')}>Merchant</span>
+                                <span className={cx('detailValue')}>{data.merchantName}</span>
+                            </div>
+                            <div className={cx('detailRow')}>
+                                <span className={cx('detailLabel')}>Order Number</span>
+                                <span className={cx('detailValue')}>#{data.orderNumber}</span>
+                            </div>
+                            <div className={cx('detailRow')}>
+                                <span className={cx('detailLabel')}>Amount</span>
+                                <span className={cx('detailValue')}>${data.amount.toFixed(2)}</span>
                             </div>
 
-                            <div className="d-flex align-items-center justify-content-center gap-2 mb-4">
-                                <span>Payment status:</span>
-                                <PaymentStatus status={hasPaid ? 'success' : data.status} />
+                            {/* ── Status ── */}
+                            <div className={cx('statusSection')}>
+                                <span className={statusDotClass} />
+                                <span className={cx('statusText')}>Status: </span>
+                                <PaymentStatus status={hasPaid ? 'success' : statusLabel} />
                             </div>
 
-                            {!hasPaid && (
-                                <div className="d-grid gap-2">
-                                    <Button
-                                        variant="primary"
-                                        size="lg"
-                                        onClick={handlePay}
-                                        disabled={confirm.isPending}
-                                    >
-                                        {confirm.isPending ? (
-                                            <>
-                                            <Spinner size="sm" className="me-2" />
+                            {/* ── Actions ── */}
+                            <div className={cx('actions')}>
+                                <button
+                                    type="button"
+                                    className={cx('btnPay')}
+                                    onClick={handlePay}
+                                    disabled={confirm.isPending}
+                                >
+                                    {confirm.isPending ? (
+                                        <>
+                                            <span className={cx('btnSpinner')} />
                                             Processing...
-                                            </>
-                                        ) : (
-                                            'Pay'
-                                        )}
-                                    </Button>
-                                    <Button
-                                        variant="outline-secondary"
-                                        onClick={handleCancel}
-                                        disabled={cancel.isPending}
-                                    >
-                                        Cancel
-                                    </Button>
-                                </div>
-                            )}
-
-                            {hasPaid && (
-                                <div className="mt-3">
-                                    <Icon name="circle-check-big" className="fs-1 text-success mb-2" />
-                                    <h5 className="text-success">Payment successful</h5>
-                                </div>
-                            )}
-                        </Card.Body>
-                    </Card>
-                </Col>
-            </Row>
-        </Container>
+                                        </>
+                                    ) : (
+                                        'Confirm & Pay'
+                                    )}
+                                </button>
+                                <button
+                                    type="button"
+                                    className={cx('btnCancel')}
+                                    onClick={handleCancel}
+                                    disabled={cancel.isPending}
+                                >
+                                    {cancel.isPending ? 'Cancelling...' : 'Cancel Payment'}
+                                </button>
+                            </div>
+                        </>
+                    )}
+                </div>
+            </div>
+        </div>
     );
 };
 
