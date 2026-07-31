@@ -25,6 +25,7 @@ import Customers from '@/pages/Customers';
 import Invoices from '@/pages/Invoices';
 import InvoiceDetails from '@/pages/InvoiceDetails';
 import Payments from '@/pages/Payments';
+import FakeBankPaymentPage from '@/pages/Payment';
 import StoreSettingsPage from '@/pages/Settings/StoreSettings';
 import TaxSettingsPage from '@/pages/Settings/TaxSettings';
 import PrintSettingsPage from '@/pages/Settings/PrintSettings';
@@ -54,6 +55,7 @@ export const publicRoutes = [
     { path: configs.routes.invoices, component: Invoices, layout: AppLayout },
     { path: configs.routes.invoiceDetails, component: InvoiceDetails, layout: AppLayout },
     { path: configs.routes.payments, component: Payments, layout: AppLayout },
+    { path: configs.routes.payment, component: FakeBankPaymentPage, layout: null },
     { path: configs.routes.users, component: Users, layout: AppLayout },
     { path: configs.routes['role-permissions'], component: Permissions, layout: AppLayout },
     { path: configs.routes['earning-reports'], component: Reports, layout: AppLayout },
