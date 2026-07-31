@@ -20,6 +20,7 @@ import { useUpdateStatus, usePayOrder } from '@/hooks/order/';
 import useContextData from '@/hooks/useContextData';
 import { ToastContext } from '@/provider/ToastProvider/ToastContext';
 import ConfirmModal from '@/components/common/ConfirmModal';
+import ApprovalRequestModal from '@/components/common/ApprovalRequestModal';
 import OrderModal from '../OrderModal';
 import PayOrderModal from '../PayOrderModal';
 import OrderItemRow from '../OrderItemRow';
@@ -41,6 +42,7 @@ const TabContent = ({ order }: { order: OrderSummary }) => {
     const [showOrderPay, setShowOrderPay] = useState(false);
     const [updateStatus, setUpdateStatus] = useState<OrderUpdateStatus>();
     const [confirmType, setConfirmType] = useState<ConfirmType>('update');
+    const [showApprovalModal, setShowApprovalModal] = useState(false);
 
     const updateStatusMutate = useUpdateStatus();
     const payOrderMutate = usePayOrder();
@@ -67,7 +69,14 @@ const TabContent = ({ order }: { order: OrderSummary }) => {
                 status,
             });
             setConfirmType(status === 'cancelled' ? 'cancel' : status === 'completed' ? 'complete' : 'update');
-            setShowConfirmModal(true);
+
+            // Cancelling an invoice requires manager approval before it takes
+            // effect on the system.
+            if (status === 'cancelled') {
+                setShowApprovalModal(true);
+            } else {
+                setShowConfirmModal(true);
+            }
         },
         [order.id, order.orderNumber, order.status, showToast],
     );
@@ -244,6 +253,23 @@ const TabContent = ({ order }: { order: OrderSummary }) => {
                 handleClose={() => setShowConfirmModal(false)}
                 type={confirmType}
                 show={showConfirmModal}
+            />
+
+            {/* Cancelling an invoice requires approval — the status is only
+                changed once a manager approves the request. */}
+            <ApprovalRequestModal
+                show={showApprovalModal}
+                onHide={() => setShowApprovalModal(false)}
+                actionLabel="cancel"
+                requestType="CANCEL_INVOICE"
+                description={`Hủy hóa đơn ${updateStatus?.orderNumber}`}
+                targetType="Order"
+                targetId={updateStatus?.id}
+                targetDisplay={updateStatus?.orderNumber}
+                additionalData={updateStatus ? JSON.stringify({ targetId: updateStatus.id }) : null}
+                onSent={() => {
+                    setShowApprovalModal(false);
+                }}
             />
         </>
     );

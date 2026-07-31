@@ -189,6 +189,20 @@ public class ItemServiceImpl implements ItemService {
 
     @Override
     @Transactional
+    public ItemDetailResponse updatePrice(Long id, java.math.BigDecimal price) {
+        Item item = findItemOrThrow(id);
+        item.setPrice(price);
+        ItemDetailResponse response = toDetailResponse(itemRepository.save(item));
+
+        auditLogService.log(null, AuditAction.MENU_PRICE_UPDATED, "MENU_PRICE", "Item", id,
+                "Item price changed to $" + price + ": " + item.getName(),
+                null, null, "SUCCESS", null);
+
+        return response;
+    }
+
+    @Override
+    @Transactional
     public void deleteItem(Long id) {
         Item item = findItemOrThrow(id);
         itemRepository.delete(item);

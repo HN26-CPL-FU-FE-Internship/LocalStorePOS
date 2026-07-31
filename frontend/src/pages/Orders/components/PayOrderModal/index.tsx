@@ -8,6 +8,7 @@ import { memo, useState, useCallback, useMemo, useEffect, useRef } from 'react';
 import useContextData from '@/hooks/useContextData';
 import { ToastContext } from '@/provider/ToastProvider/ToastContext';
 import ConfirmModal from '@/components/common/ConfirmModal';
+import ApprovalRequestModal from '@/components/common/ApprovalRequestModal';
 import type { PaymentRequest } from '@/services/orderService';
 import OrderInfoSection from './OrderInfoSection';
 import OrderedMenusSection from './OrderedMenusSection';
@@ -37,6 +38,7 @@ const PayOrderModal = ({
     const [givenAmount, setGivenAmount] = useState('');
     const [paymentNote, setPaymentNote] = useState(order?.note ?? '');
     const [showConfirmPay, setShowConfirmPay] = useState(false);
+    const [showDiscountApproval, setShowDiscountApproval] = useState(false);
 
     const handleGivenAmountChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
         const raw = e.target.value;
@@ -77,6 +79,8 @@ const PayOrderModal = ({
 
     // ── Computed totals ──────────────────────────────────────────────
     const subtotal = order?.subtotal ?? 0;
+
+    const DISCOUNT_APPROVAL_THRESHOLD_PERCENT = 20;
 
     const { discountValue, couponDiscount, finalTotal } = useMemo(() => {
         // Use payment-tab values when set, otherwise fall back to order defaults
@@ -129,6 +133,17 @@ const PayOrderModal = ({
             note: paymentNote,
         };
 
+        // A discount equal to or above the threshold requires manager approval
+        // before the payment is processed on the system.
+        const effectiveDiscountPercent =
+            discountType === 'percentage' ? discountAmount : subtotal > 0 ? (discountValue / subtotal) * 100 : 0;
+        if (effectiveDiscountPercent >= DISCOUNT_APPROVAL_THRESHOLD_PERCENT) {
+            // Close the confirm modal so the approval modal is the only one on screen
+            setShowConfirmPay(false);
+            setShowDiscountApproval(true);
+            return;
+        }
+
         // Trigger mutation but keep modals open during processing
         onPaymentComplete?.(paymentData);
     }, [
@@ -143,6 +158,8 @@ const PayOrderModal = ({
         paymentNote,
         onPaymentComplete,
         showToast,
+        subtotal,
+        discountValue,
     ]);
 
     const handleRequestPay = useCallback(() => {
@@ -304,6 +321,36 @@ const PayOrderModal = ({
                 action={handleConfirmPayment}
                 data={order.orderNumber}
                 actionDisabled={isPaymentProcessing}
+            />
+
+            {/* Discount ≥ 20% requires approval before the payment is applied */}
+            <ApprovalRequestModal
+                show={showDiscountApproval}
+                onHide={() => setShowDiscountApproval(false)}
+                actionLabel="discount"
+                requestType="DISCOUNT_EXCEEDS_THRESHOLD"
+                description={`Áp dụng giảm giá ${discountAmount > 0 ? (discountType === 'percentage' ? `${discountAmount}%` : `$${discountAmount}`) : ''} cho hóa đơn ${order.orderNumber}`}
+                targetType="Order"
+                targetId={order.id}
+                targetDisplay={order.orderNumber}
+                additionalData={JSON.stringify({
+                    orderId: order.id,
+                    paymentRequest: {
+                        discountAmount,
+                        discountType,
+                        tipAmount,
+                        couponCode: selectedCoupon?.code ?? null,
+                        paymentType: activePaymentType,
+                        givenAmount:
+                            activePaymentType === 'cash' && !isNaN(parseFloat(givenAmount)) && parseFloat(givenAmount) > 0
+                                ? parseFloat(givenAmount)
+                                : 0,
+                        note: paymentNote,
+                    },
+                })}
+                onSent={() => {
+                    setShowDiscountApproval(false);
+                }}
             />
         </Modal>
     );

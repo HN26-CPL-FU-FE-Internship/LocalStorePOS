@@ -1,9 +1,9 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Card, Button, Modal, Form, Offcanvas, Alert } from 'react-bootstrap';
 import Icon from '@/components/common/Icon';
+import ApprovalRequestModal from '@/components/common/ApprovalRequestModal';
 import {
     createCategory,
-    deleteCategory,
     getCategories,
     getCategoryImageUrl,
     updateCategory,
@@ -44,11 +44,10 @@ const CategoriesPage = () => {
     /* ---------- modal state ---------- */
     const [showAdd, setShowAdd] = useState(false);
     const [showEdit, setShowEdit] = useState(false);
-    const [showDelete, setShowDelete] = useState(false);
+    const [showDeleteApproval, setShowDeleteApproval] = useState(false);
     const [showFilter, setShowFilter] = useState(false);
     const [currentCategory, setCurrentCategory] = useState<CategoryEntry | null>(null);
     const [saving, setSaving] = useState(false);
-    const [deleting, setDeleting] = useState(false);
 
     /* ---------- form state ---------- */
     const [form, setForm] = useState<CategoryForm>(emptyForm);
@@ -195,26 +194,9 @@ const CategoriesPage = () => {
 
     const openDelete = (category: CategoryEntry) => {
         setCurrentCategory(category);
-        setShowDelete(true);
+        setShowDeleteApproval(true);
     };
 
-    const handleDelete = async () => {
-        if (!currentCategory) return;
-        setDeleting(true);
-        setError(null);
-        try {
-            await deleteCategory(currentCategory.id);
-            setShowDelete(false);
-            setCurrentCategory(null);
-            setNotice('Xóa danh mục thành công.');
-            await loadCategories();
-        } catch (err) {
-            setError(extractErrorMessage(err, 'Không thể xóa danh mục này.'));
-            setShowDelete(false);
-        } finally {
-            setDeleting(false);
-        }
-    };
 
     const handleToggleStatus = async (category: CategoryEntry) => {
         const nextStatus: CategoryStatus = category.status === 'active' ? 'inactive' : 'active';
@@ -490,28 +472,28 @@ const CategoriesPage = () => {
                 </Form>
             </Modal>
 
-            {/* ---- Delete Confirmation Modal ---- */}
-            <Modal show={showDelete} onHide={() => setShowDelete(false)} centered size="sm">
-                <Modal.Body className="text-center p-4">
-                    <div className="mb-4">
-                        <span className="avatar avatar-xxl rounded-circle bg-danger-subtle d-inline-flex align-items-center justify-content-center">
-                            <Icon name="trash-2" className="fs-2 text-danger" />
-                        </span>
-                    </div>
-                    <h4 className="mb-1">Delete Confirmation</h4>
-                    <p className="mb-4">
-                        Are you sure you want to delete{currentCategory ? ` "${currentCategory.name}"?` : '?'}
-                    </p>
-                    <div className="d-flex justify-content-center gap-2">
-                        <Button variant="light" className="w-100" onClick={() => setShowDelete(false)}>
-                            Close
-                        </Button>
-                        <Button variant="danger" className="w-100" onClick={handleDelete} disabled={deleting}>
-                            {deleting ? 'Deleting...' : 'Delete'}
-                        </Button>
-                    </div>
-                </Modal.Body>
-            </Modal>
+
+            {/* ---- Delete Request Modal (requires approval) ---- */}
+            <ApprovalRequestModal
+                show={showDeleteApproval}
+                onHide={() => setShowDeleteApproval(false)}
+                actionLabel="delete"
+                requestType="DELETE_IMPORTANT_DATA"
+                description={`Xóa danh mục ${currentCategory?.name ?? ''}`}
+                targetType="CATEGORY"
+                targetId={currentCategory?.id}
+                targetDisplay={currentCategory?.name}
+                additionalData={
+                    currentCategory
+                        ? JSON.stringify({ targetType: 'CATEGORY', targetId: currentCategory.id })
+                        : null
+                }
+                onSent={() => {
+                    setShowDeleteApproval(false);
+                    setCurrentCategory(null);
+                    setNotice('Yêu cầu xóa danh mục đã được gửi.');
+                }}
+            />
 
             {/* ---- Filter Offcanvas ---- */}
             <Offcanvas show={showFilter} onHide={() => setShowFilter(false)} placement="end">

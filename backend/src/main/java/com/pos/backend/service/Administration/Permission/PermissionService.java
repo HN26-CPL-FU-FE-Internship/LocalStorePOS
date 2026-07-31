@@ -75,6 +75,21 @@ public class PermissionService {
          * Update (upsert) permissions for a role. For each module in the request,
          * the corresponding role_permissions row is created or updated.
          */
+        /**
+         * Delete a non-system role (used when a DELETE_IMPORTANT_DATA approval
+         * request with targetType ROLE is approved).
+         */
+        @Transactional
+        public void deleteRole(Long roleId) {
+                Role role = roleRepository.findById(roleId)
+                                .orElseThrow(() -> new AppException(ErrorCode.ROLE_NOT_FOUND));
+                if (role.isSystemRole()) {
+                        throw new AppException(ErrorCode.ROLE_NOT_ASSIGNABLE);
+                }
+                rolePermissionRepository.deleteByRole(role);
+                roleRepository.delete(role);
+        }
+
         @Transactional
         public void updateRolePermissions(Long roleId, RolePermissionsUpdateRequest request) {
                 Role role = roleRepository.findById(roleId)

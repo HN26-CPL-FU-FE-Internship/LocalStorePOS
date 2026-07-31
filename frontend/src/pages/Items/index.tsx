@@ -2,9 +2,9 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { Row, Col, Card, Button, Dropdown, Modal, Form, Offcanvas, Alert, Spinner, Badge } from 'react-bootstrap';
 import { isAxiosError } from 'axios';
 import Icon from '@/components/common/Icon';
+import ApprovalRequestModal from '@/components/common/ApprovalRequestModal';
 import {
     createItem,
-    deleteItem,
     getCategoryOptions,
     getItem,
     getItemImageUrl,
@@ -91,15 +91,15 @@ const ItemsPage = () => {
     /* ---------- modal state ---------- */
     const [showAdd, setShowAdd] = useState(false);
     const [showEdit, setShowEdit] = useState(false);
-    const [showDelete, setShowDelete] = useState(false);
     const [showHide, setShowHide] = useState(false);
+    const [showDeleteApproval, setShowDeleteApproval] = useState(false);
+    const [showPriceApproval, setShowPriceApproval] = useState(false);
     const [showDetails, setShowDetails] = useState(false);
     const [showFilter, setShowFilter] = useState(false);
     const [currentItem, setCurrentItem] = useState<ItemEntry | null>(null);
     const [detail, setDetail] = useState<ItemDetail | null>(null);
     const [detailLoading, setDetailLoading] = useState(false);
     const [saving, setSaving] = useState(false);
-    const [deleting, setDeleting] = useState(false);
     const [hiding, setHiding] = useState(false);
 
     /* ---------- form state ---------- */
@@ -298,6 +298,14 @@ const ItemsPage = () => {
 
     const handleEdit = async () => {
         if (!currentItem) return;
+
+        // Price changes require approval before they take effect.
+        if (Number(form.price) !== Number(currentItem.price)) {
+            setShowEdit(false);
+            setShowPriceApproval(true);
+            return;
+        }
+
         setSaving(true);
         setError(null);
         try {
@@ -330,27 +338,10 @@ const ItemsPage = () => {
         }
     };
 
-    const openDelete = (item: ItemEntry) => {
+    // Delete requires approval before it is applied on the system.
+    const openDeleteApproval = (item: ItemEntry) => {
         setCurrentItem(item);
-        setShowDelete(true);
-    };
-
-    const handleDelete = async () => {
-        if (!currentItem) return;
-        setDeleting(true);
-        setError(null);
-        try {
-            await deleteItem(currentItem.id);
-            setShowDelete(false);
-            setCurrentItem(null);
-            setNotice('Xóa món ăn thành công.');
-            await loadItems();
-        } catch (err) {
-            setError(extractErrorMessage(err, 'Không thể xóa món ăn này.'));
-            setShowDelete(false);
-        } finally {
-            setDeleting(false);
-        }
+        setShowDeleteApproval(true);
     };
 
     const openHide = (item: ItemEntry) => {
@@ -540,7 +531,7 @@ const ItemsPage = () => {
                                                         <Icon name="pencil-line" className="me-2" />
                                                         Edit Item
                                                     </Dropdown.Item>
-                                                    <Dropdown.Item onClick={() => openDelete(item)}>
+                                                    <Dropdown.Item onClick={() => openDeleteApproval(item)}>
                                                         <Icon name="trash-2" className="me-2" />
                                                         Delete
                                                     </Dropdown.Item>
@@ -998,30 +989,68 @@ const ItemsPage = () => {
                 </Modal.Body>
             </Modal>
 
-            {/* ---- Delete Confirmation Modal ---- */}
-            <Modal show={showDelete} onHide={() => setShowDelete(false)} centered size="sm">
-                <Modal.Body className="text-center p-4">
-                    <div className="mb-4">
-                        <span className="avatar avatar-xxl rounded-circle bg-danger-subtle d-inline-flex align-items-center justify-content-center">
-                            <Icon name="trash-2" className="fs-2 text-danger" />
-                        </span>
-                    </div>
-                    <h4 className="mb-1">Delete Confirmation</h4>
-                    <p className="mb-4">
-                        Are you sure you want to delete{currentItem ? ` "${currentItem.name}"?` : '?'}
-                    </p>
-                    <div className="d-flex justify-content-center gap-2">
-                        <Button variant="light" className="w-100" onClick={() => setShowDelete(false)}>
-                            Close
-                        </Button>
-                        <Button variant="danger" className="w-100" onClick={handleDelete} disabled={deleting}>
-                            {deleting ? 'Deleting...' : 'Delete'}
-                        </Button>
-                    </div>
-                </Modal.Body>
-            </Modal>
+            {/* ---- Delete Request Modal (requires approval) ---- */}
+            <ApprovalRequestModal
+                show={showDeleteApproval}
+                onHide={() => setShowDeleteApproval(false)}
+                actionLabel="delete"
+                requestType="DELETE_IMPORTANT_DATA"
+                description={`Xóa món ăn ${currentItem?.name ?? ''}`}
+                targetType="ITEM"
+                targetId={currentItem?.id}
+                targetDisplay={currentItem?.name}
+                additionalData={
+                    currentItem ? JSON.stringify({ targetType: 'ITEM', targetId: currentItem.id }) : null
+                }
+                onSent={() => {
+                    setShowDeleteApproval(false);
+                    setCurrentItem(null);
+                    setNotice('Yêu cầu xóa món ăn đã được gửi.');
+                }}
+            />
 
-            {/* ---- Hide Confirmation Modal ---- */}
+            {/* ---- Price Change Request Modal (requires approval) ---- */}
+            <ApprovalRequestModal
+                show={showPriceApproval}
+                onHide={() => setShowPriceApproval(false)}
+                actionLabel="price change"
+                requestType="PRICE_CHANGE"
+                description={`Thay đổi giá món ${currentItem?.name ?? ''}`}
+                targetType="ITEM"
+                targetId={currentItem?.id}
+                targetDisplay={currentItem?.name}
+                oldValue={currentItem ? String(currentItem.price) : null}
+                newValue={form.price ? String(form.price) : null}
+                additionalData={
+                    currentItem
+                        ? JSON.stringify({
+                              itemId: currentItem.id,
+                              newPrice: Number(form.price),
+                              oldPrice: currentItem.price,
+                              itemRequest: {
+                                  name: form.name,
+                                  description: form.description,
+                                  price: Number(form.price),
+                                  netPrice: form.netPrice ? Number(form.netPrice) : null,
+                                  categoryId: Number(form.categoryId),
+                                  taxId: form.taxId ? Number(form.taxId) : null,
+                                  foodType: form.foodType,
+                                  status: form.status,
+                                  variations: JSON.stringify(variations.filter((v) => v.sizeName.trim() !== '')),
+                                  addons: JSON.stringify(addons.filter((a) => a.name.trim() !== '')),
+                              },
+                          })
+                        : null
+                }
+                onSent={() => {
+                    setShowPriceApproval(false);
+                    setCurrentItem(null);
+                    resetForm();
+                    setNotice('Yêu cầu thay đổi giá đã được gửi.');
+                }}
+            />
+
+            {/* ---- Hide Confirmation Modal (non-destructive status toggle) ---- */}
             <Modal show={showHide} onHide={() => setShowHide(false)} centered size="sm">
                 <Modal.Body className="text-center p-4">
                     <div className="mb-4">

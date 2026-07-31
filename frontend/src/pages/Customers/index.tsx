@@ -2,9 +2,9 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { Row, Col, Card, Button, Dropdown, Modal, Form, Offcanvas, Alert, Spinner, Badge } from 'react-bootstrap';
 import { isAxiosError } from 'axios';
 import Icon from '@/components/common/Icon';
+import ApprovalRequestModal from '@/components/common/ApprovalRequestModal';
 import {
     createCustomer,
-    deleteCustomer,
     getCustomerAvatarUrl,
     getCustomers,
     updateCustomer,
@@ -62,11 +62,10 @@ const CustomersPage = () => {
     /* ---------- modal state ---------- */
     const [showAdd, setShowAdd] = useState(false);
     const [showEdit, setShowEdit] = useState(false);
-    const [showDelete, setShowDelete] = useState(false);
+    const [showDeleteApproval, setShowDeleteApproval] = useState(false);
     const [showFilter, setShowFilter] = useState(false);
     const [currentCustomer, setCurrentCustomer] = useState<CustomerEntry | null>(null);
     const [saving, setSaving] = useState(false);
-    const [deleting, setDeleting] = useState(false);
 
     /* ---------- form state ---------- */
     const [form, setForm] = useState(emptyForm);
@@ -224,26 +223,9 @@ const CustomersPage = () => {
 
     const openDelete = (customer: CustomerEntry) => {
         setCurrentCustomer(customer);
-        setShowDelete(true);
+        setShowDeleteApproval(true);
     };
 
-    const handleDelete = async () => {
-        if (!currentCustomer) return;
-        setDeleting(true);
-        setError(null);
-        try {
-            await deleteCustomer(currentCustomer.id);
-            setShowDelete(false);
-            setCurrentCustomer(null);
-            setNotice('Xóa khách hàng thành công.');
-            await loadCustomers();
-        } catch (err) {
-            setError(extractErrorMessage(err, 'Không thể xóa khách hàng này.'));
-            setShowDelete(false);
-        } finally {
-            setDeleting(false);
-        }
-    };
 
     const openFilter = () => {
         setDraftStatus(statusFilter);
@@ -613,28 +595,28 @@ const CustomersPage = () => {
                 </Modal>
             ))}
 
-            {/* ---- Delete Confirmation Modal ---- */}
-            <Modal show={showDelete} onHide={() => setShowDelete(false)} centered size="sm">
-                <Modal.Body className="text-center p-4">
-                    <div className="mb-4">
-                        <span className="avatar avatar-xxl rounded-circle bg-danger-subtle d-inline-flex align-items-center justify-content-center">
-                            <Icon name="trash-2" className="fs-2 text-danger" />
-                        </span>
-                    </div>
-                    <h4 className="mb-1">Delete Confirmation</h4>
-                    <p className="mb-4">
-                        Are you sure you want to delete{currentCustomer ? ` "${currentCustomer.name}"?` : '?'}
-                    </p>
-                    <div className="d-flex justify-content-center gap-2">
-                        <Button variant="light" className="w-100" onClick={() => setShowDelete(false)}>
-                            Close
-                        </Button>
-                        <Button variant="danger" className="w-100" onClick={handleDelete} disabled={deleting}>
-                            {deleting ? 'Deleting...' : 'Delete'}
-                        </Button>
-                    </div>
-                </Modal.Body>
-            </Modal>
+
+            {/* ---- Delete Request Modal (requires approval) ---- */}
+            <ApprovalRequestModal
+                show={showDeleteApproval}
+                onHide={() => setShowDeleteApproval(false)}
+                actionLabel="delete"
+                requestType="DELETE_IMPORTANT_DATA"
+                description={`Xóa khách hàng ${currentCustomer?.name ?? ''}`}
+                targetType="CUSTOMER"
+                targetId={currentCustomer?.id}
+                targetDisplay={currentCustomer?.name}
+                additionalData={
+                    currentCustomer
+                        ? JSON.stringify({ targetType: 'CUSTOMER', targetId: currentCustomer.id })
+                        : null
+                }
+                onSent={() => {
+                    setShowDeleteApproval(false);
+                    setCurrentCustomer(null);
+                    setNotice('Yêu cầu xóa khách hàng đã được gửi.');
+                }}
+            />
 
             {/* ---- Filter Offcanvas ---- */}
             <Offcanvas show={showFilter} onHide={() => setShowFilter(false)} placement="end">

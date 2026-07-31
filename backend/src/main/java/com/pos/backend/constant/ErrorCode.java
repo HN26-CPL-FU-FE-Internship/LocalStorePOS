@@ -73,6 +73,7 @@ public enum ErrorCode {
         ORDER_CANNOT_BE_EDITED(1046, HttpStatus.BAD_REQUEST, "Only unpaid pending orders can be edited."),
         APPROVAL_REQUEST_NOT_FOUND(1047, HttpStatus.NOT_FOUND, "Approval request not found"),
         APPROVAL_REQUEST_ALREADY_RESOLVED(1048, HttpStatus.BAD_REQUEST, "Approval request has already been resolved"),
+        APPROVAL_REQUEST_ALREADY_EXISTS(1050, HttpStatus.BAD_REQUEST, "A pending approval request already exists for this action"),
         NOTIFICATION_NOT_FOUND(1049, HttpStatus.NOT_FOUND, "Notification not found"),
         ;
 

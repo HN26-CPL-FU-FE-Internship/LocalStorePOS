@@ -363,6 +363,29 @@ public class OrderService {
         return orderResponse;
     }
 
+    @Transactional
+    public OrderResponse reopenInvoice(Long id) {
+        Order order = orderRepository.findById(id)
+                .orElseThrow(() -> new AppException(ErrorCode.ORDER_NOT_FOUND));
+
+        order.setStatus(OrderStatus.pending);
+        order.setPaymentStatus(OrderPaymentStatus.unpaid);
+        order.setKitchenStatus(KitchenStatus.new_order);
+        order.setPaidAmount(BigDecimal.ZERO);
+        order.setBalanceAmount(BigDecimal.ZERO);
+        orderRepository.save(order);
+
+        OrderResponse response = orderMapper.toOrderResponse(order);
+        webSocketService.sendTopic("/orders", WebSocketEvent.builder()
+                .type(EventType.ORDER_UPDATED)
+                .data(response)
+                .build());
+        auditLogService.log(null, AuditAction.ORDER_UPDATED, "ORDER", "Order", id,
+                "Order #" + order.getOrderNumber() + " reopened (paid invoice)",
+                null, null, "SUCCESS", null);
+        return response;
+    }
+
     public OrderResponse getOrderDetail(String orderNumber) {
 
         Order order = orderRepository.findByOrderNumber(orderNumber)

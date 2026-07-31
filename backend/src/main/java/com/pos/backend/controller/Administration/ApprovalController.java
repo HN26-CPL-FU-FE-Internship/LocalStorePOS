@@ -117,7 +117,7 @@ public class ApprovalController {
          * Create a new approval request (utility endpoint for other services).
          */
         @PostMapping
-        @PreAuthorize("@perm.hasPermission(authentication, 'Manage Staffs', 'add')")
+        @PreAuthorize("isAuthenticated()")
         public ApiResponse<ApprovalRequestResponse> createApprovalRequest(
                         @RequestBody CreateApprovalRequestPayload payload,
                         Authentication authentication) {

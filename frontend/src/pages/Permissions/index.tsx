@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Table, Card, Button, Modal, Form, Nav, Spinner, Alert } from 'react-bootstrap';
 import PageHeader from '@/components/common/PageHeader';
 import Icon from '@/components/common/Icon';
+import ApprovalRequestModal from '@/components/common/ApprovalRequestModal';
 import { api } from '@/lib/axios';
 import type { ApiResponse } from '@/types/auth';
 import type { PermissionModule } from '@/types';
@@ -59,12 +60,10 @@ const PermissionsPage = () => {
     // Loading & feedback
     const [loadingRoles, setLoadingRoles] = useState(false);
     const [loadingPerms, setLoadingPerms] = useState(false);
-    const [saving, setSaving] = useState(false);
     const [feedback, setFeedback] = useState<{ type: 'success' | 'danger'; message: string } | null>(null);
 
     // Reset to default
-    const [showResetConfirm, setShowResetConfirm] = useState(false);
-    const [resetting, setResetting] = useState(false);
+    const [showResetApproval, setShowResetApproval] = useState(false);
 
     // Add Role modal
     const [showAddRole, setShowAddRole] = useState(false);
@@ -183,49 +182,22 @@ const PermissionsPage = () => {
         }));
     };
 
-    /* ---------- reset to default settings ---------- */
-    const handleResetToDefault = async () => {
-        if (activeRoleId == null) return;
-        setResetting(true);
-        try {
-            await api.post(`/roles/${activeRoleId}/permissions/reset`);
-            // Re-fetch permissions from API to get the new default state
-            const { data } = await api.get<ApiResponse<RolePermissionsResponse>>(`/roles/${activeRoleId}/permissions`);
-            const perms = data.result.permissions;
-            const permsClone = perms.map((m: PermissionModule) => ({ ...m }));
-            setPermissionsMap((prev) => ({ ...prev, [activeRoleId]: permsClone }));
-            setBaselineMap((prev) => ({
-                ...prev,
-                [activeRoleId]: permsClone,
-            }));
-            setShowResetConfirm(false);
-            showFeedback('success', 'Permissions restored to default');
-        } catch {
-            showFeedback('danger', 'Failed to reset permissions');
-        } finally {
-            setResetting(false);
-        }
+    // Reset to default requires approval before it is applied.
+    const openResetApproval = () => {
+        setShowResetApproval(true);
     };
 
-    /* ---------- save changes ---------- */
-    const handleSave = async () => {
-        if (activeRoleId == null || activePermissions.length === 0) return;
-        setSaving(true);
-        try {
-            const payload = { permissions: activePermissions };
-            await api.put(`/roles/${activeRoleId}/permissions`, payload);
-            // Update baseline to reflect the saved state
-            setBaselineMap((prev) => ({
-                ...prev,
-                [activeRoleId]: activePermissions.map((m) => ({ ...m })),
-            }));
-            loadedRolesRef.current.add(activeRoleId);
-            showFeedback('success', 'Permissions saved successfully');
-        } catch {
-            showFeedback('danger', 'Failed to save permissions');
-        } finally {
-            setSaving(false);
-        }
+    const handleSendResetApproval = () => {
+        setShowResetApproval(false);
+        showFeedback('success', 'Yêu cầu reset quyền đã được gửi. Vui lòng chờ phê duyệt.');
+    };
+
+    // Save changes requires approval before they take effect.
+    const [showSaveApproval, setShowSaveApproval] = useState(false);
+
+    const handleSendSaveApproval = () => {
+        setShowSaveApproval(false);
+        showFeedback('success', 'Yêu cầu thay đổi quyền đã được gửi. Vui lòng chờ phê duyệt.');
     };
 
     /* ---------- add role ---------- */
@@ -250,32 +222,16 @@ const PermissionsPage = () => {
         }
     };
 
-    /* ---------- delete role ---------- */
-    const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
-    const [deletingRole, setDeletingRole] = useState(false);
+    // Delete role requires approval before it is applied.
+    const [showDeleteRoleApproval, setShowDeleteRoleApproval] = useState(false);
 
-    const handleDeleteRole = async () => {
-        if (activeRoleId == null) return;
-        setDeletingRole(true);
-        try {
-            await api.delete(`/roles/${activeRoleId}`);
-            setRoles((prev) => prev.filter((r) => r.id !== activeRoleId));
-            setPermissionsMap((prev) => {
-                const next = { ...prev };
-                delete next[activeRoleId];
-                return next;
-            });
-            loadedRolesRef.current.delete(activeRoleId);
-            // Switch to first available role
-            const remaining = roles.filter((r) => r.id !== activeRoleId);
-            setActiveRoleId(remaining.length > 0 ? remaining[0].id : null);
-            setShowDeleteConfirm(false);
-            showFeedback('success', 'Role deleted successfully');
-        } catch {
-            showFeedback('danger', 'Failed to delete role');
-        } finally {
-            setDeletingRole(false);
-        }
+    const openDeleteRoleApproval = () => {
+        setShowDeleteRoleApproval(true);
+    };
+
+    const handleSendDeleteRoleApproval = () => {
+        setShowDeleteRoleApproval(false);
+        showFeedback('success', 'Yêu cầu xóa role đã được gửi. Vui lòng chờ phê duyệt.');
     };
 
     /* ---------- render ---------- */
@@ -348,7 +304,7 @@ const PermissionsPage = () => {
                                                         }}
                                                         action={(e: React.MouseEvent) => {
                                                             e.stopPropagation();
-                                                            setShowDeleteConfirm(true);
+                                                            openDeleteRoleApproval();
                                                         }}
                                                     />
                                                 )}
@@ -442,7 +398,7 @@ const PermissionsPage = () => {
                                                     <Button
                                                         variant="outline-warning"
                                                         className="me-auto"
-                                                        onClick={() => setShowResetConfirm(true)}
+                                                        onClick={openResetApproval}
                                                     >
                                                         <Icon name="rotate-ccw" className="me-1" />
                                                         Reset to Default
@@ -456,15 +412,8 @@ const PermissionsPage = () => {
                                                 >
                                                     Revert All
                                                 </Button>
-                                                <Button variant="primary" onClick={handleSave} disabled={saving}>
-                                                    {saving ? (
-                                                        <>
-                                                            <Spinner animation="border" size="sm" className="me-1" />
-                                                            Saving...
-                                                        </>
-                                                    ) : (
-                                                        'Save Changes'
-                                                    )}
+                                                <Button variant="primary" onClick={() => setShowSaveApproval(true)}>
+                                                    Save Changes
                                                 </Button>
                                             </div>
                                         </>
@@ -528,63 +477,64 @@ const PermissionsPage = () => {
                 </Form>
             </Modal>
 
-            {/* ---- Reset to Default Confirmation Modal ---- */}
-            <Modal show={showResetConfirm} onHide={() => setShowResetConfirm(false)} centered>
-                <Modal.Header closeButton className="border-0 p-4 pb-3">
-                    <h4 className="modal-title text-warning">Reset Permissions</h4>
-                </Modal.Header>
-                <Modal.Body className="p-4 pt-1">
-                    <p>
-                        This will reset all permissions for <strong>{activeRoleName}</strong> to the factory default
-                        values. This action cannot be undone.
-                    </p>
-                    <div className="d-flex align-items-center justify-content-between gap-2 pt-1">
-                        <Button
-                            variant="light"
-                            className="w-100"
-                            onClick={() => setShowResetConfirm(false)}
-                            disabled={resetting}
-                        >
-                            Cancel
-                        </Button>
-                        <Button variant="warning" className="w-100" onClick={handleResetToDefault} disabled={resetting}>
-                            {resetting ? (
-                                <>
-                                    <Spinner animation="border" size="sm" className="me-1" />
-                                    Resetting...
-                                </>
-                            ) : (
-                                'Reset'
-                            )}
-                        </Button>
-                    </div>
-                </Modal.Body>
-            </Modal>
+            {/* ---- Save Changes Request Modal (requires approval) ---- */}
+            <ApprovalRequestModal
+                show={showSaveApproval}
+                onHide={() => setShowSaveApproval(false)}
+                actionLabel="save changes"
+                requestType="PERMISSION_CHANGE"
+                description={`Thay đổi quyền của role ${activeRoleName}`}
+                targetType="ROLE"
+                targetId={activeRoleId}
+                targetDisplay={activeRoleName}
+                additionalData={
+                    activeRoleId != null
+                        ? JSON.stringify({
+                              action: 'UPDATE_PERMISSIONS',
+                              roleId: activeRoleId,
+                              permissions: activePermissions,
+                          })
+                        : null
+                }
+                onSent={handleSendSaveApproval}
+            />
 
-            {/* ---- Delete Role Confirmation Modal ---- */}
-            <Modal show={showDeleteConfirm} onHide={() => setShowDeleteConfirm(false)} centered>
-                <Modal.Header closeButton className="border-0 p-4 pb-3">
-                    <h4 className="modal-title text-danger">Delete Role</h4>
-                </Modal.Header>
-                <Modal.Body className="p-4 pt-1">
-                    <p>
-                        Are you sure you want to delete <strong>{activeRoleName}</strong>? This action cannot be undone.
-                    </p>
-                    <div className="d-flex align-items-center justify-content-between gap-2 pt-1">
-                        <Button
-                            variant="light"
-                            className="w-100"
-                            onClick={() => setShowDeleteConfirm(false)}
-                            disabled={deletingRole}
-                        >
-                            Cancel
-                        </Button>
-                        <Button variant="danger" className="w-100" onClick={handleDeleteRole} disabled={deletingRole}>
-                            {deletingRole ? 'Deleting...' : 'Delete'}
-                        </Button>
-                    </div>
-                </Modal.Body>
-            </Modal>
+            {/* ---- Reset to Default Request Modal (requires approval) ---- */}
+            <ApprovalRequestModal
+                show={showResetApproval}
+                onHide={() => setShowResetApproval(false)}
+                actionLabel="reset permissions"
+                requestType="PERMISSION_CHANGE"
+                description={`Reset quyền của role ${activeRoleName} về mặc định`}
+                targetType="ROLE"
+                targetId={activeRoleId}
+                targetDisplay={activeRoleName}
+                additionalData={
+                    activeRoleId != null
+                        ? JSON.stringify({ action: 'RESET_PERMISSIONS', roleId: activeRoleId })
+                        : null
+                }
+                onSent={handleSendResetApproval}
+            />
+
+            {/* ---- Delete Role Request Modal (requires approval) ---- */}
+            <ApprovalRequestModal
+                show={showDeleteRoleApproval}
+                onHide={() => setShowDeleteRoleApproval(false)}
+                actionLabel="delete role"
+                requestType="PERMISSION_CHANGE"
+                description={`Xóa role ${activeRoleName}`}
+                targetType="ROLE"
+                targetId={activeRoleId}
+                targetDisplay={activeRoleName}
+                additionalData={
+                    activeRoleId != null
+                        ? JSON.stringify({ action: 'DELETE_ROLE', roleId: activeRoleId })
+                        : null
+                }
+                onSent={handleSendDeleteRoleApproval}
+            />
+
         </>
     );
 };

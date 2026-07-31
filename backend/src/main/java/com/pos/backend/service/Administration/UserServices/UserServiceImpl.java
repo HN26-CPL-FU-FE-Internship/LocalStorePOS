@@ -183,6 +183,10 @@ public class UserServiceImpl implements UserService {
         User user = userRepository.findById(id)
                 .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
 
+        // Capture the email before the entity is deleted (the user entity can no
+        // longer be referenced by the audit log once it has been removed).
+        String userEmail = user.getEmail();
+
         // Delete avatar file if exists
         if (user.getAvatarPath() != null) {
             deleteAvatarFile(user.getAvatarPath());
@@ -190,8 +194,8 @@ public class UserServiceImpl implements UserService {
 
         userRepository.delete(user);
 
-        auditLogService.log(user, AuditAction.USER_DELETED, "USER_MANAGEMENT", "User", id,
-                "User deleted: " + user.getEmail(),
+        auditLogService.log(null, AuditAction.USER_DELETED, "USER_MANAGEMENT", "User", id,
+                "User deleted: " + userEmail,
                 null, null, "SUCCESS", null);
     }
 

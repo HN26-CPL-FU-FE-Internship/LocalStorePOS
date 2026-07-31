@@ -61,6 +61,18 @@ export interface ApprovalActionPayload {
     reason: string;
 }
 
+export interface CreateApprovalRequestPayload {
+    requestType: ApprovalRequestType;
+    description: string;
+    reason: string;
+    targetType?: string | null;
+    targetId?: number | null;
+    targetDisplay?: string | null;
+    oldValue?: string | null;
+    newValue?: string | null;
+    additionalData?: string | null;
+}
+
 /* ------------------------------------------------------------------ */
 /*  Labels / helpers                                                  */
 /* ------------------------------------------------------------------ */
@@ -98,6 +110,11 @@ export const approvalTypeBadgeColors: Record<ApprovalRequestType, string> = {
 /* ------------------------------------------------------------------ */
 
 const ENDPOINT = '/approval-requests';
+
+export async function createApprovalRequest(payload: CreateApprovalRequestPayload): Promise<ApprovalRequestEntry> {
+    const { data } = await api.post<ApiResponse<ApprovalRequestEntry>>(ENDPOINT, payload);
+    return data.result;
+}
 
 export async function getApprovalRequests(params: {
     page?: number;

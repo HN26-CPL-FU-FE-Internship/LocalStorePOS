@@ -12,11 +12,10 @@ import {
     Spinner,
 } from 'react-bootstrap';
 import Icon from '@/components/common/Icon';
+import ApprovalRequestModal from '@/components/common/ApprovalRequestModal';
 import {
     getUsers,
-    createUser,
     updateUser,
-    deleteUser,
     getUserPermissions,
     updateUserPermissions,
 } from '@/services/api/user.api';
@@ -24,7 +23,7 @@ import type {
     PermissionModuleResponse,
 } from '@/services/api/user.api';
 import { type PermissionModule, type UserEntry, type Status } from '@/types';
-import type { UserCreateRequest, UserUpdateRequest } from '@/types/user';
+import type { UserUpdateRequest } from '@/types/user';
 import PageHeader from '@/components/common/PageHeader';
 import HeaderUsers from '@/components/headers/HeaderUsers';
 import userImages from '@/assets/img/users';
@@ -113,8 +112,9 @@ const UsersPage = () => {
 
     // Modals
     const [showAdd, setShowAdd] = useState(false);
+    const [showAddApproval, setShowAddApproval] = useState(false);
     const [showEdit, setShowEdit] = useState(false);
-    const [showDelete, setShowDelete] = useState(false);
+    const [showDeleteApproval, setShowDeleteApproval] = useState(false);
     const [showDetail, setShowDetail] = useState(false);
     const [showPermission, setShowPermission] = useState(false);
     const [showFilter, setShowFilter] = useState(false);
@@ -234,25 +234,9 @@ const UsersPage = () => {
             alert('Passwords do not match');
             return;
         }
-        try {
-            const request: UserCreateRequest = {
-                firstName: addForm.firstName,
-                lastName: addForm.lastName,
-                email: addForm.email,
-                phoneNumber: addForm.phoneNumber,
-                password: addForm.password,
-                role: addForm.roleId,
-            };
-            await createUser(request, avatarFile);
-            setShowAdd(false);
-            setAddForm(addEmptyForm);
-            clearAvatar();
-            await loadUsers();
-        } catch (err: unknown) {
-            const msg =
-                (err as AxiosError<{ message?: string }>)?.response?.data?.message || 'Failed to create user';
-            alert(msg);
-        }
+        // Creating a user requires approval before it takes effect.
+        setShowAdd(false);
+        setShowAddApproval(true);
     };
 
     /* ---------- edit user ---------- */
@@ -308,21 +292,7 @@ const UsersPage = () => {
     /* ---------- delete user ---------- */
     const openDelete = (user: UserEntry) => {
         setCurrentUser(user);
-        setShowDelete(true);
-    };
-
-    const handleDelete = async () => {
-        if (!currentUser) return;
-        try {
-            await deleteUser(currentUser.id);
-            setCurrentUser(null);
-            setShowDelete(false);
-            await loadUsers();
-        } catch (err: unknown) {
-            const msg =
-                (err as AxiosError<{ message?: string }>)?.response?.data?.message || 'Failed to delete user';
-            alert(msg);
-        }
+        setShowDeleteApproval(true);
     };
 
     /* ---------- detail ---------- */
@@ -1191,26 +1161,55 @@ const UsersPage = () => {
                 </Form>
             </Modal>
 
-            {/* ---- Delete Confirmation Modal ---- */}
-            <Modal show={showDelete} onHide={() => setShowDelete(false)} centered size="sm">
-                <Modal.Body className="text-center p-4">
-                    <div className="mb-4">
-                        <span className="avatar avatar-xxl rounded-circle bg-danger-subtle d-inline-flex align-items-center justify-content-center">
-                            <Icon name="trash-2" className="fs-2 text-danger" />
-                        </span>
-                    </div>
-                    <h4 className="mb-1">Delete Confirmation</h4>
-                    <p className="mb-4">Are you sure you want to delete{currentUser ? ` ${currentUser.fullName}?` : '?'}</p>
-                    <div className="d-flex justify-content-center gap-2">
-                        <Button variant="light" className="w-100" onClick={() => setShowDelete(false)}>
-                            Close
-                        </Button>
-                        <Button variant="danger" className="w-100" onClick={handleDelete}>
-                            Delete
-                        </Button>
-                    </div>
-                </Modal.Body>
-            </Modal>
+            {/* ---- Add User Request Modal (requires approval) ---- */}
+            <ApprovalRequestModal
+                show={showAddApproval}
+                onHide={() => setShowAddApproval(false)}
+                actionLabel="create user"
+                requestType="USER_CREATE_DELETE"
+                description={`Tạo user ${addForm.firstName.trim()} ${addForm.lastName.trim()}`.trim()}
+                targetType="USER"
+                targetDisplay={addForm.email || undefined}
+                additionalData={
+                    addForm.firstName.trim() || addForm.lastName.trim() || addForm.email.trim()
+                        ? JSON.stringify({
+                              action: 'CREATE_USER',
+                              userRequest: {
+                                  firstName: addForm.firstName,
+                                  lastName: addForm.lastName,
+                                  email: addForm.email,
+                                  phoneNumber: addForm.phoneNumber,
+                                  password: addForm.password,
+                                  role: addForm.roleId,
+                              },
+                          })
+                        : null
+                }
+                onSent={() => {
+                    setShowAddApproval(false);
+                    setAddForm(addEmptyForm);
+                    clearAvatar();
+                }}
+            />
+
+            {/* ---- Delete User Request Modal (requires approval) ---- */}
+            <ApprovalRequestModal
+                show={showDeleteApproval}
+                onHide={() => setShowDeleteApproval(false)}
+                actionLabel="delete user"
+                requestType="USER_CREATE_DELETE"
+                description={`Xóa user ${currentUser?.fullName ?? ''}`}
+                targetType="USER"
+                targetId={currentUser?.id}
+                targetDisplay={currentUser?.fullName}
+                additionalData={
+                    currentUser ? JSON.stringify({ action: 'DELETE_USER', userId: currentUser.id }) : null
+                }
+                onSent={() => {
+                    setShowDeleteApproval(false);
+                    setCurrentUser(null);
+                }}
+            />
 
             {/* ---- Filter Offcanvas ---- */}
             <Offcanvas show={showFilter} onHide={() => setShowFilter(false)} placement="end">

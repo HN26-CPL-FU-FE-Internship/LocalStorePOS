@@ -2,9 +2,9 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { Table, Card, Badge, Button, Dropdown, Modal, Form, Offcanvas, Alert, Spinner } from 'react-bootstrap';
 import { isAxiosError } from 'axios';
 import Icon from '@/components/common/Icon';
+import ApprovalRequestModal from '@/components/common/ApprovalRequestModal';
 import {
     createAddon,
-    deleteAddon,
     getAddonImageUrl,
     getAddons,
     getItemOptions,
@@ -70,11 +70,10 @@ const AddonsPage = () => {
     /* ---------- modal state ---------- */
     const [showAdd, setShowAdd] = useState(false);
     const [showEdit, setShowEdit] = useState(false);
-    const [showDelete, setShowDelete] = useState(false);
+    const [showDeleteApproval, setShowDeleteApproval] = useState(false);
     const [showFilter, setShowFilter] = useState(false);
     const [currentAddon, setCurrentAddon] = useState<AddonEntry | null>(null);
     const [saving, setSaving] = useState(false);
-    const [deleting, setDeleting] = useState(false);
 
     /* ---------- form state ---------- */
     const [form, setForm] = useState(emptyForm);
@@ -252,26 +251,9 @@ const AddonsPage = () => {
 
     const openDelete = (addon: AddonEntry) => {
         setCurrentAddon(addon);
-        setShowDelete(true);
+        setShowDeleteApproval(true);
     };
 
-    const handleDelete = async () => {
-        if (!currentAddon) return;
-        setDeleting(true);
-        setError(null);
-        try {
-            await deleteAddon(currentAddon.id);
-            setShowDelete(false);
-            setCurrentAddon(null);
-            setNotice('Xóa addon thành công.');
-            await loadAddons();
-        } catch (err) {
-            setError(extractErrorMessage(err, 'Không thể xóa addon này.'));
-            setShowDelete(false);
-        } finally {
-            setDeleting(false);
-        }
-    };
 
     const handleToggleStatus = async (addon: AddonEntry) => {
         const nextStatus: AddonStatus = addon.status === 'active' ? 'inactive' : 'active';
@@ -710,28 +692,26 @@ const AddonsPage = () => {
                 </Modal>
             ))}
 
-            {/* ---- Delete Confirmation Modal ---- */}
-            <Modal show={showDelete} onHide={() => setShowDelete(false)} centered size="sm">
-                <Modal.Body className="text-center p-4">
-                    <div className="mb-4">
-                        <span className="avatar avatar-xxl rounded-circle bg-danger-subtle d-inline-flex align-items-center justify-content-center">
-                            <Icon name="trash-2" className="fs-2 text-danger" />
-                        </span>
-                    </div>
-                    <h4 className="mb-1">Delete Confirmation</h4>
-                    <p className="mb-4">
-                        Are you sure you want to delete{currentAddon ? ` "${currentAddon.name}"?` : '?'}
-                    </p>
-                    <div className="d-flex justify-content-center gap-2">
-                        <Button variant="light" className="w-100" onClick={() => setShowDelete(false)}>
-                            Close
-                        </Button>
-                        <Button variant="danger" className="w-100" onClick={handleDelete} disabled={deleting}>
-                            {deleting ? 'Deleting...' : 'Delete'}
-                        </Button>
-                    </div>
-                </Modal.Body>
-            </Modal>
+
+            {/* ---- Delete Request Modal (requires approval) ---- */}
+            <ApprovalRequestModal
+                show={showDeleteApproval}
+                onHide={() => setShowDeleteApproval(false)}
+                actionLabel="delete"
+                requestType="DELETE_IMPORTANT_DATA"
+                description={`Xóa addon ${currentAddon?.name ?? ''}`}
+                targetType="ADDON"
+                targetId={currentAddon?.id}
+                targetDisplay={currentAddon?.name}
+                additionalData={
+                    currentAddon ? JSON.stringify({ targetType: 'ADDON', targetId: currentAddon.id }) : null
+                }
+                onSent={() => {
+                    setShowDeleteApproval(false);
+                    setCurrentAddon(null);
+                    setNotice('Yêu cầu xóa addon đã được gửi.');
+                }}
+            />
 
             {/* ---- Filter Offcanvas ---- */}
             <Offcanvas show={showFilter} onHide={() => setShowFilter(false)} placement="end">

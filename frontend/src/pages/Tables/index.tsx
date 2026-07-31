@@ -2,18 +2,16 @@ import { useEffect, useMemo, useState } from 'react';
 import { Row, Col, Card, Button, Modal, Form, Alert, Spinner, Badge, Dropdown } from 'react-bootstrap';
 import { isAxiosError } from 'axios';
 import Icon from '@/components/common/Icon';
+import ApprovalRequestModal from '@/components/common/ApprovalRequestModal';
 import {
     createReservation,
     createTable,
     createTableArea,
-    deleteTable,
-    deleteTableArea,
     getReservations,
     getTableAreas,
     getTables,
     updateReservation,
     updateReservationStatus,
-    deleteReservation,
     updateTable,
     updateTableStatus,
     type ReservationEntry,
@@ -89,16 +87,17 @@ const TablesPage = () => {
 
     const [showAddTable, setShowAddTable] = useState(false);
     const [showEditTable, setShowEditTable] = useState(false);
-    const [showDeleteTable, setShowDeleteTable] = useState(false);
+    const [showDeleteTableApproval, setShowDeleteTableApproval] = useState(false);
+    const [showDeleteAreaApproval, setShowDeleteAreaApproval] = useState(false);
+    const [showDeleteReservationApproval, setShowDeleteReservationApproval] = useState(false);
+    const [currentArea, setCurrentArea] = useState<Option | null>(null);
     const [showAddArea, setShowAddArea] = useState(false);
     const [showReserve, setShowReserve] = useState(false);
     const [showEditReservation, setShowEditReservation] = useState(false);
-    const [showDeleteReservation, setShowDeleteReservation] = useState(false);
     const [showReservationInfo, setShowReservationInfo] = useState(false);
     const [currentTable, setCurrentTable] = useState<TableEntry | null>(null);
     const [currentReservation, setCurrentReservation] = useState<ReservationEntry | null>(null);
     const [saving, setSaving] = useState(false);
-    const [deleting, setDeleting] = useState(false);
     const [showReservations, setShowReservations] = useState(true);
 
     const [tableForm, setTableForm] = useState(emptyTableForm);
@@ -218,25 +217,7 @@ const TablesPage = () => {
 
     const openDeleteTable = (table: TableEntry) => {
         setCurrentTable(table);
-        setShowDeleteTable(true);
-    };
-
-    const handleDeleteTable = async () => {
-        if (!currentTable) return;
-        setDeleting(true);
-        setError(null);
-        try {
-            await deleteTable(currentTable.id);
-            setShowDeleteTable(false);
-            setCurrentTable(null);
-            setNotice('Xóa bàn thành công.');
-            await loadTables();
-        } catch (err) {
-            setError(extractErrorMessage(err, 'Không thể xóa bàn này.'));
-            setShowDeleteTable(false);
-        } finally {
-            setDeleting(false);
-        }
+        setShowDeleteTableApproval(true);
     };
 
     const handleMarkOccupied = async (table: TableEntry) => {
@@ -277,14 +258,9 @@ const TablesPage = () => {
         }
     };
 
-    const handleDeleteArea = async (id: number) => {
-        try {
-            await deleteTableArea(id);
-            setAreas(await getTableAreas());
-            setNotice('Xóa khu vực thành công.');
-        } catch (err) {
-            setError(extractErrorMessage(err, 'Không thể xóa khu vực (có thể vẫn còn bàn thuộc khu vực này).'));
-        }
+    const openDeleteArea = (area: Option) => {
+        setCurrentArea(area);
+        setShowDeleteAreaApproval(true);
     };
 
     /* ---------- Reservation ---------- */
@@ -376,28 +352,7 @@ const TablesPage = () => {
 
     const openDeleteReservation = (reservation: ReservationEntry) => {
         setCurrentReservation(reservation);
-        setShowDeleteReservation(true);
-    };
-
-    const handleDeleteReservation = async () => {
-        if (!currentReservation) return;
-        setDeleting(true);
-        setError(null);
-        try {
-            await deleteReservation(currentReservation.id);
-            if (currentReservation.status === 'booked' || currentReservation.status === 'seated') {
-                await updateTableStatus(currentReservation.tableId, 'available');
-            }
-            setShowDeleteReservation(false);
-            setCurrentReservation(null);
-            setNotice('Xóa đặt bàn thành công.');
-            await loadTables();
-        } catch (err) {
-            setError(extractErrorMessage(err, 'Không thể xóa đặt bàn.'));
-            setShowDeleteReservation(false);
-        } finally {
-            setDeleting(false);
-        }
+        setShowDeleteReservationApproval(true);
     };
 
     const openReservationInfo = (table: TableEntry) => {
@@ -685,29 +640,6 @@ const TablesPage = () => {
                 </Modal>
             ))}
 
-            {/* ---- Delete Table Modal ---- */}
-            <Modal show={showDeleteTable} onHide={() => setShowDeleteTable(false)} centered size="sm">
-                <Modal.Body className="text-center p-4">
-                    <div className="mb-4">
-                        <span className="avatar avatar-xxl rounded-circle bg-danger-subtle d-inline-flex align-items-center justify-content-center">
-                            <Icon name="trash-2" className="fs-2 text-danger" />
-                        </span>
-                    </div>
-                    <h4 className="mb-1">Delete Confirmation</h4>
-                    <p className="mb-4">
-                        Are you sure you want to delete{currentTable ? ` "${currentTable.tableNumber}"?` : '?'}
-                    </p>
-                    <div className="d-flex justify-content-center gap-2">
-                        <Button variant="light" className="w-100" onClick={() => setShowDeleteTable(false)}>
-                            Close
-                        </Button>
-                        <Button variant="danger" className="w-100" onClick={handleDeleteTable} disabled={deleting}>
-                            {deleting ? 'Deleting...' : 'Delete'}
-                        </Button>
-                    </div>
-                </Modal.Body>
-            </Modal>
-
             {/* ---- Manage Areas Modal ---- */}
             <Modal show={showAddArea} onHide={() => setShowAddArea(false)} centered>
                 <Modal.Header closeButton className="border-0 p-4 pb-3">
@@ -733,7 +665,7 @@ const TablesPage = () => {
                                     variant="white"
                                     size="sm"
                                     className="btn-icon rounded-circle"
-                                    onClick={() => handleDeleteArea(a.id)}
+                                    onClick={() => openDeleteArea(a)}
                                 >
                                     <Icon name="trash-2" className="text-danger" />
                                 </Button>
@@ -1005,28 +937,67 @@ const TablesPage = () => {
                 </Form>
             </Modal>
 
-            {/* ---- Delete Reservation Modal ---- */}
-            <Modal show={showDeleteReservation} onHide={() => setShowDeleteReservation(false)} centered size="sm">
-                <Modal.Body className="text-center p-4">
-                    <div className="mb-4">
-                        <span className="avatar avatar-xxl rounded-circle bg-danger-subtle d-inline-flex align-items-center justify-content-center">
-                            <Icon name="trash-2" className="fs-2 text-danger" />
-                        </span>
-                    </div>
-                    <h4 className="mb-1">Delete Confirmation</h4>
-                    <p className="mb-4">
-                        Are you sure you want to delete this reservation?
-                    </p>
-                    <div className="d-flex justify-content-center gap-2">
-                        <Button variant="light" className="w-100" onClick={() => setShowDeleteReservation(false)}>
-                            Close
-                        </Button>
-                        <Button variant="danger" className="w-100" onClick={handleDeleteReservation} disabled={deleting}>
-                            {deleting ? 'Deleting...' : 'Delete'}
-                        </Button>
-                    </div>
-                </Modal.Body>
-            </Modal>
+            {/* ---- Delete Table Request Modal (requires approval) ---- */}
+            <ApprovalRequestModal
+                show={showDeleteTableApproval}
+                onHide={() => setShowDeleteTableApproval(false)}
+                actionLabel="delete"
+                requestType="DELETE_IMPORTANT_DATA"
+                description={`Xóa bàn ${currentTable?.tableNumber ?? ''}`}
+                targetType="TABLE"
+                targetId={currentTable?.id}
+                targetDisplay={currentTable?.tableNumber}
+                additionalData={
+                    currentTable ? JSON.stringify({ targetType: 'TABLE', targetId: currentTable.id }) : null
+                }
+                onSent={() => {
+                    setShowDeleteTableApproval(false);
+                    setCurrentTable(null);
+                    setNotice('Yêu cầu xóa bàn đã được gửi.');
+                }}
+            />
+
+            {/* ---- Delete Area Request Modal (requires approval) ---- */}
+            <ApprovalRequestModal
+                show={showDeleteAreaApproval}
+                onHide={() => setShowDeleteAreaApproval(false)}
+                actionLabel="delete"
+                requestType="DELETE_IMPORTANT_DATA"
+                description={`Xóa khu vực ${currentArea?.name ?? ''}`}
+                targetType="TABLE_AREA"
+                targetId={currentArea?.id}
+                targetDisplay={currentArea?.name}
+                additionalData={
+                    currentArea ? JSON.stringify({ targetType: 'TABLE_AREA', targetId: currentArea.id }) : null
+                }
+                onSent={() => {
+                    setShowDeleteAreaApproval(false);
+                    setCurrentArea(null);
+                    setNotice('Yêu cầu xóa khu vực đã được gửi.');
+                }}
+            />
+
+            {/* ---- Delete Reservation Request Modal (requires approval) ---- */}
+            <ApprovalRequestModal
+                show={showDeleteReservationApproval}
+                onHide={() => setShowDeleteReservationApproval(false)}
+                actionLabel="delete"
+                requestType="DELETE_IMPORTANT_DATA"
+                description={`Xóa đặt bàn của ${currentReservation?.customerName ?? ''}`}
+                targetType="RESERVATION"
+                targetId={currentReservation?.id}
+                targetDisplay={currentReservation?.customerName}
+                additionalData={
+                    currentReservation
+                        ? JSON.stringify({ targetType: 'RESERVATION', targetId: currentReservation.id })
+                        : null
+                }
+                onSent={() => {
+                    setShowDeleteReservationApproval(false);
+                    setCurrentReservation(null);
+                    setNotice('Yêu cầu xóa đặt bàn đã được gửi.');
+                }}
+            />
 
             {/* ---- Reservation Info Modal ---- */}
             <Modal show={showReservationInfo} onHide={() => setShowReservationInfo(false)} centered>

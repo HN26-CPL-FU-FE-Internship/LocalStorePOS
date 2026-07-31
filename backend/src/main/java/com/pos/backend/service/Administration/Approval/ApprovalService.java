@@ -35,6 +35,7 @@ public class ApprovalService {
         ApprovalRequestRepository approvalRequestRepository;
         AuditLogService auditLogService;
         NotificationService notificationService;
+        ApprovalRequestExecutor approvalRequestExecutor;
 
         /**
          * Get paginated list of approval requests with optional filters.
@@ -93,6 +94,10 @@ public class ApprovalService {
                 request.setResolvedAt(LocalDateTime.now());
                 request.setRejectionReason(actionRequest.getReason());
                 approvalRequestRepository.save(request);
+
+                // Execute the underlying business action now that the request
+                // has been approved (only then is the change applied).
+                approvalRequestExecutor.execute(request);
 
                 auditLogService.log(approver, AuditAction.APPROVAL_REQUEST_APPROVED,
                                 "ADMINISTRATION", "ApprovalRequest", request.getId(),
@@ -162,6 +167,11 @@ public class ApprovalService {
                         String oldValue,
                         String newValue,
                         String additionalData) {
+
+                // Prevent duplicate pending requests for the same target action.
+                if (targetId != null && hasPendingRequest(requestType, targetId)) {
+                        throw new AppException(ErrorCode.APPROVAL_REQUEST_ALREADY_EXISTS);
+                }
 
                 ApprovalRequest request = ApprovalRequest.builder()
                                 .requestType(requestType)

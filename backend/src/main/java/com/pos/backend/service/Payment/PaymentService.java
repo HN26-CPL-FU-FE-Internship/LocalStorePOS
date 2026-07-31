@@ -13,4 +13,10 @@ public interface PaymentService {
             String sortDir,
             String search,
             PaymentStatus status);
+
+    /**
+     * Mark a payment as refunded (used when a REFUND_RETURN approval request
+     * is approved).
+     */
+    PaymentListItemResponse refundPayment(Long paymentId);
 }

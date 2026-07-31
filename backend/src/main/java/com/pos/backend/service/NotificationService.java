@@ -1,5 +1,6 @@
 package com.pos.backend.service;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -35,7 +36,8 @@ public class NotificationService {
 
     /**
      * Get paginated notifications. If userId is null, get broadcast notifications.
-     * Supports optional date filtering via fromDate / toDate (ISO local-date strings).
+     * Supports optional date filtering via fromDate / toDate (ISO local-date
+     * strings).
      */
     @Transactional(readOnly = true)
     public PageResponse<NotificationResponse> getNotifications(

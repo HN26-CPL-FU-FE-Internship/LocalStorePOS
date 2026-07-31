@@ -2,9 +2,9 @@ import { useEffect, useMemo, useState } from 'react';
 import { Table, Card, Badge, Button, Dropdown, Modal, Form, Offcanvas, Alert, Spinner, Row, Col } from 'react-bootstrap';
 import { isAxiosError } from 'axios';
 import Icon from '@/components/common/Icon';
+import ApprovalRequestModal from '@/components/common/ApprovalRequestModal';
 import {
     createCoupon,
-    deleteCoupon,
     getCoupons,
     updateCoupon,
     updateCouponStatus,
@@ -78,12 +78,11 @@ const CouponsPage = () => {
     /* ---------- modal state ---------- */
     const [showAdd, setShowAdd] = useState(false);
     const [showEdit, setShowEdit] = useState(false);
-    const [showDelete, setShowDelete] = useState(false);
+    const [showDeleteApproval, setShowDeleteApproval] = useState(false);
     const [showShow, setShowShow] = useState(false);
     const [showFilter, setShowFilter] = useState(false);
     const [currentCoupon, setCurrentCoupon] = useState<CouponEntry | null>(null);
     const [saving, setSaving] = useState(false);
-    const [deleting, setDeleting] = useState(false);
     const [copied, setCopied] = useState(false);
 
     /* ---------- form state ---------- */
@@ -255,26 +254,9 @@ const CouponsPage = () => {
 
     const openDelete = (coupon: CouponEntry) => {
         setCurrentCoupon(coupon);
-        setShowDelete(true);
+        setShowDeleteApproval(true);
     };
 
-    const handleDelete = async () => {
-        if (!currentCoupon) return;
-        setDeleting(true);
-        setError(null);
-        try {
-            await deleteCoupon(currentCoupon.id);
-            setShowDelete(false);
-            setCurrentCoupon(null);
-            setNotice('Xóa coupon thành công.');
-            await loadCoupons();
-        } catch (err) {
-            setError(extractErrorMessage(err, 'Không thể xóa coupon này.'));
-            setShowDelete(false);
-        } finally {
-            setDeleting(false);
-        }
-    };
 
     const handleToggleStatus = async (coupon: CouponEntry) => {
         const nextStatus: CouponStatus = coupon.status === 'active' ? 'inactive' : 'active';
@@ -717,28 +699,26 @@ const CouponsPage = () => {
                 </Modal.Body>
             </Modal>
 
-            {/* ---- Delete Confirmation Modal ---- */}
-            <Modal show={showDelete} onHide={() => setShowDelete(false)} centered size="sm">
-                <Modal.Body className="text-center p-4">
-                    <div className="mb-4">
-                        <span className="avatar avatar-xxl rounded-circle bg-danger-subtle d-inline-flex align-items-center justify-content-center">
-                            <Icon name="trash-2" className="fs-2 text-danger" />
-                        </span>
-                    </div>
-                    <h4 className="mb-1">Delete Confirmation</h4>
-                    <p className="mb-4">
-                        Are you sure you want to delete{currentCoupon ? ` "${currentCoupon.code}"?` : '?'}
-                    </p>
-                    <div className="d-flex justify-content-center gap-2">
-                        <Button variant="light" className="w-100" onClick={() => setShowDelete(false)}>
-                            Close
-                        </Button>
-                        <Button variant="danger" className="w-100" onClick={handleDelete} disabled={deleting}>
-                            {deleting ? 'Deleting...' : 'Delete'}
-                        </Button>
-                    </div>
-                </Modal.Body>
-            </Modal>
+
+            {/* ---- Delete Request Modal (requires approval) ---- */}
+            <ApprovalRequestModal
+                show={showDeleteApproval}
+                onHide={() => setShowDeleteApproval(false)}
+                actionLabel="delete"
+                requestType="DELETE_IMPORTANT_DATA"
+                description={`Xóa coupon ${currentCoupon?.code ?? ''}`}
+                targetType="COUPON"
+                targetId={currentCoupon?.id}
+                targetDisplay={currentCoupon?.code}
+                additionalData={
+                    currentCoupon ? JSON.stringify({ targetType: 'COUPON', targetId: currentCoupon.id }) : null
+                }
+                onSent={() => {
+                    setShowDeleteApproval(false);
+                    setCurrentCoupon(null);
+                    setNotice('Yêu cầu xóa coupon đã được gửi.');
+                }}
+            />
 
             {/* ---- Filter Offcanvas ---- */}
             <Offcanvas show={showFilter} onHide={() => setShowFilter(false)} placement="end">

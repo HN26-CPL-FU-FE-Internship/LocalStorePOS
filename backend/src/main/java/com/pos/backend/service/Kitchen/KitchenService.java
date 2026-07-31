@@ -131,6 +131,24 @@ public class KitchenService {
     }
 
     @Transactional
+    public OrderResponse cancel(Long id) {
+        Order order = orderRepository.findById(id)
+                .orElseThrow(() -> new AppException(ErrorCode.ORDER_NOT_FOUND));
+
+        order.setKitchenStatus(KitchenStatus.cancelled);
+        order.setStatus(OrderStatus.cancelled);
+        order = orderRepository.save(order);
+
+        orderItemRepository.updateStatusByOrderId(id, OrderItemStatus.cancelled);
+        OrderResponse response = buildOrderResponse(order);
+        webSocketService.sendTopic("/orders", WebSocketEvent.builder()
+                .type(EventType.ORDER_UPDATED)
+                .data(response)
+                .build());
+        return response;
+    }
+
+    @Transactional
     public OrderResponse markDelayed(Long id) {
         Order order = orderRepository.findById(id)
                 .orElseThrow(() -> new AppException(ErrorCode.ORDER_NOT_FOUND));

@@ -27,5 +27,11 @@ public interface ItemService {
 
     ItemDetailResponse updateStatus(Long id, ItemStatus status);
 
+    /**
+     * Update only the price of an item (used when a PRICE_CHANGE approval
+     * request is approved).
+     */
+    ItemDetailResponse updatePrice(Long id, java.math.BigDecimal price);
+
     void deleteItem(Long id);
 }

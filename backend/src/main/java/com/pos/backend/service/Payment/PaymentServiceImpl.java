@@ -27,6 +27,7 @@ public class PaymentServiceImpl implements PaymentService {
 
     private final PaymentRepository paymentRepository;
     private final OrderItemRepository orderItemRepository;
+    private final com.pos.backend.repository.OrderRepository orderRepository;
 
     @Override
     @Transactional(readOnly = true)
@@ -80,6 +81,23 @@ public class PaymentServiceImpl implements PaymentService {
         }
 
         return result;
+    }
+
+    @Override
+    @Transactional
+    public PaymentListItemResponse refundPayment(Long paymentId) {
+        Payment payment = paymentRepository.findById(paymentId)
+                .orElseThrow(() -> new com.pos.backend.exception.AppException(
+                        com.pos.backend.constant.ErrorCode.NOTIFICATION_NOT_FOUND));
+
+        payment.setStatus(PaymentStatus.refunded);
+        paymentRepository.save(payment);
+
+        Order order = payment.getOrder();
+        order.setPaymentStatus(com.pos.backend.constant.enums.OrderPaymentStatus.refunded);
+        orderRepository.save(order);
+
+        return toResponse(payment, 0);
     }
 
     private PaymentListItemResponse toResponse(Payment payment, long itemCount) {
