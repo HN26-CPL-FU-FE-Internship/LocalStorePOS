@@ -198,6 +198,48 @@ html[data-bs-theme='dark'] {
     background-color: #fd5812;
     border-radius: 50px;
 }
+
+// Right-click context menu for notifications
+.notification-context-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 1049;
+}
+.notification-context-menu {
+    position: fixed;
+    z-index: 1050;
+    min-width: 170px;
+    padding: 6px;
+    background-color: $white;
+    border: 1px solid $border-color;
+    border-radius: $border-radius;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+
+    button {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        width: 100%;
+        padding: 8px 12px;
+        font-size: 13px;
+        font-weight: $font-weight-medium;
+        color: $gray-800;
+        text-align: left;
+        border: 0;
+        background: transparent;
+        border-radius: $border-radius;
+        transition: background-color 0.15s ease-in-out;
+
+        &:hover {
+            background-color: $gray-100;
+            color: $primary;
+        }
+
+        svg {
+            flex-shrink: 0;
+        }
+    }
+}
 .dropdown-menu.notification-dropdown {
     padding: 20px !important;
 }

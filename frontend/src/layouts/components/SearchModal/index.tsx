@@ -37,9 +37,8 @@ const SearchModal = ({ show, onHide }: SearchModalProps) => {
                         {customerSearchResults.map((customer, index) => (
                             <div
                                 key={customer.id}
-                                className={`d-flex align-items-center justify-content-between pb-3 mb-3 ${
-                                    index < customerSearchResults.length - 1 ? 'border-bottom' : ''
-                                }`}
+                                className={`d-flex align-items-center justify-content-between pb-3 mb-3 ${index < customerSearchResults.length - 1 ? 'border-bottom' : ''
+                                    }`}
                             >
                                 <div className="d-flex align-items-center">
                                     <div className="avatar avatar-rounded me-2">
@@ -61,7 +60,7 @@ const SearchModal = ({ show, onHide }: SearchModalProps) => {
                                 </Badge>
                             </div>
                         ))}
-                        <Link to="/customers" className="w-100 mt-1 btn border">
+                        <Link to="/customers" className="w-100 mt-1 btn border" onClick={onHide}>
                             View All <Icon name="arrow-right" className="ms-1" />
                         </Link>
                     </Tab>
@@ -77,9 +76,8 @@ const SearchModal = ({ show, onHide }: SearchModalProps) => {
                         {orderSearchResults.map((order, index) => (
                             <div
                                 key={order.id}
-                                className={`d-flex align-items-sm-center justify-content-between flex-column gap-2 flex-sm-row pb-3 ${
-                                    index < orderSearchResults.length - 1 ? 'mb-3 border-bottom' : ''
-                                }`}
+                                className={`d-flex align-items-sm-center justify-content-between flex-column gap-2 flex-sm-row pb-3 ${index < orderSearchResults.length - 1 ? 'mb-3 border-bottom' : ''
+                                    }`}
                             >
                                 <div className="d-flex align-items-center">
                                     <div className="avatar avatar-rounded bg-light text-dark me-2">
@@ -103,7 +101,7 @@ const SearchModal = ({ show, onHide }: SearchModalProps) => {
                                 </Badge>
                             </div>
                         ))}
-                        <Link to="/orders" className="w-100 mt-1 btn border">
+                        <Link to="/orders" className="w-100 mt-1 btn border" onClick={onHide}>
                             View All <Icon name="arrow-right" className="ms-1" />
                         </Link>
                     </Tab>
@@ -120,9 +118,8 @@ const SearchModal = ({ show, onHide }: SearchModalProps) => {
                         {kitchenSearchResults.map((item, index) => (
                             <div
                                 key={item.id}
-                                className={`d-flex align-items-center justify-content-between pb-3 ${
-                                    index < kitchenSearchResults.length - 1 ? 'mb-3 border-bottom' : ''
-                                }`}
+                                className={`d-flex align-items-center justify-content-between pb-3 ${index < kitchenSearchResults.length - 1 ? 'mb-3 border-bottom' : ''
+                                    }`}
                             >
                                 <div className="d-flex align-items-center">
                                     <div className="avatar avatar-rounded bg-light text-dark me-2">

@@ -125,6 +125,26 @@ public class NotificationService {
     }
 
     /**
+     * Mark a single notification as unread.
+     */
+    @Transactional
+    public NotificationResponse markAsUnread(Long notificationId, Long userId) {
+        Notification notification = notificationRepository.findById(notificationId)
+                .orElseThrow(() -> new AppException(ErrorCode.NOTIFICATION_NOT_FOUND));
+
+        // If notification belongs to a specific user, verify ownership
+        if (notification.getUser() != null && userId != null
+                && !notification.getUser().getId().equals(userId)) {
+            throw new AppException(ErrorCode.UNAUTHORIZED);
+        }
+
+        notification.setRead(false);
+        notificationRepository.save(notification);
+
+        return toResponse(notification);
+    }
+
+    /**
      * Mark all notifications as read for a user (or broadcast).
      */
     @Transactional
@@ -161,6 +181,16 @@ public class NotificationService {
         webSocketService.sendTopic("/notifications", response);
 
         return response;
+    }
+
+    /**
+     * Remove all notifications referencing a given target (e.g. the pending
+     * "New Approval Request" broadcast) once the underlying entity has been
+     * resolved, so stale approval requests no longer clutter the list.
+     */
+    @Transactional
+    public void deleteTargetNotifications(String targetType, Long targetId) {
+        notificationRepository.deleteByTargetTypeAndTargetId(targetType, targetId);
     }
 
     /**

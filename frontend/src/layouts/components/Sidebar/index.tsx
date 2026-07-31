@@ -30,7 +30,7 @@ const Sidebar = ({ onClose }: SidebarProps) => {
         () => sidebarTabs.find((tab) => tab.endpoints.includes(pathname)) ?? sidebarTabs[0],
     );
 
-    const { groups: allGroups, unreadGroups, unreadCount, markAsRead, markAllAsRead, acceptAction, declineAction, isLoading, isError } = useNotifications();
+    const { groups: allGroups, unreadGroups, unreadCount, markAsRead, markAsUnread, markAllAsRead, acceptAction, declineAction, isLoading, isError } = useNotifications();
 
     return (
         <div className="two-col-sidebar" id="two-col-sidebar">
@@ -49,6 +49,7 @@ const Sidebar = ({ onClose }: SidebarProps) => {
                                 unreadOnlyGroups={unreadGroups}
                                 unreadCount={unreadCount}
                                 onMarkAsRead={markAsRead}
+                                onMarkAsUnread={markAsUnread}
                                 onMarkAllAsRead={markAllAsRead}
                                 onAcceptAction={acceptAction}
                                 onDeclineAction={declineAction}

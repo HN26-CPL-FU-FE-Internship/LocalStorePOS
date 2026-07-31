@@ -28,7 +28,7 @@ export interface TopHeaderProps {
  * fixed topbar with independent icon-button clusters.
  */
 
-const TopHeader = ({ logoHref = '#', onOpenSearch, onOpenMobileSidebar }: TopHeaderProps) => {
+const TopHeader = ({ logoHref = '#', onOpenMobileSidebar }: TopHeaderProps) => {
     const { routes } = configs;
     const { toggleTheme } = useContextData<ThemeContextType>(ThemeContext);
     const [iconName, setIconName] = useState<ThemeType>('moon');
@@ -85,7 +85,7 @@ const TopHeader = ({ logoHref = '#', onOpenSearch, onOpenMobileSidebar }: TopHea
                     </div> */}
 
                     {/* Search */}
-                    <div className="header-item d-flex">
+                    {/* <div className="header-item d-flex">
                         <Button
                             variant="light"
                             className="topbar-link btn-icon"
@@ -94,7 +94,7 @@ const TopHeader = ({ logoHref = '#', onOpenSearch, onOpenMobileSidebar }: TopHea
                         >
                             <Icon name="search" className="fs-16" />
                         </Button>
-                    </div>
+                    </div> */}
 
                     {/* Report */}
                     <div className="header-item d-none d-sm-flex">

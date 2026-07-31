@@ -40,6 +40,14 @@ export const markAsRead = async (id: number): Promise<NotificationResponse> => {
 };
 
 /**
+ * Mark a single notification as unread.
+ */
+export const markAsUnread = async (id: number): Promise<NotificationResponse> => {
+    const { data } = await api.put<ApiResponse<NotificationResponse>>(`/notifications/${id}/unread`);
+    return data.result;
+};
+
+/**
  * Mark all notifications as read for the current user.
  */
 export const markAllAsRead = async (): Promise<number> => {

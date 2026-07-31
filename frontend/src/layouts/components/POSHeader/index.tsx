@@ -25,7 +25,7 @@ const POSHeader = () => {
     const { routes } = configs;
     const [iconName, setIconName] = useState<ThemeType>('moon');
     const { toggleTheme } = useContextData<ThemeContextType>(ThemeContext);
-    const { groups: allGroups, unreadGroups, unreadCount, markAsRead, markAllAsRead, acceptAction, declineAction, isLoading, isError } = useNotifications();
+    const { groups: allGroups, unreadGroups, unreadCount, markAsRead, markAsUnread, markAllAsRead, acceptAction, declineAction, isLoading, isError } = useNotifications();
 
     return (
         <header className="header">
@@ -74,6 +74,7 @@ const POSHeader = () => {
                                 unreadOnlyGroups={unreadGroups}
                                 unreadCount={unreadCount}
                                 onMarkAsRead={markAsRead}
+                                onMarkAsUnread={markAsUnread}
                                 onMarkAllAsRead={markAllAsRead}
                                 onAcceptAction={acceptAction}
                                 onDeclineAction={declineAction}
