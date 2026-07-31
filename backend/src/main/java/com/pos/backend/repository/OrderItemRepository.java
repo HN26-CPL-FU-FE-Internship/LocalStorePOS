@@ -24,12 +24,13 @@ public interface OrderItemRepository extends JpaRepository<OrderItem, Long> {
 
     /**
      * Count how many times each item has been ordered (by item_id).
-     * Returns array of [itemId, count].
+     * Returns array of [itemId, count]. Cancelled items are excluded.
      */
     @Query("""
                 SELECT oi.item.id AS itemId, COUNT(oi) AS orderCount
                 FROM OrderItem oi
                 WHERE oi.item.id IN :itemIds
+                AND oi.status <> 'cancelled'
                 GROUP BY oi.item.id
             """)
     List<Object[]> countOrderFrequencyByItemIds(@Param("itemIds") List<Long> itemIds);
@@ -38,6 +39,7 @@ public interface OrderItemRepository extends JpaRepository<OrderItem, Long> {
             SELECT oi.order.id, COUNT(oi)
             FROM OrderItem oi
             WHERE oi.order.id IN :orderIds
+            AND oi.status <> 'cancelled'
             GROUP BY oi.order.id
             """)
     List<Object[]> countItemsByOrderIds(@Param("orderIds") List<Long> orderIds);
@@ -54,6 +56,7 @@ public interface OrderItemRepository extends JpaRepository<OrderItem, Long> {
             JOIN i.category c
             JOIN oi.order o
             WHERE oi.order.id IN :orderIds
+            AND oi.status <> 'cancelled'
             GROUP BY c.id, c.name, o.id
             """)
     List<Object[]> findCategorySalesByOrderIds(@Param("orderIds") List<Long> orderIds);
@@ -63,6 +66,7 @@ public interface OrderItemRepository extends JpaRepository<OrderItem, Long> {
                 UPDATE OrderItem oi
                 SET oi.status = :status
                 WHERE oi.order.id = :orderId
+                AND oi.status <> 'cancelled'
             """)
     void updateStatusByOrderId(Long orderId, OrderItemStatus status);
 
@@ -82,6 +86,7 @@ public interface OrderItemRepository extends JpaRepository<OrderItem, Long> {
                 WHERE o.orderedAt >= :fromDate
                 AND o.orderedAt <= :toDate
                 AND o.status = 'completed'
+                AND oi.status <> 'cancelled'
                 GROUP BY oi.item.id, oi.itemName, i.imagePath
                 ORDER BY SUM(oi.quantity) DESC
             """)
@@ -97,6 +102,7 @@ public interface OrderItemRepository extends JpaRepository<OrderItem, Long> {
                 WHERE o.orderedAt >= :fromDate
                 AND o.orderedAt <= :toDate
                 AND o.status = 'completed'
+                AND oi.status <> 'cancelled'
                 GROUP BY c.id, c.name
                 ORDER BY COUNT(DISTINCT o.id) DESC
             """)
@@ -106,7 +112,7 @@ public interface OrderItemRepository extends JpaRepository<OrderItem, Long> {
     @Query("""
                 SELECT i.id, i.name, i.imagePath, i.foodType, COALESCE(SUM(oi.quantity), 0)
                 FROM Item i
-                LEFT JOIN OrderItem oi ON oi.item.id = i.id
+                LEFT JOIN OrderItem oi ON oi.item.id = i.id AND oi.status <> 'cancelled'
                 LEFT JOIN oi.order o
                 WHERE (o IS NULL OR (o.orderedAt >= :fromDate AND o.orderedAt <= :toDate))
                 GROUP BY i.id, i.name, i.imagePath, i.foodType
