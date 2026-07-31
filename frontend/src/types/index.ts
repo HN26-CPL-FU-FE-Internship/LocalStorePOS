@@ -66,6 +66,7 @@ export interface NotificationItem {
     variant: BootstrapVariant;
     message: ReactNode;
     time: string;
+    targetType?: string | null;
     actionable?: boolean;
     actions?: { label: string; variant: BootstrapVariant | 'white' }[];
 }

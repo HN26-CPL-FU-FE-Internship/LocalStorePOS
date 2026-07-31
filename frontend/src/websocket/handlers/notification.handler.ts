@@ -14,10 +14,13 @@ const handleNotificationEvent = (message: IMessage) => {
         });
 
         // If there's an approval request update, also invalidate approval queries
-        if (event?.title?.toLowerCase().includes('yêu cầu') || event?.title?.toLowerCase().includes('approval')) {
+        // and notify the Approval Requests page (it uses local state, not
+        // react-query, so it listens for this window event to refresh).
+        if (event?.title?.toLowerCase().includes('approval')) {
             queryClient.invalidateQueries({
                 queryKey: ['approval-requests'],
             });
+            window.dispatchEvent(new Event('approval-requests-changed'));
         }
     } catch (error) {
         console.error('Failed to parse notification event:', error);

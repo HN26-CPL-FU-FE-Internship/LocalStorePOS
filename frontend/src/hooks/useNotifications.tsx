@@ -18,27 +18,28 @@ import type { NotificationGroup, BootstrapVariant } from '@/types';
 /* ------------------------------------------------------------------ */
 
 const ICON_MAP: Record<string, string> = {
-    'yêu cầu duyệt': 'file-check',
     approval: 'file-check',
-    'đơn hàng': 'shopping-cart',
-    order: 'shopping-cart',
     'new order': 'cooking-pot',
-    bếp: 'cooking-pot',
+    cooking: 'cooking-pot',
     kitchen: 'cooking-pot',
-    'thanh toán': 'badge-dollar-sign',
+    ready: 'cooking-pot',
+    delayed: 'cooking-pot',
+    order: 'shopping-cart',
     payment: 'badge-dollar-sign',
-    'tồn kho': 'package',
+    customer: 'users-round',
+    reservation: 'calendar-clock',
     stock: 'package',
 };
 
 const VARIANT_MAP: Record<string, BootstrapVariant> = {
-    'yêu cầu duyệt': 'warning',
     approval: 'warning',
-    bếp: 'secondary',
+    cooking: 'secondary',
     kitchen: 'secondary',
-    'thanh toán': 'success',
+    ready: 'secondary',
+    delayed: 'warning',
     payment: 'success',
-    'tồn kho': 'info',
+    customer: 'primary',
+    reservation: 'info',
     stock: 'info',
 };
 
@@ -59,8 +60,7 @@ function getVariant(title: string): BootstrapVariant {
 }
 
 function isApprovalRequest(title: string): boolean {
-    const lower = title.toLowerCase();
-    return lower.includes('yêu cầu duyệt') || lower.includes('approval') || lower.includes('duyệt');
+    return title.toLowerCase().includes('approval');
 }
 
 function toItemData(notification: NotificationResponse): {
@@ -78,6 +78,7 @@ function toItemData(notification: NotificationResponse): {
             variant: getVariant(notification.title),
             message: notification.message ?? notification.title,
             time: formatRelativeTime(notification.createdAt),
+            targetType: notification.targetType,
             actionable: !notification.isRead,
             ...(isApproval && notification.targetType && notification.targetId
                 ? {
