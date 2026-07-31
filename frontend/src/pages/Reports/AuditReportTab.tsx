@@ -1,7 +1,8 @@
 import { useState, useCallback, useMemo } from 'react';
-import { Button, Card, Form, Modal, Pagination, Badge, Row, Col, Spinner } from 'react-bootstrap';
+import { Button, Card, Form, Modal, Badge, Row, Col, Spinner } from 'react-bootstrap';
 import dayjs from 'dayjs';
 import Icon from '@/components/common/Icon';
+import Pagination from '@/components/common/Pagination';
 import { useAuditReport, useAuditModules } from '@/hooks/report/useReportData';
 import type { AuditLogFilter, AuditLogItem } from '@/types/report';
 
@@ -53,34 +54,6 @@ const AuditReportTab = () => {
     const resetFilters = useCallback(() => {
         setFilter({ page: 0, size: PAGE_SIZE });
     }, []);
-
-    // Pagination items
-    const paginationItems = useMemo(() => {
-        if (!data) return null;
-        const { page, totalPages } = data;
-        const items: React.ReactNode[] = [];
-        const maxVisible = 5;
-        let start = Math.max(0, page - Math.floor(maxVisible / 2));
-        const end = Math.min(totalPages, start + maxVisible);
-        if (end - start < maxVisible) {
-            start = Math.max(0, end - maxVisible);
-        }
-
-        items.push(
-            <Pagination.Prev key="prev" disabled={page === 0} onClick={() => goToPage(page - 1)} />,
-        );
-        for (let i = start; i < end; i++) {
-            items.push(
-                <Pagination.Item key={i} active={i === page} onClick={() => goToPage(i)}>
-                    {i + 1}
-                </Pagination.Item>,
-            );
-        }
-        items.push(
-            <Pagination.Next key="next" disabled={page >= totalPages - 1} onClick={() => goToPage(page + 1)} />,
-        );
-        return items;
-    }, [data, goToPage]);
 
     // Action options derived from all audit events
     const actionOptions = useMemo(() => {
@@ -271,14 +244,14 @@ const AuditReportTab = () => {
 
             {/* ── Pagination ──────────────────────────────── */}
             {data && data.totalPages > 1 && (
-                <Card.Footer className="d-flex justify-content-between align-items-center">
-                    <small className="text-muted">
-                        Showing {(data.page * data.size) + 1} - {Math.min((data.page + 1) * data.size, data.totalElements)} of {data.totalElements} entries
-                    </small>
-                    <Pagination className="mb-0" size="sm">
-                        {paginationItems}
-                    </Pagination>
-                </Card.Footer>
+                // <Card.Footer className="d-flex justify-content-between align-items-center">
+                <Pagination
+                    totalItems={data.totalElements}
+                    currentPage={data.page + 1}
+                    onPageChange={(page) => goToPage(page - 1)}
+                    pageSize={data.size || PAGE_SIZE}
+                />
+                // </Card.Footer>
             )}
 
             {/* ── Detail Modal ────────────────────────────── */}

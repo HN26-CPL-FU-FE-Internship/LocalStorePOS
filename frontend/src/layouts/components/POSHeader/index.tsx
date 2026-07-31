@@ -49,7 +49,7 @@ const POSHeader = () => {
                         </div>
                         <ul className="header-notification">
                             <li className="d-none d-sm-flex">
-                                <Link to={routes['customer-reports']} className="btn btn-icon">
+                                <Link to={routes.reports} className="btn btn-icon">
                                     <Icon name="chart-column-stacked" />
                                 </Link>
                             </li>

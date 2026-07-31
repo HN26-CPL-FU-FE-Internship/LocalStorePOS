@@ -1,6 +1,7 @@
 import { memo } from 'react';
 import Skeleton from '@/components/common/Skeleton';
 import Icon from '@/components/common/Icon';
+import configs from '@/configs';
 import { DashboardCardShell } from '../common';
 import type { ActivityLogResponse } from '@/api/dashboard.api';
 
@@ -36,7 +37,7 @@ const NotificationsLogCard = memo(({ groups, isLoading, errorMessage }: Notifica
             isEmpty={isEmpty}
             emptyMessage="No recent activity"
             loadingSkeleton={loadingSkeleton}
-            action={{ label: 'View All', href: '/reports/audit-report' }}
+            action={{ label: 'View All', href: configs.routes.reports }}
         >
             <div className="notification-timeline">
                 {groups.map((group) => (

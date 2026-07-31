@@ -98,7 +98,7 @@ const TopHeader = ({ logoHref = '#', onOpenSearch, onOpenMobileSidebar }: TopHea
 
                     {/* Report */}
                     <div className="header-item d-none d-sm-flex">
-                        <Link to={routes['earning-reports']} className="topbar-link btn btn-icon" aria-label="report" title="Report">
+                        <Link to={routes.reports} className="topbar-link btn btn-icon" aria-label="report" title="Report">
                             <Icon name="chart-column-stacked" className="fs-16" />
                             <span className="position-absolute report-badge bg-success" />
                         </Link>
