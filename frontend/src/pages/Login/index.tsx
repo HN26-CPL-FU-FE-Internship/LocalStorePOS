@@ -61,7 +61,7 @@ function Login() {
                         navigate(routes.orders);
                         break;
                     case 'Accountant':
-                        navigate(routes['earning-reports']);
+                        navigate(routes.reports);
                         break;
                     case 'System Operator':
                         navigate(routes['store-settings']);

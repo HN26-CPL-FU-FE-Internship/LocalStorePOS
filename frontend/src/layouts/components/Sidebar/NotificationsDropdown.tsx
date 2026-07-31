@@ -1,3 +1,4 @@
+import { useCallback, useEffect, useState } from 'react';
 import { Dropdown, Tabs, Tab, Button } from 'react-bootstrap';
 import SimpleBar from 'simplebar-react';
 
@@ -9,6 +10,7 @@ export interface NotificationsDropdownProps {
     unreadOnlyGroups: NotificationGroup[];
     unreadCount: number;
     onMarkAsRead: (id: number) => void;
+    onMarkAsUnread: (id: number) => void;
     onMarkAllAsRead: () => void;
     onAcceptAction?: (notificationId: number) => void;
     onDeclineAction?: (notificationId: number) => void;
@@ -56,11 +58,13 @@ const NotificationList = ({
     onMarkAsRead,
     onAcceptAction,
     onDeclineAction,
+    onOpenContextMenu,
 }: {
     groups: NotificationGroup[];
     onMarkAsRead: (id: number) => void;
     onAcceptAction?: (notificationId: number) => void;
     onDeclineAction?: (notificationId: number) => void;
+    onOpenContextMenu?: (e: React.MouseEvent, id: number) => void;
 }) => (
     <>
         {groups.length === 0 ? (
@@ -73,7 +77,16 @@ const NotificationList = ({
                 <div className="notification-list" key={group.id}>
                     <h6 className="fs-14 fw-semibold mb-3">{group.heading}</h6>
                     {group.items.map((item) => (
-                        <div className="notification-item" key={item.id}>
+                        <div
+                            className="notification-item"
+                            key={item.id}
+                            onClick={() => {
+                                // Clicking an unread notification marks it as read.
+                                if (item.actionable) onMarkAsRead(parseInt(item.id, 10));
+                            }}
+                            onContextMenu={(e) => onOpenContextMenu?.(e, parseInt(item.id, 10))}
+                            style={{ cursor: item.actionable ? 'pointer' : 'default' }}
+                        >
                             <div className="d-flex">
                                 <div
                                     className={`me-2 avatar avatar-rounded flex-shrink-0 badge-soft-${item.variant} border border-${item.variant}`}
@@ -96,7 +109,8 @@ const NotificationList = ({
                                                         size="sm"
                                                         variant={action.variant as BootstrapVariant}
                                                         type="button"
-                                                        onClick={() => {
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
                                                             if (isAccept && onAcceptAction) {
                                                                 onAcceptAction(parseInt(item.id, 10));
                                                             } else if (!isAccept && onDeclineAction) {
@@ -119,7 +133,10 @@ const NotificationList = ({
                                         className="notification-read rounded-circle bg-success border-0 p-0"
                                         title="Mark as Read"
                                         aria-label="Mark as Read"
-                                        onClick={() => onMarkAsRead(parseInt(item.id, 10))}
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            onMarkAsRead(parseInt(item.id, 10));
+                                        }}
                                     />
                                 </div>
                             )}
@@ -136,6 +153,7 @@ const NotificationsDropdown = ({
     unreadOnlyGroups,
     unreadCount = 0,
     onMarkAsRead,
+    onMarkAsUnread,
     onMarkAllAsRead,
     onAcceptAction,
     onDeclineAction,
@@ -143,6 +161,42 @@ const NotificationsDropdown = ({
     isError = false,
     className = '',
 }: NotificationsDropdownProps) => {
+    // Right-click context menu state: notification id + cursor position.
+    const [contextMenu, setContextMenu] = useState<{ id: number; x: number; y: number } | null>(null);
+
+    const openContextMenu = useCallback((e: React.MouseEvent, id: number) => {
+        e.preventDefault();
+        // Keep the notification dropdown open while the context menu is active
+        // (autoClose="outside" listens on mousedown, so stop it here).
+        e.stopPropagation();
+        setContextMenu({ id, x: e.clientX, y: e.clientY });
+    }, []);
+
+    const closeContextMenu = useCallback(() => setContextMenu(null), []);
+
+    // Close the context menu when the user presses Escape.
+    const handleContextMenuKeyDown = useCallback(
+        (e: KeyboardEvent) => {
+            if (e.key === 'Escape') closeContextMenu();
+        },
+        [closeContextMenu],
+    );
+
+    // Register the Escape listener while the context menu is open.
+    useEffect(() => {
+        if (!contextMenu) return;
+        window.addEventListener('keydown', handleContextMenuKeyDown);
+        return () => window.removeEventListener('keydown', handleContextMenuKeyDown);
+    }, [contextMenu, handleContextMenuKeyDown]);
+
+    // Clamp the menu position so it never renders off-screen.
+    const contextMenuStyle = contextMenu
+        ? {
+            top: Math.max(0, Math.min(contextMenu.y, window.innerHeight - 90)),
+            left: Math.max(0, Math.min(contextMenu.x, window.innerWidth - 200)),
+        }
+        : undefined;
+
     // Kitchen events are stored with targetType ORDER (via notifyOrderEvent), so
     // exclude them from the Orders tab — they have their own Kitchen tab.
     const orderGroups = filterGroups(groups, (item) => item.targetType === 'ORDER' && !isKitchenItem(item));
@@ -190,6 +244,7 @@ const NotificationsDropdown = ({
                                     onMarkAsRead={onMarkAsRead}
                                     onAcceptAction={onAcceptAction}
                                     onDeclineAction={onDeclineAction}
+                                    onOpenContextMenu={openContextMenu}
                                 />
                             </Tab>
                             <Tab
@@ -207,6 +262,7 @@ const NotificationsDropdown = ({
                                     onMarkAsRead={onMarkAsRead}
                                     onAcceptAction={onAcceptAction}
                                     onDeclineAction={onDeclineAction}
+                                    onOpenContextMenu={openContextMenu}
                                 />
                             </Tab>
                             <Tab
@@ -223,6 +279,7 @@ const NotificationsDropdown = ({
                                     onMarkAsRead={onMarkAsRead}
                                     onAcceptAction={onAcceptAction}
                                     onDeclineAction={onDeclineAction}
+                                    onOpenContextMenu={openContextMenu}
                                 />
                             </Tab>
                             <Tab
@@ -239,6 +296,7 @@ const NotificationsDropdown = ({
                                     onMarkAsRead={onMarkAsRead}
                                     onAcceptAction={onAcceptAction}
                                     onDeclineAction={onDeclineAction}
+                                    onOpenContextMenu={openContextMenu}
                                 />
                             </Tab>
                             <Tab
@@ -256,12 +314,53 @@ const NotificationsDropdown = ({
                                     onMarkAsRead={onMarkAsRead}
                                     onAcceptAction={onAcceptAction}
                                     onDeclineAction={onDeclineAction}
+                                    onOpenContextMenu={openContextMenu}
                                 />
                             </Tab>
                         </Tabs>
                     )}
                 </SimpleBar>
             </Dropdown.Menu>
+
+            {/* Right-click context menu: Mark as read / Mark as unread */}
+            {contextMenu && (
+                <>
+                    <div
+                        className="notification-context-overlay"
+                        onClick={closeContextMenu}
+                        onContextMenu={(e) => {
+                            e.preventDefault();
+                            closeContextMenu();
+                        }}
+                        onMouseDown={(e) => e.stopPropagation()}
+                    />
+                    <div
+                        className="notification-context-menu"
+                        style={contextMenuStyle}
+                        onMouseDown={(e) => e.stopPropagation()}
+                        onClick={(e) => e.stopPropagation()}
+                    >
+                        <button
+                            type="button"
+                            onClick={() => {
+                                onMarkAsRead(contextMenu.id);
+                                closeContextMenu();
+                            }}
+                        >
+                            <Icon name="check" /> Mark as read
+                        </button>
+                        <button
+                            type="button"
+                            onClick={() => {
+                                onMarkAsUnread(contextMenu.id);
+                                closeContextMenu();
+                            }}
+                        >
+                            <Icon name="undo-2" /> Mark as unread
+                        </button>
+                    </div>
+                </>
+            )}
         </Dropdown>
     );
 };

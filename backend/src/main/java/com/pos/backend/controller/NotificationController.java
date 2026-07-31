@@ -93,6 +93,20 @@ public class NotificationController {
     }
 
     /**
+     * Mark a notification as unread.
+     */
+    @PutMapping("/{id}/unread")
+    public ApiResponse<NotificationService.NotificationResponse> markAsUnread(
+            @PathVariable Long id,
+            Authentication authentication) {
+        Long userId = getUserId(authentication);
+        return ApiResponse.<NotificationService.NotificationResponse>builder()
+                .result(notificationService.markAsUnread(id, userId))
+                .message("Notification marked as unread")
+                .build();
+    }
+
+    /**
      * Mark all notifications as read for the current user.
      */
     @PutMapping("/read-all")

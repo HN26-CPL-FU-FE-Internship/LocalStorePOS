@@ -5,6 +5,7 @@ import {
     getRecentNotifications,
     getUnreadCount,
     markAsRead as markAsReadApi,
+    markAsUnread as markAsUnreadApi,
     markAllAsRead as markAllAsReadApi,
     acceptApprovalRequest,
     declineApprovalRequest,
@@ -173,6 +174,14 @@ export function useNotifications() {
         },
     });
 
+    const { mutate: markAsUnread } = useMutation({
+        mutationFn: (id: number) => markAsUnreadApi(id),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: NOTIFICATIONS_KEY });
+            queryClient.invalidateQueries({ queryKey: UNREAD_COUNT_KEY });
+        },
+    });
+
     const { mutate: markAllAsRead } = useMutation({
         mutationFn: markAllAsReadApi,
         onSuccess: () => {
@@ -234,6 +243,8 @@ export function useNotifications() {
         isError: listQuery.isError,
         /** Mark a single notification as read. */
         markAsRead,
+        /** Mark a single notification as unread. */
+        markAsUnread,
         /** Mark all notifications as read. */
         markAllAsRead,
         /** Accept an approval request (simple action). */

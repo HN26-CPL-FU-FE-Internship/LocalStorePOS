@@ -25,7 +25,7 @@ const POSHeader = () => {
     const { routes } = configs;
     const [iconName, setIconName] = useState<ThemeType>('moon');
     const { toggleTheme } = useContextData<ThemeContextType>(ThemeContext);
-    const { groups: allGroups, unreadGroups, unreadCount, markAsRead, markAllAsRead, acceptAction, declineAction, isLoading, isError } = useNotifications();
+    const { groups: allGroups, unreadGroups, unreadCount, markAsRead, markAsUnread, markAllAsRead, acceptAction, declineAction, isLoading, isError } = useNotifications();
 
     return (
         <header className="header">
@@ -49,7 +49,7 @@ const POSHeader = () => {
                         </div>
                         <ul className="header-notification">
                             <li className="d-none d-sm-flex">
-                                <Link to={routes['customer-reports']} className="btn btn-icon">
+                                <Link to={routes.reports} className="btn btn-icon">
                                     <Icon name="chart-column-stacked" />
                                 </Link>
                             </li>
@@ -74,6 +74,7 @@ const POSHeader = () => {
                                 unreadOnlyGroups={unreadGroups}
                                 unreadCount={unreadCount}
                                 onMarkAsRead={markAsRead}
+                                onMarkAsUnread={markAsUnread}
                                 onMarkAllAsRead={markAllAsRead}
                                 onAcceptAction={acceptAction}
                                 onDeclineAction={declineAction}

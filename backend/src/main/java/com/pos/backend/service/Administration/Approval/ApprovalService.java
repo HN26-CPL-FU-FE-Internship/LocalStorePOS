@@ -99,6 +99,11 @@ public class ApprovalService {
                 // has been approved (only then is the change applied).
                 approvalRequestExecutor.execute(request);
 
+                // Remove the pending broadcast notification so the resolved
+                // request no longer shows up in the notifications dropdown.
+                notificationService.deleteTargetNotifications(
+                                request.getRequestType().name(), request.getId());
+
                 auditLogService.log(approver, AuditAction.APPROVAL_REQUEST_APPROVED,
                                 "ADMINISTRATION", "ApprovalRequest", request.getId(),
                                 "Approval request approved: " + request.getDescription()
@@ -158,6 +163,12 @@ public class ApprovalService {
                 String notifyMsg = "Request \"" + request.getDescription()
                                 + "\" has been " + verb + " by " + actorName
                                 + (approved ? "." : ". Reason: " + actionRequest.getReason());
+
+                // Remove the pending broadcast notification so the resolved
+                // request no longer shows up in the notifications dropdown.
+                notificationService.deleteTargetNotifications(
+                                request.getRequestType().name(), request.getId());
+
                 notificationService.createNotification(notifyTitle, notifyMsg, request.getRequestedBy());
 
                 return toResponse(request);

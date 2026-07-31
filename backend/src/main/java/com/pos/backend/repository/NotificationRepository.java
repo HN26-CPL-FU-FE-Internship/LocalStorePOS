@@ -24,6 +24,12 @@ public interface NotificationRepository extends JpaRepository<Notification, Long
 
     List<Notification> findByUserIsNullAndIsReadFalseOrderByCreatedAtDesc();
 
+    /**
+     * Remove all notifications referencing a specific target (e.g. the pending
+     * "New Approval Request" broadcast once the request is approved/rejected).
+     */
+    void deleteByTargetTypeAndTargetId(String targetType, Long targetId);
+
     /* ------------------------------------------------------------------ */
     /*  Combined queries: broadcast (user IS NULL) + user-specific         */
     /*  Used when the caller is authenticated, so they see both kinds.     */
