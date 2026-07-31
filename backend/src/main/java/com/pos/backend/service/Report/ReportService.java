@@ -10,6 +10,8 @@ import java.util.stream.Collectors;
 
 import org.springframework.stereotype.Service;
 
+import com.pos.backend.constant.enums.OrderPaymentStatus;
+import com.pos.backend.constant.enums.OrderStatus;
 import com.pos.backend.dto.response.Report.CustomerReportResponse;
 import com.pos.backend.dto.response.Report.EarningReportResponse;
 import com.pos.backend.dto.response.Report.OrderReportResponse;
@@ -43,7 +45,8 @@ public class ReportService {
         LocalDateTime from = fromDate != null ? fromDate.atStartOfDay() : LocalDateTime.of(2020, 1, 1, 0, 0);
         LocalDateTime to = toDate != null ? toDate.plusDays(1).atStartOfDay() : LocalDateTime.now().plusDays(1);
 
-        List<Order> orders = orderRepository.findCompletedOrdersInRange(from, to);
+        List<Order> orders = orderRepository.findCompletedOrdersInRange(from, to, OrderStatus.completed,
+                OrderPaymentStatus.paid);
 
         List<EarningReportResponse> allItems = orders.stream().filter(o -> {
             if (customerName == null || customerName.isBlank())
@@ -155,7 +158,8 @@ public class ReportService {
         LocalDateTime from = fromDate != null ? fromDate.atStartOfDay() : LocalDateTime.of(2020, 1, 1, 0, 0);
         LocalDateTime to = toDate != null ? toDate.plusDays(1).atStartOfDay() : LocalDateTime.now().plusDays(1);
 
-        List<Order> orders = orderRepository.findCompletedOrdersInRange(from, to);
+        List<Order> orders = orderRepository.findCompletedOrdersInRange(from, to, OrderStatus.completed,
+                OrderPaymentStatus.paid);
         List<Long> orderIds = orders.stream().map(Order::getId).collect(Collectors.toList());
 
         List<SalesReportResponse> allItems = new ArrayList<>();
@@ -213,7 +217,7 @@ public class ReportService {
         LocalDateTime from = fromDate != null ? fromDate.atStartOfDay() : LocalDateTime.of(2020, 1, 1, 0, 0);
         LocalDateTime to = toDate != null ? toDate.plusDays(1).atStartOfDay() : LocalDateTime.now().plusDays(1);
 
-        List<Object[]> customerSales = orderRepository.findCustomerSalesInRange(from, to);
+        List<Object[]> customerSales = orderRepository.findCustomerSalesInRange(from, to, OrderStatus.completed);
 
         List<CustomerReportResponse> allItems = customerSales.stream()
                         .map(arr -> {

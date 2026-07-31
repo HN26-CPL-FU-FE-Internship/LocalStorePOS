@@ -136,7 +136,7 @@ const CouponsPage = () => {
             setTotalPages(result.totalPages || 1);
             setTotalElements(result.totalElements);
         } catch {
-            setError('Unable to load coupons. Please try again.');
+            setError('Failed to load coupons. Please try again.');
         } finally {
             setLoading(false);
         }
@@ -193,11 +193,11 @@ const CouponsPage = () => {
             await createCoupon(buildPayload());
             setShowAdd(false);
             resetForm();
-            setNotice('Coupon created successfully.');
+            setNotice('Coupon added successfully.');
             setPage(1);
             await loadCoupons();
         } catch (err) {
-            setError(extractErrorMessage(err, 'Failed to create coupon.'));
+            setError(extractErrorMessage(err, 'Failed to add coupon.'));
         } finally {
             setSaving(false);
         }
@@ -264,7 +264,7 @@ const CouponsPage = () => {
             await updateCouponStatus(coupon.id, nextStatus);
             setCoupons((prev) => prev.map((c) => (c.id === coupon.id ? { ...c, status: nextStatus } : c)));
         } catch (err) {
-            setError(extractErrorMessage(err, 'Unable to update status.'));
+            setError(extractErrorMessage(err, 'Cannot update status.'));
         }
     };
 

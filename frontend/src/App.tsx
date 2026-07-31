@@ -27,17 +27,10 @@ function App() {
                     <Route path="/" element={<Navigate to={`/login`} />} />
 
                     {publicRoutes.map((route, index) => {
-                        let Layout = route.layout;
-
-                        if (route.layout) {
-                            Layout = route.layout;
-                        } else if (route.layout === null) {
-                            Layout = ({ children }: { children: React.ReactNode }) => <>{children}</>;
-                        }
-
                         const Page = route.component;
+                        const Layout =
+                            route.layout ?? (({ children }: { children: React.ReactNode }) => <>{children}</>);
                         const isPublic = PUBLIC_ROUTES.includes(route.path);
-
                         return (
                             <Route
                                 key={index}

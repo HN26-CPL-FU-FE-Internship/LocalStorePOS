@@ -17,6 +17,6 @@ import lombok.Setter;
 public class StartCookingRequest {
     @NotNull
     @Min(value = 1, message = "Minutes must not be less than 1")
-    @Max(value = 180, message = "Cannot cook longer than 180 minutes")
+    @Max(value = 180, message = "Cooking time cannot exceed 180 minutes")
     private Integer estimatedMinutes;
 }

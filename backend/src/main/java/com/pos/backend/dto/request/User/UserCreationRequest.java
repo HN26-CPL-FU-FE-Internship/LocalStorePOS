@@ -44,7 +44,7 @@ public class UserCreationRequest {
     String password;
 
     @NotNull(message = "Please select a role for the staff member")
-    @Positive(message = "roleId is invalid")
+    @Positive(message = "Role id is invalid")
     Long role;
 
     String avatarPath;

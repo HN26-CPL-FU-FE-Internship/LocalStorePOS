@@ -139,7 +139,7 @@ const AddonsPage = () => {
             setTotalPages(result.totalPages || 1);
             setTotalElements(result.totalElements);
         } catch {
-            setError('Unable to load addons. Please try again.');
+            setError('Failed to load addons. Please try again.');
         } finally {
             setLoading(false);
         }
@@ -207,11 +207,11 @@ const AddonsPage = () => {
             await createAddon(buildPayload());
             setShowAdd(false);
             resetForm();
-            setNotice('Addon created successfully.');
+            setNotice('Addon added successfully.');
             setPage(1);
             await loadAddons();
         } catch (err) {
-            setError(extractErrorMessage(err, 'Failed to create addon.'));
+            setError(extractErrorMessage(err, 'Failed to add addon.'));
         } finally {
             setSaving(false);
         }
@@ -261,7 +261,7 @@ const AddonsPage = () => {
             await updateAddonStatus(addon.id, nextStatus);
             setAddons((prev) => prev.map((a) => (a.id === addon.id ? { ...a, status: nextStatus } : a)));
         } catch (err) {
-            setError(extractErrorMessage(err, 'Unable to update status.'));
+            setError(extractErrorMessage(err, 'Cannot update status.'));
         }
     };
 

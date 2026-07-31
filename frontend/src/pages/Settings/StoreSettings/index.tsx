@@ -68,6 +68,7 @@ const StoreSettingsPage = () => {
     }, []);
 
     useEffect(() => {
+        // eslint-disable-next-line react-hooks/set-state-in-effect
         loadSetting();
     }, [loadSetting]);
 

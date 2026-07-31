@@ -174,7 +174,7 @@ const ItemsPage = () => {
             setTotalPages(result.totalPages || 1);
             setTotalElements(result.totalElements);
         } catch {
-            setError('Unable to load items. Please try again.');
+            setError('Failed to load items. Please try again.');
         } finally {
             setLoading(false);
         }
@@ -259,11 +259,11 @@ const ItemsPage = () => {
             await createItem(buildPayload());
             setShowAdd(false);
             resetForm();
-            setNotice('Item created successfully.');
+            setNotice('Item added successfully.');
             setPage(1);
             await loadItems();
         } catch (err) {
-            setError(extractErrorMessage(err, 'Failed to create item.'));
+            setError(extractErrorMessage(err, 'Failed to add item.'));
         } finally {
             setSaving(false);
         }
@@ -291,7 +291,7 @@ const ItemsPage = () => {
             setVariations(full.variations.map((v) => ({ ...v })));
             setAddons(full.addons.map((a) => ({ ...a })));
         } catch (err) {
-            setError(extractErrorMessage(err, 'Unable to load item information.'));
+            setError(extractErrorMessage(err, 'Failed to load item details.'));
             setShowEdit(false);
         }
     };
@@ -331,7 +331,7 @@ const ItemsPage = () => {
             const full = await getItem(item.id);
             setDetail(full);
         } catch (err) {
-            setError(extractErrorMessage(err, 'Unable to load item details.'));
+            setError(extractErrorMessage(err, 'Failed to load item details.'));
             setShowDetails(false);
         } finally {
             setDetailLoading(false);
@@ -358,10 +358,10 @@ const ItemsPage = () => {
             await updateItemStatus(currentItem.id, nextStatus);
             setShowHide(false);
             setCurrentItem(null);
-            setNotice(nextStatus === 'hidden' ? 'Item hidden.' : 'Item shown again.');
+            setNotice(nextStatus === 'hidden' ? 'Item hidden.' : 'Item made visible again.');
             await loadItems();
         } catch (err) {
-            setError(extractErrorMessage(err, 'Unable to update item status.'));
+            setError(extractErrorMessage(err, 'Cannot update item status.'));
         } finally {
             setHiding(false);
         }
@@ -1024,22 +1024,22 @@ const ItemsPage = () => {
                 additionalData={
                     currentItem
                         ? JSON.stringify({
-                              itemId: currentItem.id,
-                              newPrice: Number(form.price),
-                              oldPrice: currentItem.price,
-                              itemRequest: {
-                                  name: form.name,
-                                  description: form.description,
-                                  price: Number(form.price),
-                                  netPrice: form.netPrice ? Number(form.netPrice) : null,
-                                  categoryId: Number(form.categoryId),
-                                  taxId: form.taxId ? Number(form.taxId) : null,
-                                  foodType: form.foodType,
-                                  status: form.status,
-                                  variations: JSON.stringify(variations.filter((v) => v.sizeName.trim() !== '')),
-                                  addons: JSON.stringify(addons.filter((a) => a.name.trim() !== '')),
-                              },
-                          })
+                            itemId: currentItem.id,
+                            newPrice: Number(form.price),
+                            oldPrice: currentItem.price,
+                            itemRequest: {
+                                name: form.name,
+                                description: form.description,
+                                price: Number(form.price),
+                                netPrice: form.netPrice ? Number(form.netPrice) : null,
+                                categoryId: Number(form.categoryId),
+                                taxId: form.taxId ? Number(form.taxId) : null,
+                                foodType: form.foodType,
+                                status: form.status,
+                                variations: JSON.stringify(variations.filter((v) => v.sizeName.trim() !== '')),
+                                addons: JSON.stringify(addons.filter((a) => a.name.trim() !== '')),
+                            },
+                        })
                         : null
                 }
                 onSent={() => {

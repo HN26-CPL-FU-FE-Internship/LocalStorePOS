@@ -111,7 +111,7 @@ const CustomersPage = () => {
             setTotalPages(result.totalPages || 1);
             setTotalElements(result.totalElements);
         } catch {
-            setError('Unable to load customers. Please try again.');
+            setError('Failed to load customers. Please try again.');
         } finally {
             setLoading(false);
         }
@@ -178,11 +178,11 @@ const CustomersPage = () => {
             await createCustomer(buildPayload());
             setShowAdd(false);
             resetForm();
-            setNotice('Customer created successfully.');
+            setNotice('Customer added successfully.');
             setPage(1);
             await loadCustomers();
         } catch (err) {
-            setError(extractErrorMessage(err, 'Failed to create customer.'));
+            setError(extractErrorMessage(err, 'Failed to add customer.'));
         } finally {
             setSaving(false);
         }

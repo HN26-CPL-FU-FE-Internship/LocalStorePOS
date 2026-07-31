@@ -1,0 +1,6 @@
+.drop-down-custom {
+    &::after {
+        content: '' !important;
+        margin-left: 0 !important;
+    }
+}

@@ -54,8 +54,8 @@ public class NotificationService {
 
         Page<Notification> notificationPage;
         if (userId != null) {
-            notificationPage = notificationRepository.findByUserIdAndCreatedAtBetweenOrderByCreatedAtDesc(
-                    userId, from, to, pageRequest);
+            // Authenticated user sees broadcast + their own notifications
+            notificationPage = notificationRepository.findPageForUser(userId, from, to, pageRequest);
         } else {
             notificationPage = notificationRepository.findByUserIsNullAndCreatedAtBetweenOrderByCreatedAtDesc(
                     from, to, pageRequest);
@@ -82,8 +82,8 @@ public class NotificationService {
 
         List<Notification> notifications;
         if (userId != null) {
-            notifications = notificationRepository
-                    .findByUserIdAndCreatedAtBetweenOrderByCreatedAtDesc(userId, from, to);
+            // Authenticated user sees broadcast + their own notifications
+            notifications = notificationRepository.findRecentForUser(userId, from, to);
         } else {
             notifications = notificationRepository
                     .findByUserIsNullAndCreatedAtBetweenOrderByCreatedAtDesc(from, to);
@@ -98,7 +98,8 @@ public class NotificationService {
     @Transactional(readOnly = true)
     public long getUnreadCount(Long userId) {
         if (userId != null) {
-            return notificationRepository.countByUserIdAndIsReadFalse(userId);
+            // Authenticated user counts broadcast + their own unread notifications
+            return notificationRepository.countUnreadForUser(userId);
         }
         return notificationRepository.countByUserIsNullAndIsReadFalse();
     }
@@ -130,7 +131,8 @@ public class NotificationService {
     public long markAllAsRead(Long userId) {
         List<Notification> unreadNotifications;
         if (userId != null) {
-            unreadNotifications = notificationRepository.findByUserIdAndIsReadFalseOrderByCreatedAtDesc(userId);
+            // Authenticated user marks broadcast + their own notifications as read
+            unreadNotifications = notificationRepository.findUnreadForUser(userId);
         } else {
             unreadNotifications = notificationRepository.findByUserIsNullAndIsReadFalseOrderByCreatedAtDesc();
         }
@@ -167,18 +169,62 @@ public class NotificationService {
      */
     @Transactional
     public void notifyNewApprovalRequest(com.pos.backend.entity.ApprovalRequest request) {
-        String title = "New approval request";
+        String title = "New Approval Request";
         String message = "[" + request.getRequestType() + "] " + request.getDescription()
                 + " - Requested by " + request.getRequestedBy().getFirstName()
                 + " " + request.getRequestedBy().getLastName();
 
+        broadcast(title, message, request.getRequestType().name(), request.getId());
+    }
+
+    /**
+     * Create and push a notification for order-related events.
+     * Sends to all connected clients via broadcast topic.
+     */
+    @Transactional
+    public void notifyOrderEvent(String title, String message, Long orderId) {
+        broadcast(title, message, "ORDER", orderId);
+    }
+
+    /**
+     * Create and push a notification for reservation-related events.
+     * Sends to all connected clients via broadcast topic.
+     */
+    @Transactional
+    public void notifyReservationEvent(String title, String message, Long reservationId) {
+        broadcast(title, message, "RESERVATION", reservationId);
+    }
+
+    /**
+     * Create and push a notification when a new customer is registered.
+     * Sends to all connected clients via broadcast topic.
+     */
+    @Transactional
+    public void notifyCustomerEvent(String title, String message, Long customerId) {
+        broadcast(title, message, "CUSTOMER", customerId);
+    }
+
+    /**
+     * Create and push a notification when a payment is recorded.
+     * Sends to all connected clients via broadcast topic.
+     */
+    @Transactional
+    public void notifyPaymentEvent(String title, String message, Long paymentId) {
+        broadcast(title, message, "PAYMENT", paymentId);
+    }
+
+    /**
+     * Persist a broadcast notification (no target user) and push it to all
+     * connected clients via the /notifications topic.
+     */
+    private void broadcast(String title, String message, String targetType, Long targetId) {
         Notification notification = Notification.builder()
                 .title(title)
                 .message(message)
-                .user(null) // broadcast
+                .user(null) // broadcast to all users
                 .isRead(false)
-                .targetType(request.getRequestType().name())
-                .targetId(request.getId())
+                .targetType(targetType)
+                .targetId(targetId)
                 .build();
 
         notification = notificationRepository.save(notification);

@@ -38,7 +38,7 @@ public class UserUpdateRequest {
     @Size(min = 8, max = 100, message = "Password must be between 8 and 100 characters")
     String password;
 
-    @Positive(message = "roleId is invalid")
+    @Positive(message = "Role id is invalid")
     Long role;
 
     CommonStatus status;

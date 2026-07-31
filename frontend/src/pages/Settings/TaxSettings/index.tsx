@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useState, type Dispatch, type SetStateAction } from 'react';
 import { Card, Button, Modal, Form, Alert } from 'react-bootstrap';
 import Icon from '@/components/common/Icon';
 import ApprovalRequestModal from '@/components/common/ApprovalRequestModal';
@@ -19,6 +19,31 @@ const emptyForm: TaxFormData = {
     taxType: 'exclusive',
     status: 'active',
 };
+
+interface TaxFormContentProps {
+    form: TaxFormData;
+    setForm: Dispatch<SetStateAction<TaxFormData>>;
+}
+
+const TaxFormContent = ({ form, setForm }: TaxFormContentProps) => (
+    <>
+        <Form.Group className="mb-3">
+            <Form.Label>Title <span className="text-danger">*</span></Form.Label>
+            <Form.Control type="text" value={form.title} onChange={(e) => setForm((p) => ({ ...p, title: e.target.value }))} required />
+        </Form.Group>
+        <Form.Group className="mb-3">
+            <Form.Label>Tax Rate (%) <span className="text-danger">*</span></Form.Label>
+            <Form.Control type="number" step="0.01" value={form.taxRate} onChange={(e) => setForm((p) => ({ ...p, taxRate: parseFloat(e.target.value) || 0 }))} required />
+        </Form.Group>
+        <Form.Group className="mb-3">
+            <Form.Label>Tax Type <span className="text-danger">*</span></Form.Label>
+            <Form.Select value={form.taxType} onChange={(e) => setForm((p) => ({ ...p, taxType: e.target.value as TaxTypeValue }))}>
+                <option value="exclusive">Exclusive</option>
+                <option value="inclusive">Inclusive</option>
+            </Form.Select>
+        </Form.Group>
+    </>
+);
 
 const TaxSettingsPage = () => {
     const [taxes, setTaxes] = useState<TaxEntry[]>([]);
@@ -47,6 +72,7 @@ const TaxSettingsPage = () => {
     }, []);
 
     useEffect(() => {
+        // eslint-disable-next-line react-hooks/set-state-in-effect
         loadTaxes();
     }, [loadTaxes]);
 
@@ -123,26 +149,6 @@ const TaxSettingsPage = () => {
             setError(err instanceof Error ? err.message : 'Failed to update status.');
         }
     };
-
-    const TaxFormContent = () => (
-        <>
-            <Form.Group className="mb-3">
-                <Form.Label>Title <span className="text-danger">*</span></Form.Label>
-                <Form.Control type="text" value={form.title} onChange={(e) => setForm((p) => ({ ...p, title: e.target.value }))} required />
-            </Form.Group>
-            <Form.Group className="mb-3">
-                <Form.Label>Tax Rate (%) <span className="text-danger">*</span></Form.Label>
-                <Form.Control type="number" step="0.01" value={form.taxRate} onChange={(e) => setForm((p) => ({ ...p, taxRate: parseFloat(e.target.value) || 0 }))} required />
-            </Form.Group>
-            <Form.Group className="mb-3">
-                <Form.Label>Tax Type <span className="text-danger">*</span></Form.Label>
-                <Form.Select value={form.taxType} onChange={(e) => setForm((p) => ({ ...p, taxType: e.target.value as TaxTypeValue }))}>
-                    <option value="exclusive">Exclusive</option>
-                    <option value="inclusive">Inclusive</option>
-                </Form.Select>
-            </Form.Group>
-        </>
-    );
 
     return (
         <>
@@ -231,7 +237,7 @@ const TaxSettingsPage = () => {
                 </Modal.Header>
                 <Form onSubmit={(e) => { e.preventDefault(); handleAdd(); }}>
                     <Modal.Body className="p-4 pt-1">
-                        <TaxFormContent />
+                        <TaxFormContent form={form} setForm={setForm} />
                         <div className="d-flex align-items-center justify-content-between gap-2 pt-1">
                             <Button variant="light" className="w-100" onClick={() => setShowAdd(false)}>Cancel</Button>
                             <Button variant="primary" type="submit" className="w-100" disabled={saving}>
@@ -249,7 +255,7 @@ const TaxSettingsPage = () => {
                 </Modal.Header>
                 <Form onSubmit={(e) => { e.preventDefault(); handleEdit(); }}>
                     <Modal.Body className="p-4 pt-1">
-                        <TaxFormContent />
+                        <TaxFormContent form={form} setForm={setForm} />
                         <div className="d-flex align-items-center justify-content-between gap-2 pt-1">
                             <Button variant="light" className="w-100" onClick={() => setShowEdit(false)}>Cancel</Button>
                             <Button variant="primary" type="submit" className="w-100" disabled={saving}>

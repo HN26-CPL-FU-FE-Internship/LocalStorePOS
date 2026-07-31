@@ -14,3 +14,6 @@ export { FEEDBACK_CONFIG } from './feedback';
 export { CONFIRM_CONFIG } from './modal';
 export { KITCHEN_STATUSES, KITCHEN_QUERY_KEYS } from './kitchen';
 export { ORDER_TYPES, POS_QUERY_KEYS, ORDER_FILTERS, SERVICE_CHARGE_RATE, DELIVERY_CHARGE_RATE } from './pos';
+export { DASHBOARD_QUERY_KEYS } from './dashboard';
+
+export { RESERVATION_QUERY_KEYS } from './reservation';

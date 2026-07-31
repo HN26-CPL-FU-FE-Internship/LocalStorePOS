@@ -1,5 +1,8 @@
 package com.pos.backend.repository;
 
+import java.time.LocalDateTime;
+import java.util.List;
+
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -29,4 +32,6 @@ public interface AuditLogRepository extends JpaRepository<AuditLog, Long>, JpaSp
             @Param("userId") Long userId,
             @Param("status") String status,
             Pageable pageable);
+
+    List<AuditLog> findTop20ByCreatedAtBetweenOrderByCreatedAtDesc(LocalDateTime fromDate, LocalDateTime toDate);
 }

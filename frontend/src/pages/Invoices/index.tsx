@@ -79,7 +79,7 @@ const InvoicesPage = () => {
             setTotalPages(result.totalPages || 1);
             setTotalElements(result.totalElements);
         } catch {
-            setError('Unable to load invoices. Please try again.');
+            setError('Failed to load invoices. Please try again.');
         } finally {
             setLoading(false);
         }

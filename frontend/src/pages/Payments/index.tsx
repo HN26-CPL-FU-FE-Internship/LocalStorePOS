@@ -50,7 +50,7 @@ const PaymentsPage = () => {
             setTotalPages(result.totalPages || 1);
             setTotalElements(result.totalElements);
         } catch {
-            setError('Unable to load transactions. Please try again.');
+            setError('Failed to load payments. Please try again.');
         } finally {
             setLoading(false);
         }

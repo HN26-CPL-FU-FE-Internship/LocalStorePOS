@@ -18,6 +18,7 @@ const handleNotificationEvent = (message: IMessage) => {
             queryClient.invalidateQueries({
                 queryKey: ['approval-requests'],
             });
+            window.dispatchEvent(new Event('approval-requests-changed'));
         }
     } catch (error) {
         console.error('Failed to parse notification event:', error);

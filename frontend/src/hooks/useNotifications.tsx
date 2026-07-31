@@ -21,15 +21,25 @@ const ICON_MAP: Record<string, string> = {
     approval: 'file-check',
     order: 'shopping-cart',
     'new order': 'cooking-pot',
-    kitchen: 'cooking-pot',
     payment: 'badge-dollar-sign',
+    cooking: 'cooking-pot',
+    kitchen: 'cooking-pot',
+    ready: 'cooking-pot',
+    delayed: 'cooking-pot',
+    customer: 'users-round',
+    reservation: 'calendar-clock',
     stock: 'package',
 };
 
 const VARIANT_MAP: Record<string, BootstrapVariant> = {
     approval: 'warning',
+    cooking: 'secondary',
     kitchen: 'secondary',
+    ready: 'secondary',
+    delayed: 'warning',
     payment: 'success',
+    customer: 'primary',
+    reservation: 'info',
     stock: 'info',
 };
 
@@ -69,14 +79,15 @@ function toItemData(notification: NotificationResponse): {
             variant: getVariant(notification.title),
             message: notification.message ?? notification.title,
             time: formatRelativeTime(notification.createdAt),
+            targetType: notification.targetType,
             actionable: !notification.isRead,
             ...(isApproval && notification.targetType && notification.targetId
                 ? {
-                      actions: [
-                          { label: 'Accept', variant: 'primary' as BootstrapVariant },
-                          { label: 'Decline', variant: 'white' as BootstrapVariant },
-                      ],
-                  }
+                    actions: [
+                        { label: 'Accept', variant: 'primary' as BootstrapVariant },
+                        { label: 'Decline', variant: 'white' as BootstrapVariant },
+                    ],
+                }
                 : {}),
         },
     };

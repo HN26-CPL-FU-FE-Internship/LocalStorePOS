@@ -61,7 +61,7 @@ const AuditReportTab = () => {
         const items: React.ReactNode[] = [];
         const maxVisible = 5;
         let start = Math.max(0, page - Math.floor(maxVisible / 2));
-        let end = Math.min(totalPages, start + maxVisible);
+        const end = Math.min(totalPages, start + maxVisible);
         if (end - start < maxVisible) {
             start = Math.max(0, end - maxVisible);
         }

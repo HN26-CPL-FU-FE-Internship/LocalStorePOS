@@ -1,7 +1,8 @@
 import Icon from '@/components/common/Icon';
-import { paymentTypes } from '@/constants';
+import { orderKeys, paymentTypes, POS_QUERY_KEYS } from '@/constants';
+import { queryClient } from '@/lib';
 import { Alert, Button, Col, Modal, Nav, Row, Tab } from 'react-bootstrap';
-import { CardPaymentTab, CashPaymentTab, ScanPaymentTab } from '../Payment';
+import { CardPaymentTab, CashPaymentTab, QrPaymentTab } from '../Payment';
 import type { CouponOrder, DiscountType, OrderSummary } from '@/types';
 import { calculateOrderTotals } from '@/utils';
 import { memo, useState, useCallback, useMemo, useEffect, useRef } from 'react';
@@ -39,6 +40,7 @@ const PayOrderModal = ({
     const [paymentNote, setPaymentNote] = useState(order?.note ?? '');
     const [showConfirmPay, setShowConfirmPay] = useState(false);
     const [showDiscountApproval, setShowDiscountApproval] = useState(false);
+    const [qrSuccess, setQrSuccess] = useState(false);
 
     const handleGivenAmountChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
         const raw = e.target.value;
@@ -166,6 +168,15 @@ const PayOrderModal = ({
         setShowConfirmPay(true);
     }, []);
 
+    const handleQrPaymentSuccess = useCallback(() => {
+        setQrSuccess(true);
+        queryClient.invalidateQueries({ queryKey: orderKeys.all });
+        queryClient.invalidateQueries({ queryKey: POS_QUERY_KEYS.tables() });
+        setTimeout(() => {
+            handleModalClose();
+        }, 1500);
+    }, [handleModalClose]);
+
     // ── Modifier props shared by all payment tabs ────────────────────
     const paymentModifierProps = {
         discountAmount,
@@ -287,12 +298,23 @@ const PayOrderModal = ({
                                             {...paymentModifierProps}
                                         />
                                     </Tab.Pane>
-                                    <Tab.Pane eventKey="scan">
+                                    {/* <Tab.Pane eventKey="scan">
                                         <ScanPaymentTab
                                             note={paymentNote}
                                             onNoteChange={handleNoteChange}
                                             readOnly={isOrderReadOnly}
                                             {...paymentModifierProps}
+                                        />
+                                    </Tab.Pane> */}
+                                    <Tab.Pane eventKey="qr">
+                                        <QrPaymentTab
+                                            note={paymentNote}
+                                            onNoteChange={handleNoteChange}
+                                            readOnly={isOrderReadOnly || qrSuccess}
+                                            {...paymentModifierProps}
+                                            order={order}
+                                            finalTotal={finalTotal}
+                                            onQrPaymentSuccess={handleQrPaymentSuccess}
                                         />
                                     </Tab.Pane>
                                 </Tab.Content>
@@ -306,7 +328,7 @@ const PayOrderModal = ({
                 <Button variant="secondary" onClick={handleModalClose}>
                     Close
                 </Button>
-                {order.status !== 'cancelled' && order.status !== 'completed' && (
+                {order.status !== 'cancelled' && order.status !== 'completed' && activePaymentType !== 'qr' && (
                     <Button variant="primary" onClick={handleRequestPay}>
                         Pay & Complete Order
                     </Button>

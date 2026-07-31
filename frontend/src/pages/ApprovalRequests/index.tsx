@@ -1,15 +1,5 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
-import {
-    Table,
-    Card,
-    Badge,
-    Button,
-    Modal,
-    Form,
-    Spinner,
-    Alert,
-    Nav,
-} from 'react-bootstrap';
+import { useCallback, useEffect, useState } from 'react';
+import { Table, Card, Badge, Button, Modal, Form, Spinner, Alert, Nav } from 'react-bootstrap';
 import PageHeader from '@/components/common/PageHeader';
 import Icon from '@/components/common/Icon';
 import Pagination from '@/components/common/Pagination';
@@ -128,6 +118,13 @@ const ApprovalRequestsPage = () => {
         loadPendingCount();
     }, [loadData, loadPendingCount]);
 
+    // Auto-refresh when a new/updated approval request arrives via WebSocket
+    useEffect(() => {
+        const onApprovalChanged = () => refreshData();
+        window.addEventListener('approval-requests-changed', onApprovalChanged);
+        return () => window.removeEventListener('approval-requests-changed', onApprovalChanged);
+    }, [refreshData]);
+
     /* ---------- page change ---------- */
     const handlePageChange = (page: number) => {
         setCurrentPage(page);
@@ -230,7 +227,9 @@ const ApprovalRequestsPage = () => {
                                     <Nav.Link eventKey={tab.key} className="fs-13">
                                         {tab.label}
                                         {tab.key === 'PENDING' && pendingCount > 0 && (
-                                            <Badge bg="warning" className="ms-1">{pendingCount}</Badge>
+                                            <Badge bg="warning" className="ms-1">
+                                                {pendingCount}
+                                            </Badge>
                                         )}
                                     </Nav.Link>
                                 </Nav.Item>
@@ -322,16 +321,13 @@ const ApprovalRequestsPage = () => {
                                             )}
                                         </td>
                                         <td>
-                                            <Badge
-                                                bg=""
-                                                className={statusBadgeMap[request.status]}
-                                            >
+                                            <Badge bg="" className={statusBadgeMap[request.status]}>
                                                 {statusLabelMap[request.status]}
                                             </Badge>
                                         </td>
                                         <td>
                                             <span className="text-muted fs-13">
-                                                {new Date(request.createdAt).toLocaleDateString('vi-VN', {
+                                                {new Date(request.createdAt).toLocaleDateString('en-US', {
                                                     day: '2-digit',
                                                     month: '2-digit',
                                                     year: 'numeric',
@@ -400,10 +396,7 @@ const ApprovalRequestsPage = () => {
                     <Modal.Body className="p-4 pt-1">
                         {/* Status & Type */}
                         <div className="d-flex align-items-center gap-2 mb-4">
-                            <Badge
-                                bg=""
-                                className={statusBadgeMap[detailRequest.status]}
-                            >
+                            <Badge bg="" className={statusBadgeMap[detailRequest.status]}>
                                 {statusLabelMap[detailRequest.status]}
                             </Badge>
                             <Badge
@@ -427,7 +420,7 @@ const ApprovalRequestsPage = () => {
                                 <div className="p-3 bg-light rounded">
                                     <small className="text-muted d-block mb-1">Created At</small>
                                     <strong>
-                                        {new Date(detailRequest.createdAt).toLocaleDateString('vi-VN', {
+                                        {new Date(detailRequest.createdAt).toLocaleDateString('en-US', {
                                             day: '2-digit',
                                             month: '2-digit',
                                             year: 'numeric',
@@ -453,7 +446,7 @@ const ApprovalRequestsPage = () => {
                                     <div className="p-3 bg-light rounded">
                                         <small className="text-muted d-block mb-1">Resolved At</small>
                                         <strong>
-                                            {new Date(detailRequest.resolvedAt).toLocaleDateString('vi-VN', {
+                                            {new Date(detailRequest.resolvedAt).toLocaleDateString('en-US', {
                                                 day: '2-digit',
                                                 month: '2-digit',
                                                 year: 'numeric',
@@ -504,8 +497,12 @@ const ApprovalRequestsPage = () => {
                                 <small className="text-muted d-block mb-1">
                                     {detailRequest.status === 'APPROVED' ? 'Approval Reason' : 'Rejection Reason'}
                                 </small>
-                                <div className={`p-3 rounded ${detailRequest.status === 'APPROVED' ? 'bg-success bg-opacity-10' : 'bg-danger bg-opacity-10'}`}>
-                                    <p className={`mb-0 ${detailRequest.status === 'APPROVED' ? 'text-success' : 'text-danger'}`}>
+                                <div
+                                    className={`p-3 rounded ${detailRequest.status === 'APPROVED' ? 'bg-success bg-opacity-10' : 'bg-danger bg-opacity-10'}`}
+                                >
+                                    <p
+                                        className={`mb-0 ${detailRequest.status === 'APPROVED' ? 'text-success' : 'text-danger'}`}
+                                    >
                                         {detailRequest.rejectionReason}
                                     </p>
                                 </div>
@@ -517,7 +514,9 @@ const ApprovalRequestsPage = () => {
                             <div className="mb-3">
                                 <small className="text-muted d-block mb-1">Old Value</small>
                                 <div className="p-3 bg-light rounded">
-                                    <pre className="mb-0 fs-13" style={{ whiteSpace: 'pre-wrap' }}>{detailRequest.oldValue}</pre>
+                                    <pre className="mb-0 fs-13" style={{ whiteSpace: 'pre-wrap' }}>
+                                        {detailRequest.oldValue}
+                                    </pre>
                                 </div>
                             </div>
                         )}
@@ -525,7 +524,9 @@ const ApprovalRequestsPage = () => {
                             <div className="mb-3">
                                 <small className="text-muted d-block mb-1">New Value</small>
                                 <div className="p-3 bg-light rounded">
-                                    <pre className="mb-0 fs-13" style={{ whiteSpace: 'pre-wrap' }}>{detailRequest.newValue}</pre>
+                                    <pre className="mb-0 fs-13" style={{ whiteSpace: 'pre-wrap' }}>
+                                        {detailRequest.newValue}
+                                    </pre>
                                 </div>
                             </div>
                         )}
@@ -535,7 +536,9 @@ const ApprovalRequestsPage = () => {
                             <div className="mb-3">
                                 <small className="text-muted d-block mb-1">Additional Data</small>
                                 <div className="p-3 bg-light rounded">
-                                    <pre className="mb-0 fs-13" style={{ whiteSpace: 'pre-wrap' }}>{detailRequest.additionalData}</pre>
+                                    <pre className="mb-0 fs-13" style={{ whiteSpace: 'pre-wrap' }}>
+                                        {detailRequest.additionalData}
+                                    </pre>
                                 </div>
                             </div>
                         )}
@@ -597,8 +600,10 @@ const ApprovalRequestsPage = () => {
                                     <Spinner animation="border" size="sm" className="me-1" />
                                     Processing...
                                 </>
+                            ) : actionType === 'approve' ? (
+                                'Approve'
                             ) : (
-                                actionType === 'approve' ? 'Approve' : 'Reject'
+                                'Reject'
                             )}
                         </Button>
                     </div>

@@ -122,6 +122,17 @@ public class ApprovalService {
         @Transactional
         public ApprovalRequestResponse rejectRequest(Long requestId, ApprovalActionRequest actionRequest,
                         User rejector) {
+                return resolveRequest(requestId, actionRequest, rejector, ApprovalStatus.REJECTED,
+                                AuditAction.APPROVAL_REQUEST_REJECTED, "Approval Request Rejected", false);
+        }
+
+        /**
+         * Shared resolution path for approve/reject: update status, persist, log
+         * audit event and notify the requester.
+         */
+        private ApprovalRequestResponse resolveRequest(Long requestId, ApprovalActionRequest actionRequest,
+                        User actor, ApprovalStatus targetStatus, AuditAction auditAction,
+                        String notifyTitle, boolean approved) {
                 ApprovalRequest request = approvalRequestRepository.findById(requestId)
                                 .orElseThrow(() -> new AppException(ErrorCode.APPROVAL_REQUEST_NOT_FOUND));
 
@@ -129,24 +140,24 @@ public class ApprovalService {
                         throw new AppException(ErrorCode.APPROVAL_REQUEST_ALREADY_RESOLVED);
                 }
 
-                request.setStatus(ApprovalStatus.REJECTED);
-                request.setApprovedBy(rejector);
+                request.setStatus(targetStatus);
+                request.setApprovedBy(actor);
                 request.setRejectionReason(actionRequest.getReason());
                 request.setResolvedAt(LocalDateTime.now());
                 approvalRequestRepository.save(request);
 
-                auditLogService.log(rejector, AuditAction.APPROVAL_REQUEST_REJECTED,
+                String verb = approved ? "approved" : "rejected";
+                auditLogService.log(actor, auditAction,
                                 "ADMINISTRATION", "ApprovalRequest", request.getId(),
-                                "Approval request rejected: " + request.getDescription()
+                                "Approval request " + verb + ": " + request.getDescription()
                                                 + " | Type: " + request.getRequestType()
                                                 + " | Reason: " + actionRequest.getReason(),
                                 null, null, "SUCCESS", null);
 
-                // Notify the requester via WebSocket
-                String notifyTitle = "Approval request rejected";
+                String actorName = actor.getFirstName() + " " + actor.getLastName();
                 String notifyMsg = "Request \"" + request.getDescription()
-                                + "\" was rejected by " + rejector.getFirstName() + " " + rejector.getLastName()
-                                + ". Reason: " + actionRequest.getReason();
+                                + "\" has been " + verb + " by " + actorName
+                                + (approved ? "." : ". Reason: " + actionRequest.getReason());
                 notificationService.createNotification(notifyTitle, notifyMsg, request.getRequestedBy());
 
                 return toResponse(request);

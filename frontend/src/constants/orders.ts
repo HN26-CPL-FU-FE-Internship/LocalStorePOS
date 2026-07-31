@@ -17,11 +17,17 @@ export const paymentTypes = [
         icon: 'credit-card',
         content: 'Card payment',
     },
+    // {
+    //     key: 'scan',
+    //     label: 'Scan',
+    //     icon: 'scan-text',
+    //     content: 'Scan QR payment',
+    // },
     {
-        key: 'scan',
-        label: 'Scan',
-        icon: 'scan-text',
-        content: 'Scan QR payment',
+        key: 'qr',
+        label: 'QR Scan',
+        icon: 'qr-code',
+        content: 'QR payment',
     },
 ];
 

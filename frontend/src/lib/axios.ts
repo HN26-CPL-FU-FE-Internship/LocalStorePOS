@@ -2,8 +2,7 @@ import axios from 'axios';
 import { tokenUtils } from '@/utils';
 import type { ApiResponse, LoginResponse } from '@/types/auth';
 
-const BASE_URL = 'http://localhost:8080/restaurant-pos/api';
-
+const BASE_URL = import.meta.env.VITE_API_LOCAL_URL;
 export const api = axios.create({
     baseURL: BASE_URL,
 });

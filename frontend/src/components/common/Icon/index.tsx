@@ -7,6 +7,7 @@ export interface IconProps {
     name: string;
     className?: string;
     style?: CSSProperties;
+    size?: number | string;
     action?: (e: React.MouseEvent) => void
 }
 
@@ -17,7 +18,7 @@ const toPascalCase = (value: string) =>
         .map((segment) => segment.charAt(0).toUpperCase() + segment.slice(1))
         .join('');
 
-const Icon = ({ name, className = '', style, action }: IconProps) => {
+const Icon = ({ name, className = '', style, size = '1em', action }: IconProps) => {
     const pascalName = toPascalCase(name);
     const IconComponent =
         (LucideIcons as unknown as Record<string, LucideIcon | undefined>)[pascalName] ?? LucideIcons.CircleHelp;
@@ -26,7 +27,7 @@ const Icon = ({ name, className = '', style, action }: IconProps) => {
         <IconComponent
             onClick={action}
             className={className}
-            style={{ width: '1em', height: '1em', flex: '0 0 auto', display: 'block', ...style }}
+            style={{ width: size, height: size, flex: '0 0 auto', display: 'block', ...style }}
             aria-hidden="true"
         />
     );

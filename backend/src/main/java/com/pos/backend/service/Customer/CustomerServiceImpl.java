@@ -18,6 +18,7 @@ import com.pos.backend.entity.Customer;
 import com.pos.backend.exception.AppException;
 import com.pos.backend.repository.CustomerRepository;
 import com.pos.backend.service.Common.PageResponse;
+import com.pos.backend.service.NotificationService;
 import com.pos.backend.util.FileStorageUtil;
 
 import lombok.RequiredArgsConstructor;
@@ -30,6 +31,7 @@ public class CustomerServiceImpl implements CustomerService {
 
     private final CustomerRepository customerRepository;
     private final FileStorageUtil fileStorageUtil;
+    private final NotificationService notificationService;
 
     @Override
     @Transactional(readOnly = true)
@@ -103,6 +105,11 @@ public class CustomerServiceImpl implements CustomerService {
                 .build();
 
         customer = customerRepository.save(customer);
+
+        notificationService.notifyCustomerEvent(
+                "New Customer",
+                "New customer \"" + customer.getName() + "\" was registered - Phone: " + customer.getPhone(),
+                customer.getId());
 
         return toResponse(customer);
     }

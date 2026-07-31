@@ -1,0 +1,21 @@
+package com.pos.backend.dto.request.Payment;
+
+import java.math.BigDecimal;
+
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Positive;
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+
+@Getter
+@Setter
+@AllArgsConstructor
+@NoArgsConstructor
+public class QrPaymentConfirmRequest {
+
+    @NotNull
+    @Positive
+    private BigDecimal amount;
+}

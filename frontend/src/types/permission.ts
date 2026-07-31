@@ -60,4 +60,5 @@ export const PUBLIC_ROUTES = [
     '/forgot-password',
     '/reset-password',
     '/email-verification',
+    '/payment/:paymentCode',
 ];

@@ -26,7 +26,7 @@ const ProfileDropdown = ({ menuItems }: ProfileDropdownProps) => {
                 {user?.avatarPath ? (
                     <img src={user.avatarPath} alt="user" className="img-fluid rounded-circle" />
                 ) : (
-                    <div className="avatar-letter rounded-circle d-flex align-items-center justify-content-center bg-primary text-white w-100">
+                    <div className="avatar-letter rounded-circle d-flex align-items-center justify-content-center bg-primary text-white w-100 h-100">
                         {user?.firstName?.charAt(0)?.toUpperCase()}
                     </div>
                 )}

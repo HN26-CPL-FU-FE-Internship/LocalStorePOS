@@ -1,5 +1,5 @@
-import { useEffect, useMemo, useState } from 'react';
-import { Row, Col, Card, Button, Modal, Form, Alert, Spinner, Badge, Dropdown } from 'react-bootstrap';
+import { useEffect, useState } from 'react';
+import { Row, Col, Card, Button, Modal, Form, Alert, Spinner, Badge } from 'react-bootstrap';
 import { isAxiosError } from 'axios';
 import Icon from '@/components/common/Icon';
 import ApprovalRequestModal from '@/components/common/ApprovalRequestModal';
@@ -21,6 +21,10 @@ import {
 } from '@/api/table.api';
 import { getCustomerOptions } from '@/api/customer.api';
 import type { Option } from '@/api/item.api';
+import useContextData from '@/hooks/useContextData';
+import { ToastContext } from '@/provider/ToastProvider/ToastContext';
+// import styles from './Tables.module.scss';
+// import { bindCx } from '@/utils';
 
 const statusBadgeClass: Record<TableStatus, string> = {
     available: 'badge-soft-success',
@@ -43,7 +47,14 @@ const reservationBadgeClass: Record<string, string> = {
 };
 
 const emptyTableForm = { tableNumber: '', areaId: '', seats: '4' };
-const emptyReservationForm = { customerId: '', tableId: '', reservationTime: '', guests: '2', notes: '', status: 'booked' as ReservationStatus };
+const emptyReservationForm = {
+    customerId: '',
+    tableId: '',
+    reservationTime: '',
+    guests: '2',
+    notes: '',
+    status: 'booked' as ReservationStatus,
+};
 
 const getTableColor = (seats: number) => {
     if (seats <= 4) return { table: '#ccfbf1', seat: '#99f6e4' };
@@ -74,6 +85,8 @@ const formatDateTime = (value: string) =>
         minute: '2-digit',
     });
 
+// const cx = bindCx(styles);
+
 const TablesPage = () => {
     const [tables, setTables] = useState<TableEntry[]>([]);
     const [allReservations, setAllReservations] = useState<ReservationEntry[]>([]);
@@ -83,7 +96,6 @@ const TablesPage = () => {
     const [error, setError] = useState<string | null>(null);
     const [notice, setNotice] = useState<string | null>(null);
     const [areaFilter, setAreaFilter] = useState<number | ''>('');
-    const [statusFilter, setStatusFilter] = useState<TableStatus | ''>('');
 
     const [showAddTable, setShowAddTable] = useState(false);
     const [showEditTable, setShowEditTable] = useState(false);
@@ -117,13 +129,13 @@ const TablesPage = () => {
         setError(null);
         try {
             const [tablesData, reservationsData] = await Promise.all([
-                getTables({ areaId: areaFilter || undefined, status: statusFilter || undefined }),
-                getReservations({})
+                getTables({ areaId: areaFilter || undefined, status: undefined }),
+                getReservations({}),
             ]);
             setTables(tablesData);
             setAllReservations(reservationsData);
         } catch {
-            setError('Unable to load data. Please try again.');
+            setError('Failed to load data. Please try again.');
         } finally {
             setLoading(false);
         }
@@ -145,7 +157,7 @@ const TablesPage = () => {
         // eslint-disable-next-line react-hooks/set-state-in-effect
         loadTables();
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [areaFilter, statusFilter]);
+    }, [areaFilter]);
 
     useEffect(() => {
         if (!notice) return;
@@ -153,21 +165,13 @@ const TablesPage = () => {
         return () => clearTimeout(handle);
     }, [notice]);
 
-    const groupedByArea = useMemo(() => {
-        const groups = new Map<string, TableEntry[]>();
-        tables.forEach((t) => {
-            const list = groups.get(t.areaName) ?? [];
-            list.push(t);
-            groups.set(t.areaName, list);
-        });
-        return Array.from(groups.entries());
-    }, [tables]);
-
     /* ---------- Table CRUD ---------- */
     const openAddTable = () => {
         setTableForm({ ...emptyTableForm, areaId: areas[0] ? String(areas[0].id) : '' });
         setShowAddTable(true);
     };
+
+    const { showToast } = useContextData(ToastContext);
 
     const handleAddTable = async () => {
         setSaving(true);
@@ -179,20 +183,22 @@ const TablesPage = () => {
                 seats: Number(tableForm.seats),
             });
             setShowAddTable(false);
-            setNotice('Table created successfully.');
+            setNotice('Table added successfully.');
+            showToast('success', 'Table added successfully.');
             await loadTables();
         } catch (err) {
-            setError(extractErrorMessage(err, 'Failed to create table.'));
+            setError(extractErrorMessage(err, 'Failed to add table.'));
+            showToast('error', 'Failed to add table.');
         } finally {
             setSaving(false);
         }
     };
 
-    const openEditTable = (table: TableEntry) => {
-        setCurrentTable(table);
-        setTableForm({ tableNumber: table.tableNumber, areaId: String(table.areaId), seats: String(table.seats) });
-        setShowEditTable(true);
-    };
+    // const openEditTable = (table: TableEntry) => {
+    //     setCurrentTable(table);
+    //     setTableForm({ tableNumber: table.tableNumber, areaId: String(table.areaId), seats: String(table.seats) });
+    //     setShowEditTable(true);
+    // };
 
     const handleEditTable = async () => {
         if (!currentTable) return;
@@ -237,7 +243,7 @@ const TablesPage = () => {
             setShowReservationInfo(false);
             await loadTables();
         } catch (err) {
-            setError(extractErrorMessage(err, 'Unable to update table status.'));
+            setError(extractErrorMessage(err, 'Cannot update table status.'));
         }
     };
 
@@ -250,9 +256,9 @@ const TablesPage = () => {
             await createTableArea(newAreaName.trim());
             setNewAreaName('');
             setAreas(await getTableAreas());
-            setNotice('Area created successfully.');
+            setNotice('Table area added successfully.');
         } catch (err) {
-            setError(extractErrorMessage(err, 'Failed to create area.'));
+            setError(extractErrorMessage(err, 'Failed to add table area.'));
         } finally {
             setSaving(false);
         }
@@ -357,7 +363,9 @@ const TablesPage = () => {
 
     const openReservationInfo = (table: TableEntry) => {
         setCurrentTable(table);
-        const activeRes = allReservations.find(r => r.tableId === table.id && (r.status === 'booked' || r.status === 'seated'));
+        const activeRes = allReservations.find(
+            (r) => r.tableId === table.id && (r.status === 'booked' || r.status === 'seated'),
+        );
         setCurrentReservation(activeRes ?? null);
         setShowReservationInfo(true);
     };
@@ -373,25 +381,25 @@ const TablesPage = () => {
             setNotice('Reservation cancelled.');
             await loadTables();
         } catch (err) {
-            setError(extractErrorMessage(err, 'Unable to cancel reservation.'));
+            setError(extractErrorMessage(err, 'Cannot cancel reservation.'));
         }
     };
 
-    const handleSeatReservation = async () => {
-        if (!currentReservation || !currentTable) return;
-        try {
-            await updateReservationStatus(currentReservation.id, 'seated');
-            await updateTableStatus(currentTable.id, 'occupied');
-            setShowReservationInfo(false);
-            setNotice('Guest seated.');
-            await loadTables();
-        } catch (err) {
-            setError(extractErrorMessage(err, 'Unable to update.'));
-        }
-    };
+    // const handleSeatReservation = async () => {
+    //     if (!currentReservation || !currentTable) return;
+    //     try {
+    //         await updateReservationStatus(currentReservation.id, 'seated');
+    //         await updateTableStatus(currentTable.id, 'occupied');
+    //         setShowReservationInfo(false);
+    //         setNotice('Khách đã vào bàn.');
+    //         await loadTables();
+    //     } catch (err) {
+    //         setError(extractErrorMessage(err, 'Không thể cập nhật.'));
+    //     }
+    // };
 
     const now = new Date();
-    const todayStr = new Date(now.getTime() - (now.getTimezoneOffset() * 60000)).toISOString().split('T')[0];
+    const todayStr = new Date(now.getTime() - now.getTimezoneOffset() * 60000).toISOString().split('T')[0];
     const currentTimeStr = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
 
     return (
@@ -424,13 +432,10 @@ const TablesPage = () => {
             </div>
 
             <div className="d-flex flex-wrap gap-2 mb-4">
-                <Button
-                    variant={areaFilter === '' ? 'dark' : 'outline-warning'}
-                    onClick={() => setAreaFilter('')}
-                >
+                <Button variant={areaFilter === '' ? 'dark' : 'outline-warning'} onClick={() => setAreaFilter('')}>
                     All Floors
                 </Button>
-                {areas.map(a => (
+                {areas.map((a) => (
                     <Button
                         key={a.id}
                         variant={areaFilter === a.id ? 'dark' : 'outline-warning'}
@@ -459,18 +464,18 @@ const TablesPage = () => {
                 </div>
             )}
 
-            {!loading && tables.length === 0 && (
-                <div className="text-center py-5 text-muted">No tables found.</div>
-            )}
+            {!loading && tables.length === 0 && <div className="text-center py-5 text-muted">No tables found.</div>}
 
             {!loading && (
                 <Row>
-                    {tables.map(table => {
-                        const tableReservation = allReservations.find(r => r.tableId === table.id && (r.status === 'booked' || r.status === 'seated'));
+                    {tables.map((table) => {
+                        const tableReservation = allReservations.find(
+                            (r) => r.tableId === table.id && (r.status === 'booked' || r.status === 'seated'),
+                        );
                         return (
                             <Col xxl={3} lg={4} md={6} key={table.id}>
-                                <Card 
-                                    className="mb-4 text-center" 
+                                <Card
+                                    className="mb-4 text-center"
                                     style={{ cursor: 'pointer' }}
                                     onClick={() => {
                                         if (table.status === 'available') {
@@ -500,7 +505,16 @@ const TablesPage = () => {
                                                 <div className="text-center">
                                                     <h6 className="mb-1 fw-bold">{tableReservation.customerName}</h6>
                                                     <div className="text-warning small">
-                                                        {new Date(tableReservation.reservationTime).toLocaleDateString('en-US', { month: 'short', day: '2-digit' })} &bull; {new Date(tableReservation.reservationTime).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })} &bull; {tableReservation.guests} guests
+                                                        {new Date(tableReservation.reservationTime).toLocaleDateString(
+                                                            'en-US',
+                                                            { month: 'short', day: '2-digit' },
+                                                        )}{' '}
+                                                        &bull;{' '}
+                                                        {new Date(tableReservation.reservationTime).toLocaleTimeString(
+                                                            'en-US',
+                                                            { hour: '2-digit', minute: '2-digit' },
+                                                        )}{' '}
+                                                        &bull; {tableReservation.guests} guests
                                                     </div>
                                                 </div>
                                             </>
@@ -520,7 +534,7 @@ const TablesPage = () => {
                     {showReservations ? 'Hide' : 'Show'}
                 </Button>
             </div>
-            
+
             {showReservations && (
                 <Row>
                     {allReservations.length === 0 && (
@@ -528,38 +542,75 @@ const TablesPage = () => {
                             <p className="text-muted">No upcoming reservations.</p>
                         </Col>
                     )}
-                    {allReservations.map(res => (
+                    {allReservations.map((res) => (
                         <Col xl={4} md={6} key={res.id}>
                             <Card className="mb-4 shadow-sm border-0">
                                 <Card.Body>
                                     <div className="d-flex justify-content-between mb-3">
                                         <div className="d-flex align-items-center gap-3">
-                                            <div className="bg-dark text-white text-center rounded p-2" style={{ minWidth: '60px' }}>
-                                                <div className="fw-bold">{new Date(res.reservationTime).toLocaleDateString('en-US', { month: 'short', day: '2-digit' })}</div>
-                                                <div className="small text-muted">{new Date(res.reservationTime).getFullYear()}</div>
+                                            <div
+                                                className="bg-dark text-white text-center rounded p-2"
+                                                style={{ minWidth: '60px' }}
+                                            >
+                                                <div className="fw-bold">
+                                                    {new Date(res.reservationTime).toLocaleDateString('en-US', {
+                                                        month: 'short',
+                                                        day: '2-digit',
+                                                    })}
+                                                </div>
+                                                <div className="small text-muted">
+                                                    {new Date(res.reservationTime).getFullYear()}
+                                                </div>
                                             </div>
                                             <div>
                                                 <h6 className="mb-1 fw-bold">{res.customerName}</h6>
                                                 <div className="text-muted small d-flex align-items-center gap-2">
-                                                    <span><Icon name="clock" className="me-1" />{new Date(res.reservationTime).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}</span>
-                                                    <span><Icon name="armchair" className="me-1" />Table {res.tableNumber}</span>
-                                                    <span><Icon name="users" className="me-1" />{res.guests}</span>
+                                                    <span>
+                                                        <Icon name="clock" className="me-1" />
+                                                        {new Date(res.reservationTime).toLocaleTimeString('en-US', {
+                                                            hour: '2-digit',
+                                                            minute: '2-digit',
+                                                        })}
+                                                    </span>
+                                                    <span>
+                                                        <Icon name="armchair" className="me-1" />
+                                                        Table {res.tableNumber}
+                                                    </span>
+                                                    <span>
+                                                        <Icon name="users" className="me-1" />
+                                                        {res.guests}
+                                                    </span>
                                                 </div>
                                             </div>
                                         </div>
                                         <div>
-                                            <Badge bg="" className={reservationBadgeClass[res.status] || 'badge-soft-primary'}>
+                                            <Badge
+                                                bg=""
+                                                className={reservationBadgeClass[res.status] || 'badge-soft-primary'}
+                                            >
                                                 {res.status.charAt(0).toUpperCase() + res.status.slice(1)}
                                             </Badge>
                                         </div>
                                     </div>
                                     <div className="d-flex justify-content-between align-items-center border-top pt-3">
-                                        <span className="text-muted small">Created {formatDateTime(res.createdAt)}</span>
+                                        <span className="text-muted small">
+                                            Created {formatDateTime(res.createdAt)}
+                                        </span>
                                         <div className="d-flex gap-2">
-                                            <Button variant="white" size="sm" className="btn-icon rounded-circle" onClick={() => openEditReservation(res)}>
+                                            <Button
+                                                variant="white"
+                                                size="sm"
+                                                className="btn-icon rounded-circle"
+                                                onClick={() => openEditReservation(res)}
+                                            >
                                                 <Icon name="pencil-line" />
                                             </Button>
-                                            <Button variant="white" size="sm" className="btn-icon rounded-circle text-danger" onClick={() => openDeleteReservation(res)}>
+                                            <Button
+                                                variant="white"
+                                                size="sm"
+                                                className="btn-icon rounded-circle text-danger"
+                                                onClick={() => openDeleteReservation(res)}
+                                            >
                                                 <Icon name="trash-2" />
                                             </Button>
                                         </div>
@@ -659,7 +710,10 @@ const TablesPage = () => {
                     </div>
                     <ul className="list-unstyled mb-0">
                         {areas.map((a) => (
-                            <li key={a.id} className="d-flex align-items-center justify-content-between border-bottom py-2">
+                            <li
+                                key={a.id}
+                                className="d-flex align-items-center justify-content-between border-bottom py-2"
+                            >
                                 {a.name}
                                 <Button
                                     variant="white"
@@ -693,9 +747,7 @@ const TablesPage = () => {
                             </Form.Label>
                             <Form.Select
                                 value={reservationForm.customerId}
-                                onChange={(e) =>
-                                    setReservationForm((p) => ({ ...p, customerId: e.target.value }))
-                                }
+                                onChange={(e) => setReservationForm((p) => ({ ...p, customerId: e.target.value }))}
                                 required
                             >
                                 <option value="">Select</option>
@@ -724,7 +776,7 @@ const TablesPage = () => {
                                             }
                                             setReservationForm((p) => ({
                                                 ...p,
-                                                reservationTime: `${newDate}T${timePart}`
+                                                reservationTime: `${newDate}T${timePart}`,
                                             }));
                                         }}
                                         required
@@ -738,7 +790,11 @@ const TablesPage = () => {
                                     </Form.Label>
                                     <Form.Control
                                         type="time"
-                                        min={reservationForm.reservationTime.split('T')[0] === todayStr ? currentTimeStr : undefined}
+                                        min={
+                                            reservationForm.reservationTime.split('T')[0] === todayStr
+                                                ? currentTimeStr
+                                                : undefined
+                                        }
                                         value={reservationForm.reservationTime.split('T')[1] || ''}
                                         onChange={(e) => {
                                             let newTime = e.target.value;
@@ -748,7 +804,7 @@ const TablesPage = () => {
                                             }
                                             setReservationForm((p) => ({
                                                 ...p,
-                                                reservationTime: `${datePart}T${newTime}`
+                                                reservationTime: `${datePart}T${newTime}`,
                                             }));
                                         }}
                                         required
@@ -807,9 +863,7 @@ const TablesPage = () => {
                             </Form.Label>
                             <Form.Select
                                 value={reservationForm.customerId}
-                                onChange={(e) =>
-                                    setReservationForm((p) => ({ ...p, customerId: e.target.value }))
-                                }
+                                onChange={(e) => setReservationForm((p) => ({ ...p, customerId: e.target.value }))}
                                 required
                             >
                                 <option value="">Select</option>
@@ -826,9 +880,7 @@ const TablesPage = () => {
                             </Form.Label>
                             <Form.Select
                                 value={reservationForm.tableId}
-                                onChange={(e) =>
-                                    setReservationForm((p) => ({ ...p, tableId: e.target.value }))
-                                }
+                                onChange={(e) => setReservationForm((p) => ({ ...p, tableId: e.target.value }))}
                                 required
                             >
                                 <option value="">Select</option>
@@ -857,7 +909,7 @@ const TablesPage = () => {
                                             }
                                             setReservationForm((p) => ({
                                                 ...p,
-                                                reservationTime: `${newDate}T${timePart}`
+                                                reservationTime: `${newDate}T${timePart}`,
                                             }));
                                         }}
                                         required
@@ -871,7 +923,11 @@ const TablesPage = () => {
                                     </Form.Label>
                                     <Form.Control
                                         type="time"
-                                        min={reservationForm.reservationTime.split('T')[0] === todayStr ? currentTimeStr : undefined}
+                                        min={
+                                            reservationForm.reservationTime.split('T')[0] === todayStr
+                                                ? currentTimeStr
+                                                : undefined
+                                        }
                                         value={reservationForm.reservationTime.split('T')[1] || ''}
                                         onChange={(e) => {
                                             let newTime = e.target.value;
@@ -881,7 +937,7 @@ const TablesPage = () => {
                                             }
                                             setReservationForm((p) => ({
                                                 ...p,
-                                                reservationTime: `${datePart}T${newTime}`
+                                                reservationTime: `${datePart}T${newTime}`,
                                             }));
                                         }}
                                         required
@@ -1008,8 +1064,8 @@ const TablesPage = () => {
                     {!currentReservation && (
                         <div className="text-center py-4">
                             <p className="text-muted mb-4">No active reservation found.</p>
-                            <Button 
-                                variant="outline-primary" 
+                            <Button
+                                variant="outline-primary"
                                 onClick={() => currentTable && handleFreeTable(currentTable)}
                             >
                                 <Icon name="check" className="me-2" />
@@ -1020,8 +1076,12 @@ const TablesPage = () => {
                     {currentReservation && (
                         <>
                             <div className="text-center mb-4">
-                                <Badge bg="" className={reservationBadgeClass[currentReservation.status] || 'badge-soft-primary'}>
-                                    {currentReservation.status.charAt(0).toUpperCase() + currentReservation.status.slice(1)}
+                                <Badge
+                                    bg=""
+                                    className={reservationBadgeClass[currentReservation.status] || 'badge-soft-primary'}
+                                >
+                                    {currentReservation.status.charAt(0).toUpperCase() +
+                                        currentReservation.status.slice(1)}
                                 </Badge>
                             </div>
                             <div className="d-flex justify-content-between mb-2">
@@ -1030,11 +1090,22 @@ const TablesPage = () => {
                             </div>
                             <div className="d-flex justify-content-between mb-2">
                                 <span className="text-warning">Date</span>
-                                <span className="fw-medium text-dark">{new Date(currentReservation.reservationTime).toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' })}</span>
+                                <span className="fw-medium text-dark">
+                                    {new Date(currentReservation.reservationTime).toLocaleDateString('en-US', {
+                                        month: 'short',
+                                        day: '2-digit',
+                                        year: 'numeric',
+                                    })}
+                                </span>
                             </div>
                             <div className="d-flex justify-content-between mb-2">
                                 <span className="text-warning">Time</span>
-                                <span className="fw-medium text-dark">{new Date(currentReservation.reservationTime).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}</span>
+                                <span className="fw-medium text-dark">
+                                    {new Date(currentReservation.reservationTime).toLocaleTimeString('en-US', {
+                                        hour: '2-digit',
+                                        minute: '2-digit',
+                                    })}
+                                </span>
                             </div>
                             <div className="d-flex justify-content-between mb-2">
                                 <span className="text-warning">Guests</span>
@@ -1045,10 +1116,14 @@ const TablesPage = () => {
                                 <span className="fw-medium text-dark">{currentTable?.seats}</span>
                             </div>
                             <div className="d-flex gap-2">
-                                <Button variant="outline-warning" className="w-100" onClick={() => {
-                                    setShowReservationInfo(false);
-                                    openEditReservation(currentReservation);
-                                }}>
+                                <Button
+                                    variant="outline-warning"
+                                    className="w-100"
+                                    onClick={() => {
+                                        setShowReservationInfo(false);
+                                        openEditReservation(currentReservation);
+                                    }}
+                                >
                                     <Icon name="pencil-line" size={16} className="me-2" />
                                     Edit
                                 </Button>

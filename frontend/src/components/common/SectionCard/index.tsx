@@ -3,6 +3,7 @@ import Card from 'react-bootstrap/Card';
 import Dropdown from 'react-bootstrap/Dropdown';
 import Button from 'react-bootstrap/Button';
 import Icon from '../Icon';
+import { Link } from 'react-router-dom';
 
 export interface SectionCardAction {
     /** Simple link/button action, e.g. "View All" */
@@ -77,9 +78,9 @@ const SectionCard = ({
                     )}
 
                     {action && (
-                        <Button variant="white" size="sm" href={action.href} onClick={action.onClick}>
+                        <Link className="btn btn-white btn-sm" to={action.href || '/#'} onClick={action.onClick}>
                             {action.label}
-                        </Button>
+                        </Link>
                     )}
                 </div>
 

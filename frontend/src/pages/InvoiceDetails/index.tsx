@@ -32,7 +32,7 @@ const InvoiceDetailsPage = () => {
             try {
                 setInvoice(await getInvoice(Number(id)));
             } catch {
-                setError('Unable to load invoice details.');
+                setError('Failed to load invoice details.');
             } finally {
                 setLoading(false);
             }

@@ -34,6 +34,9 @@ public class Payment extends CreatedAtEntity {
     @Column(name = "transaction_id", nullable = false, unique = true, length = 50)
     private String transactionId;
 
+    @Column(name = "payment_code", unique = true, length = 50)
+    private String paymentCode;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "order_id", nullable = false)
     private Order order;
@@ -50,6 +53,6 @@ public class Payment extends CreatedAtEntity {
     @Column(nullable = false)
     private PaymentStatus status = PaymentStatus.success;
 
-    @Column(name = "paid_at", nullable = false)
+    @Column(name = "paid_at")
     private LocalDateTime paidAt;
 }

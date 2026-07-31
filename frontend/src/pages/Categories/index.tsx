@@ -99,7 +99,7 @@ const CategoriesPage = () => {
             setTotalPages(result.totalPages || 1);
             setTotalElements(result.totalElements);
         } catch {
-            setError('Unable to load categories. Please try again.');
+            setError('Failed to load categories. Please try again.');
         } finally {
             setLoading(false);
         }
@@ -152,11 +152,11 @@ const CategoriesPage = () => {
             await createCategory({ name: form.name.trim(), status: form.status, image: imageFile });
             setShowAdd(false);
             resetForm();
-            setNotice('Category created successfully.');
+            setNotice('Category added successfully.');
             setPage(1);
             await loadCategories();
         } catch (err) {
-            setError(extractErrorMessage(err, 'Failed to create category.'));
+            setError(extractErrorMessage(err, 'Failed to add category.'));
         } finally {
             setSaving(false);
         }
@@ -204,7 +204,7 @@ const CategoriesPage = () => {
             await updateCategoryStatus(category.id, nextStatus);
             setCategories((prev) => prev.map((c) => (c.id === category.id ? { ...c, status: nextStatus } : c)));
         } catch (err) {
-            setError(extractErrorMessage(err, 'Unable to update status.'));
+            setError(extractErrorMessage(err, 'Cannot update status.'));
         }
     };
 

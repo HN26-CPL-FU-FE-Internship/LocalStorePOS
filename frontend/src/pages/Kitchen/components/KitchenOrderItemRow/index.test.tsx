@@ -1,7 +1,20 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import KitchenOrderItemRow from './index';
 import type { OrderItemType } from '@/types';
+
+vi.mock('@/hooks/useContextData', () => ({
+    default: () => ({ showToast: vi.fn() }),
+}));
+
+const queryClient = new QueryClient({
+    defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
+});
+
+function renderWithProviders(ui: React.ReactElement) {
+    return render(<QueryClientProvider client={queryClient}>{ui}</QueryClientProvider>);
+}
 
 const baseItem: OrderItemType = {
     id: 1,
@@ -13,29 +26,31 @@ const baseItem: OrderItemType = {
     unitPrice: 10,
     addons: [],
     variationId: null,
+    status: 'pending',
+    taxRate: 0,
 };
 
 describe('KitchenOrderItemRow', () => {
     // ── Basic rendering ──────────────────────────────────
 
     it('renders item name', () => {
-        render(<KitchenOrderItemRow item={baseItem} />);
+        renderWithProviders(<KitchenOrderItemRow item={baseItem} />);
         expect(screen.getByText('Burger')).toBeInTheDocument();
     });
 
     it('renders quantity with × prefix', () => {
-        render(<KitchenOrderItemRow item={baseItem} />);
+        renderWithProviders(<KitchenOrderItemRow item={baseItem} />);
         expect(screen.getByText('×2')).toBeInTheDocument();
     });
 
     it('renders size name when provided', () => {
         const item = { ...baseItem, sizeName: 'Large' };
-        render(<KitchenOrderItemRow item={item} />);
+        renderWithProviders(<KitchenOrderItemRow item={item} />);
         expect(screen.getByText(/Large/)).toBeInTheDocument();
     });
 
     it('does not render size separator when sizeName is null', () => {
-        render(<KitchenOrderItemRow item={baseItem} />);
+        renderWithProviders(<KitchenOrderItemRow item={baseItem} />);
         expect(screen.queryByText('- Large')).not.toBeInTheDocument();
         expect(screen.queryByText(/ - /)).not.toBeInTheDocument();
     });
@@ -44,18 +59,18 @@ describe('KitchenOrderItemRow', () => {
 
     it('renders kitchen note when provided', () => {
         const item = { ...baseItem, kitchenNote: 'No onions' };
-        render(<KitchenOrderItemRow item={item} />);
+        renderWithProviders(<KitchenOrderItemRow item={item} />);
         expect(screen.getByText(/No onions/)).toBeInTheDocument();
     });
 
     it('does not render note section when kitchenNote is null', () => {
-        render(<KitchenOrderItemRow item={baseItem} />);
+        renderWithProviders(<KitchenOrderItemRow item={baseItem} />);
         expect(screen.queryByText(/Notes?/)).not.toBeInTheDocument();
     });
 
     it('does not render note section when kitchenNote is empty', () => {
         const item = { ...baseItem, kitchenNote: '' };
-        render(<KitchenOrderItemRow item={item} />);
+        renderWithProviders(<KitchenOrderItemRow item={item} />);
         expect(screen.queryByText(/Notes?/)).not.toBeInTheDocument();
     });
 
@@ -69,7 +84,7 @@ describe('KitchenOrderItemRow', () => {
                 { id: 2, addonId: 202, addonName: 'Bacon', addonPrice: 3, quantity: 2 },
             ],
         };
-        render(<KitchenOrderItemRow item={item} />);
+        renderWithProviders(<KitchenOrderItemRow item={item} />);
         expect(screen.getByText(/Cheese/)).toBeInTheDocument();
         expect(screen.getByText(/Bacon/)).toBeInTheDocument();
         expect(screen.getByText(/x1/)).toBeInTheDocument();
@@ -77,7 +92,7 @@ describe('KitchenOrderItemRow', () => {
     });
 
     it('does not render addons section when addons is empty', () => {
-        render(<KitchenOrderItemRow item={baseItem} />);
+        renderWithProviders(<KitchenOrderItemRow item={baseItem} />);
         expect(screen.queryByText('Addons')).not.toBeInTheDocument();
     });
 
@@ -88,7 +103,7 @@ describe('KitchenOrderItemRow', () => {
                 { id: 1, addonId: 201, addonName: 'Extra Cheese', addonPrice: 2, quantity: 3 },
             ],
         };
-        render(<KitchenOrderItemRow item={item} />);
+        renderWithProviders(<KitchenOrderItemRow item={item} />);
         expect(screen.getByText(/Extra Cheese/)).toBeInTheDocument();
         expect(screen.getByText(/x3/)).toBeInTheDocument();
     });
@@ -108,8 +123,10 @@ describe('KitchenOrderItemRow', () => {
                 { id: 1, addonId: 301, addonName: 'Pepperoni', addonPrice: 2, quantity: 1 },
             ],
             variationId: 10,
+            status: 'pending',
+            taxRate: 0,
         };
-        render(<KitchenOrderItemRow item={item} />);
+        renderWithProviders(<KitchenOrderItemRow item={item} />);
         expect(screen.getByText(/Pizza/)).toBeInTheDocument();
         expect(screen.getByText('×1')).toBeInTheDocument();
         expect(screen.getByText(/Well done/)).toBeInTheDocument();
