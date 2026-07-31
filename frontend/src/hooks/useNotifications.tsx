@@ -18,27 +18,18 @@ import type { NotificationGroup, BootstrapVariant } from '@/types';
 /* ------------------------------------------------------------------ */
 
 const ICON_MAP: Record<string, string> = {
-    'yêu cầu duyệt': 'file-check',
     approval: 'file-check',
-    'đơn hàng': 'shopping-cart',
     order: 'shopping-cart',
     'new order': 'cooking-pot',
-    bếp: 'cooking-pot',
     kitchen: 'cooking-pot',
-    'thanh toán': 'badge-dollar-sign',
     payment: 'badge-dollar-sign',
-    'tồn kho': 'package',
     stock: 'package',
 };
 
 const VARIANT_MAP: Record<string, BootstrapVariant> = {
-    'yêu cầu duyệt': 'warning',
     approval: 'warning',
-    bếp: 'secondary',
     kitchen: 'secondary',
-    'thanh toán': 'success',
     payment: 'success',
-    'tồn kho': 'info',
     stock: 'info',
 };
 
@@ -60,7 +51,7 @@ function getVariant(title: string): BootstrapVariant {
 
 function isApprovalRequest(title: string): boolean {
     const lower = title.toLowerCase();
-    return lower.includes('yêu cầu duyệt') || lower.includes('approval') || lower.includes('duyệt');
+    return lower.includes('approval') || lower.includes('approve');
 }
 
 function toItemData(notification: NotificationResponse): {

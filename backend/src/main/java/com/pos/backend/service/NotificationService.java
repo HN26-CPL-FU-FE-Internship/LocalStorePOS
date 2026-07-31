@@ -167,9 +167,9 @@ public class NotificationService {
      */
     @Transactional
     public void notifyNewApprovalRequest(com.pos.backend.entity.ApprovalRequest request) {
-        String title = "Yêu cầu duyệt mới";
+        String title = "New approval request";
         String message = "[" + request.getRequestType() + "] " + request.getDescription()
-                + " - Yêu cầu bởi " + request.getRequestedBy().getFirstName()
+                + " - Requested by " + request.getRequestedBy().getFirstName()
                 + " " + request.getRequestedBy().getLastName();
 
         Notification notification = Notification.builder()

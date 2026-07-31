@@ -50,7 +50,7 @@ const ApprovalRequestModal = ({
 
     const handleSend = async () => {
         if (!reason.trim()) {
-            showToast('warning', 'Vui lòng nhập lý do yêu cầu');
+            showToast('warning', 'Please enter a reason for the request');
             return;
         }
         setSending(true);
@@ -66,12 +66,12 @@ const ApprovalRequestModal = ({
                 newValue: newValue ?? null,
                 additionalData: additionalData ?? null,
             });
-            showToast('success', `Đã gửi yêu cầu ${actionLabel}. Vui lòng chờ phê duyệt.`);
+            showToast('success', `Your ${actionLabel} request has been sent. Please wait for approval.`);
             setReason('');
             onHide();
             onSent?.();
         } catch (err) {
-            let message = `Gửi yêu cầu ${actionLabel} thất bại`;
+            let message = `Failed to send ${actionLabel} request`;
             if (isAxiosError(err) && err.response?.data && typeof err.response.data === 'object') {
                 const data = err.response.data as { message?: string };
                 if (data.message) message = data.message;
@@ -93,32 +93,32 @@ const ApprovalRequestModal = ({
 
                 <h4 className="mb-1">Send {actionLabel} request</h4>
                 <p className="mb-4">
-                    Bạn có chắc chắn muốn gửi yêu cầu {actionLabel} này không? Thay đổi sẽ chỉ được áp dụng sau
-                    khi được phê duyệt.
+                    Are you sure you want to send this {actionLabel} request? Changes will only be applied after
+                    approval.
                 </p>
 
                 <Form.Group className="text-start mb-4">
                     <Form.Label>
-                        Lý do <span className="text-danger">*</span>
+                        Reason <span className="text-danger">*</span>
                     </Form.Label>
                     <Form.Control
                         as="textarea"
                         rows={3}
                         value={reason}
                         onChange={(e) => setReason(e.target.value)}
-                        placeholder="Nhập lý do yêu cầu..."
+                        placeholder="Enter request reason..."
                     />
                 </Form.Group>
 
                 <div className="d-flex justify-content-center gap-2">
                     <Button variant="light" className="w-100" onClick={handleClose} disabled={sending}>
-                        Hủy
+                        Cancel
                     </Button>
                     <Button variant="primary" className="w-100" onClick={handleSend} disabled={sending}>
                         {sending ? (
                             <>
                                 <Spinner animation="border" size="sm" className="me-2" />
-                                Đang gửi...
+                                Sending...
                             </>
                         ) : (
                             `Send ${actionLabel} request`

@@ -111,7 +111,7 @@ const CustomersPage = () => {
             setTotalPages(result.totalPages || 1);
             setTotalElements(result.totalElements);
         } catch {
-            setError('Không thể tải danh sách khách hàng. Vui lòng thử lại.');
+            setError('Unable to load customers. Please try again.');
         } finally {
             setLoading(false);
         }
@@ -178,11 +178,11 @@ const CustomersPage = () => {
             await createCustomer(buildPayload());
             setShowAdd(false);
             resetForm();
-            setNotice('Thêm khách hàng thành công.');
+            setNotice('Customer created successfully.');
             setPage(1);
             await loadCustomers();
         } catch (err) {
-            setError(extractErrorMessage(err, 'Thêm khách hàng thất bại.'));
+            setError(extractErrorMessage(err, 'Failed to create customer.'));
         } finally {
             setSaving(false);
         }
@@ -212,10 +212,10 @@ const CustomersPage = () => {
             setShowEdit(false);
             setCurrentCustomer(null);
             resetForm();
-            setNotice('Cập nhật khách hàng thành công.');
+            setNotice('Customer updated successfully.');
             await loadCustomers();
         } catch (err) {
-            setError(extractErrorMessage(err, 'Cập nhật khách hàng thất bại.'));
+            setError(extractErrorMessage(err, 'Failed to update customer.'));
         } finally {
             setSaving(false);
         }
@@ -602,7 +602,7 @@ const CustomersPage = () => {
                 onHide={() => setShowDeleteApproval(false)}
                 actionLabel="delete"
                 requestType="DELETE_IMPORTANT_DATA"
-                description={`Xóa khách hàng ${currentCustomer?.name ?? ''}`}
+                description={`Delete customer ${currentCustomer?.name ?? ''}`}
                 targetType="CUSTOMER"
                 targetId={currentCustomer?.id}
                 targetDisplay={currentCustomer?.name}
@@ -614,7 +614,7 @@ const CustomersPage = () => {
                 onSent={() => {
                     setShowDeleteApproval(false);
                     setCurrentCustomer(null);
-                    setNotice('Yêu cầu xóa khách hàng đã được gửi.');
+                    setNotice('Delete customer request sent.');
                 }}
             />
 

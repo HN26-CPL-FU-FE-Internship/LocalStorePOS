@@ -107,10 +107,10 @@ public class ApprovalService {
                                 null, null, "SUCCESS", null);
 
                 // Notify the requester via WebSocket
-                String notifyTitle = "Yêu cầu đã được duyệt";
-                String notifyMsg = "Yêu cầu \"" + request.getDescription()
-                                + "\" đã được " + approver.getFirstName() + " " + approver.getLastName()
-                                + " phê duyệt.";
+                String notifyTitle = "Approval request approved";
+                String notifyMsg = "Request \"" + request.getDescription()
+                                + "\" was approved by " + approver.getFirstName() + " " + approver.getLastName()
+                                + ".";
                 notificationService.createNotification(notifyTitle, notifyMsg, request.getRequestedBy());
 
                 return toResponse(request);
@@ -143,10 +143,10 @@ public class ApprovalService {
                                 null, null, "SUCCESS", null);
 
                 // Notify the requester via WebSocket
-                String notifyTitle = "Yêu cầu bị từ chối";
-                String notifyMsg = "Yêu cầu \"" + request.getDescription()
-                                + "\" đã bị " + rejector.getFirstName() + " " + rejector.getLastName()
-                                + " từ chối. Lý do: " + actionRequest.getReason();
+                String notifyTitle = "Approval request rejected";
+                String notifyMsg = "Request \"" + request.getDescription()
+                                + "\" was rejected by " + rejector.getFirstName() + " " + rejector.getLastName()
+                                + ". Reason: " + actionRequest.getReason();
                 notificationService.createNotification(notifyTitle, notifyMsg, request.getRequestedBy());
 
                 return toResponse(request);

@@ -79,7 +79,7 @@ const InvoicesPage = () => {
             setTotalPages(result.totalPages || 1);
             setTotalElements(result.totalElements);
         } catch {
-            setError('Không thể tải danh sách hóa đơn. Vui lòng thử lại.');
+            setError('Unable to load invoices. Please try again.');
         } finally {
             setLoading(false);
         }
@@ -333,7 +333,7 @@ const InvoicesPage = () => {
                 onHide={() => setShowDeleteApproval(false)}
                 actionLabel="delete"
                 requestType="DELETE_IMPORTANT_DATA"
-                description={`Xóa hóa đơn ${currentInvoice?.invoiceNumber ?? ''}`}
+                description={`Delete invoice ${currentInvoice?.invoiceNumber ?? ''}`}
                 targetType="INVOICE"
                 targetId={currentInvoice?.id}
                 targetDisplay={currentInvoice?.invoiceNumber}
@@ -345,7 +345,7 @@ const InvoicesPage = () => {
                 onSent={() => {
                     setShowDeleteApproval(false);
                     setCurrentInvoice(null);
-                    setNotice('Yêu cầu xóa hóa đơn đã được gửi.');
+                    setNotice('Delete invoice request sent.');
                 }}
             />
 

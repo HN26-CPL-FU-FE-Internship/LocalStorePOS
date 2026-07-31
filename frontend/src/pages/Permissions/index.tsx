@@ -189,7 +189,7 @@ const PermissionsPage = () => {
 
     const handleSendResetApproval = () => {
         setShowResetApproval(false);
-        showFeedback('success', 'Yêu cầu reset quyền đã được gửi. Vui lòng chờ phê duyệt.');
+        showFeedback('success', 'Permission reset request sent. Please wait for approval.');
     };
 
     // Save changes requires approval before they take effect.
@@ -197,7 +197,7 @@ const PermissionsPage = () => {
 
     const handleSendSaveApproval = () => {
         setShowSaveApproval(false);
-        showFeedback('success', 'Yêu cầu thay đổi quyền đã được gửi. Vui lòng chờ phê duyệt.');
+        showFeedback('success', 'Permission change request sent. Please wait for approval.');
     };
 
     /* ---------- add role ---------- */
@@ -231,7 +231,7 @@ const PermissionsPage = () => {
 
     const handleSendDeleteRoleApproval = () => {
         setShowDeleteRoleApproval(false);
-        showFeedback('success', 'Yêu cầu xóa role đã được gửi. Vui lòng chờ phê duyệt.');
+        showFeedback('success', 'Role deletion request sent. Please wait for approval.');
     };
 
     /* ---------- render ---------- */
@@ -483,7 +483,7 @@ const PermissionsPage = () => {
                 onHide={() => setShowSaveApproval(false)}
                 actionLabel="save changes"
                 requestType="PERMISSION_CHANGE"
-                description={`Thay đổi quyền của role ${activeRoleName}`}
+                description={`Change permissions of role ${activeRoleName}`}
                 targetType="ROLE"
                 targetId={activeRoleId}
                 targetDisplay={activeRoleName}
@@ -505,7 +505,7 @@ const PermissionsPage = () => {
                 onHide={() => setShowResetApproval(false)}
                 actionLabel="reset permissions"
                 requestType="PERMISSION_CHANGE"
-                description={`Reset quyền của role ${activeRoleName} về mặc định`}
+                description={`Reset permissions of role ${activeRoleName} to default`}
                 targetType="ROLE"
                 targetId={activeRoleId}
                 targetDisplay={activeRoleName}
@@ -523,7 +523,7 @@ const PermissionsPage = () => {
                 onHide={() => setShowDeleteRoleApproval(false)}
                 actionLabel="delete role"
                 requestType="PERMISSION_CHANGE"
-                description={`Xóa role ${activeRoleName}`}
+                description={`Delete role ${activeRoleName}`}
                 targetType="ROLE"
                 targetId={activeRoleId}
                 targetDisplay={activeRoleName}

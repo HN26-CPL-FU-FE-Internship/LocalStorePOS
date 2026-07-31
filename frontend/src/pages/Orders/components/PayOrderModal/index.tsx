@@ -329,7 +329,7 @@ const PayOrderModal = ({
                 onHide={() => setShowDiscountApproval(false)}
                 actionLabel="discount"
                 requestType="DISCOUNT_EXCEEDS_THRESHOLD"
-                description={`Áp dụng giảm giá ${discountAmount > 0 ? (discountType === 'percentage' ? `${discountAmount}%` : `$${discountAmount}`) : ''} cho hóa đơn ${order.orderNumber}`}
+                description={`Apply discount ${discountAmount > 0 ? (discountType === 'percentage' ? `${discountAmount}%` : `$${discountAmount}`) : ''} to invoice ${order.orderNumber}`}
                 targetType="Order"
                 targetId={order.id}
                 targetDisplay={order.orderNumber}

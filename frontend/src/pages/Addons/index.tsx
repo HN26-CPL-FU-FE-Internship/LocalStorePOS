@@ -139,7 +139,7 @@ const AddonsPage = () => {
             setTotalPages(result.totalPages || 1);
             setTotalElements(result.totalElements);
         } catch {
-            setError('Không thể tải danh sách addon. Vui lòng thử lại.');
+            setError('Unable to load addons. Please try again.');
         } finally {
             setLoading(false);
         }
@@ -207,11 +207,11 @@ const AddonsPage = () => {
             await createAddon(buildPayload());
             setShowAdd(false);
             resetForm();
-            setNotice('Thêm addon thành công.');
+            setNotice('Addon created successfully.');
             setPage(1);
             await loadAddons();
         } catch (err) {
-            setError(extractErrorMessage(err, 'Thêm addon thất bại.'));
+            setError(extractErrorMessage(err, 'Failed to create addon.'));
         } finally {
             setSaving(false);
         }
@@ -240,10 +240,10 @@ const AddonsPage = () => {
             setShowEdit(false);
             setCurrentAddon(null);
             resetForm();
-            setNotice('Cập nhật addon thành công.');
+            setNotice('Addon updated successfully.');
             await loadAddons();
         } catch (err) {
-            setError(extractErrorMessage(err, 'Cập nhật addon thất bại.'));
+            setError(extractErrorMessage(err, 'Failed to update addon.'));
         } finally {
             setSaving(false);
         }
@@ -261,7 +261,7 @@ const AddonsPage = () => {
             await updateAddonStatus(addon.id, nextStatus);
             setAddons((prev) => prev.map((a) => (a.id === addon.id ? { ...a, status: nextStatus } : a)));
         } catch (err) {
-            setError(extractErrorMessage(err, 'Không thể cập nhật trạng thái.'));
+            setError(extractErrorMessage(err, 'Unable to update status.'));
         }
     };
 
@@ -699,7 +699,7 @@ const AddonsPage = () => {
                 onHide={() => setShowDeleteApproval(false)}
                 actionLabel="delete"
                 requestType="DELETE_IMPORTANT_DATA"
-                description={`Xóa addon ${currentAddon?.name ?? ''}`}
+                description={`Delete addon ${currentAddon?.name ?? ''}`}
                 targetType="ADDON"
                 targetId={currentAddon?.id}
                 targetDisplay={currentAddon?.name}
@@ -709,7 +709,7 @@ const AddonsPage = () => {
                 onSent={() => {
                     setShowDeleteApproval(false);
                     setCurrentAddon(null);
-                    setNotice('Yêu cầu xóa addon đã được gửi.');
+                    setNotice('Delete addon request sent.');
                 }}
             />
 

@@ -262,7 +262,7 @@ const TabContent = ({ order }: { order: OrderSummary }) => {
                 onHide={() => setShowApprovalModal(false)}
                 actionLabel="cancel"
                 requestType="CANCEL_INVOICE"
-                description={`Hủy hóa đơn ${updateStatus?.orderNumber}`}
+                description={`Cancel invoice ${updateStatus?.orderNumber}`}
                 targetType="Order"
                 targetId={updateStatus?.id}
                 targetDisplay={updateStatus?.orderNumber}

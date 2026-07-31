@@ -181,7 +181,6 @@ const NotificationsDropdown = ({
                                                 g.items.filter(
                                                     (i) =>
                                                         i.message?.toString().toLowerCase().includes('kitchen') ||
-                                                        i.message?.toString().toLowerCase().includes('bếp') ||
                                                         i.icon === 'cooking-pot',
                                                 ).length,
                                             0,

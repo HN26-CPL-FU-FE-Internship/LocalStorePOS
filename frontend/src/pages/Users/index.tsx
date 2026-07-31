@@ -1167,7 +1167,7 @@ const UsersPage = () => {
                 onHide={() => setShowAddApproval(false)}
                 actionLabel="create user"
                 requestType="USER_CREATE_DELETE"
-                description={`Tạo user ${addForm.firstName.trim()} ${addForm.lastName.trim()}`.trim()}
+                description={`Create user ${addForm.firstName.trim()} ${addForm.lastName.trim()}`.trim()}
                 targetType="USER"
                 targetDisplay={addForm.email || undefined}
                 additionalData={
@@ -1198,7 +1198,7 @@ const UsersPage = () => {
                 onHide={() => setShowDeleteApproval(false)}
                 actionLabel="delete user"
                 requestType="USER_CREATE_DELETE"
-                description={`Xóa user ${currentUser?.fullName ?? ''}`}
+                description={`Delete user ${currentUser?.fullName ?? ''}`}
                 targetType="USER"
                 targetId={currentUser?.id}
                 targetDisplay={currentUser?.fullName}

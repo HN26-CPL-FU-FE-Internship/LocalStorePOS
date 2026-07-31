@@ -78,17 +78,17 @@ export interface CreateApprovalRequestPayload {
 /* ------------------------------------------------------------------ */
 
 export const approvalTypeLabels: Record<ApprovalRequestType, string> = {
-    CANCEL_INVOICE: 'Hủy hóa đơn',
+    CANCEL_INVOICE: 'Cancel Invoice',
     REFUND_RETURN: 'Refund / Return',
-    DISCOUNT_EXCEEDS_THRESHOLD: 'Discount vượt ngưỡng (>=20%)',
-    COMPLIMENTARY: 'Complimentary (tặng món)',
-    REOPEN_PAID_INVOICE: 'Mở lại hóa đơn đã thanh toán',
-    CANCEL_ITEM_AFTER_KITCHEN: 'Hủy món sau khi đã gửi bếp',
-    CANCEL_KITCHEN_TICKET: 'Hủy ticket bếp đã bắt đầu chế biến',
-    PRICE_CHANGE: 'Thay đổi giá',
-    PERMISSION_CHANGE: 'Thay đổi quyền (Role/Permission)',
-    USER_CREATE_DELETE: 'Tạo hoặc xóa user',
-    DELETE_IMPORTANT_DATA: 'Xóa dữ liệu quan trọng',
+    DISCOUNT_EXCEEDS_THRESHOLD: 'Discount Exceeds Threshold (>=20%)',
+    COMPLIMENTARY: 'Complimentary',
+    REOPEN_PAID_INVOICE: 'Reopen Paid Invoice',
+    CANCEL_ITEM_AFTER_KITCHEN: 'Cancel Item After Kitchen',
+    CANCEL_KITCHEN_TICKET: 'Cancel Kitchen Ticket',
+    PRICE_CHANGE: 'Price Change',
+    PERMISSION_CHANGE: 'Permission Change (Role/Permission)',
+    USER_CREATE_DELETE: 'Create or Delete User',
+    DELETE_IMPORTANT_DATA: 'Delete Important Data',
 };
 
 export const approvalTypeBadgeColors: Record<ApprovalRequestType, string> = {

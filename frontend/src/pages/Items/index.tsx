@@ -174,7 +174,7 @@ const ItemsPage = () => {
             setTotalPages(result.totalPages || 1);
             setTotalElements(result.totalElements);
         } catch {
-            setError('Không thể tải danh sách món ăn. Vui lòng thử lại.');
+            setError('Unable to load items. Please try again.');
         } finally {
             setLoading(false);
         }
@@ -259,11 +259,11 @@ const ItemsPage = () => {
             await createItem(buildPayload());
             setShowAdd(false);
             resetForm();
-            setNotice('Thêm món ăn thành công.');
+            setNotice('Item created successfully.');
             setPage(1);
             await loadItems();
         } catch (err) {
-            setError(extractErrorMessage(err, 'Thêm món ăn thất bại.'));
+            setError(extractErrorMessage(err, 'Failed to create item.'));
         } finally {
             setSaving(false);
         }
@@ -291,7 +291,7 @@ const ItemsPage = () => {
             setVariations(full.variations.map((v) => ({ ...v })));
             setAddons(full.addons.map((a) => ({ ...a })));
         } catch (err) {
-            setError(extractErrorMessage(err, 'Không thể tải thông tin món ăn.'));
+            setError(extractErrorMessage(err, 'Unable to load item information.'));
             setShowEdit(false);
         }
     };
@@ -313,10 +313,10 @@ const ItemsPage = () => {
             setShowEdit(false);
             setCurrentItem(null);
             resetForm();
-            setNotice('Cập nhật món ăn thành công.');
+            setNotice('Item updated successfully.');
             await loadItems();
         } catch (err) {
-            setError(extractErrorMessage(err, 'Cập nhật món ăn thất bại.'));
+            setError(extractErrorMessage(err, 'Failed to update item.'));
         } finally {
             setSaving(false);
         }
@@ -331,7 +331,7 @@ const ItemsPage = () => {
             const full = await getItem(item.id);
             setDetail(full);
         } catch (err) {
-            setError(extractErrorMessage(err, 'Không thể tải chi tiết món ăn.'));
+            setError(extractErrorMessage(err, 'Unable to load item details.'));
             setShowDetails(false);
         } finally {
             setDetailLoading(false);
@@ -358,10 +358,10 @@ const ItemsPage = () => {
             await updateItemStatus(currentItem.id, nextStatus);
             setShowHide(false);
             setCurrentItem(null);
-            setNotice(nextStatus === 'hidden' ? 'Đã ẩn món ăn.' : 'Đã hiện lại món ăn.');
+            setNotice(nextStatus === 'hidden' ? 'Item hidden.' : 'Item shown again.');
             await loadItems();
         } catch (err) {
-            setError(extractErrorMessage(err, 'Không thể cập nhật trạng thái món ăn.'));
+            setError(extractErrorMessage(err, 'Unable to update item status.'));
         } finally {
             setHiding(false);
         }
@@ -995,7 +995,7 @@ const ItemsPage = () => {
                 onHide={() => setShowDeleteApproval(false)}
                 actionLabel="delete"
                 requestType="DELETE_IMPORTANT_DATA"
-                description={`Xóa món ăn ${currentItem?.name ?? ''}`}
+                description={`Delete item ${currentItem?.name ?? ''}`}
                 targetType="ITEM"
                 targetId={currentItem?.id}
                 targetDisplay={currentItem?.name}
@@ -1005,7 +1005,7 @@ const ItemsPage = () => {
                 onSent={() => {
                     setShowDeleteApproval(false);
                     setCurrentItem(null);
-                    setNotice('Yêu cầu xóa món ăn đã được gửi.');
+                    setNotice('Delete item request sent.');
                 }}
             />
 
@@ -1015,7 +1015,7 @@ const ItemsPage = () => {
                 onHide={() => setShowPriceApproval(false)}
                 actionLabel="price change"
                 requestType="PRICE_CHANGE"
-                description={`Thay đổi giá món ${currentItem?.name ?? ''}`}
+                description={`Change price of item ${currentItem?.name ?? ''}`}
                 targetType="ITEM"
                 targetId={currentItem?.id}
                 targetDisplay={currentItem?.name}
@@ -1046,7 +1046,7 @@ const ItemsPage = () => {
                     setShowPriceApproval(false);
                     setCurrentItem(null);
                     resetForm();
-                    setNotice('Yêu cầu thay đổi giá đã được gửi.');
+                    setNotice('Price change request sent.');
                 }}
             />
 

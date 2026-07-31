@@ -99,7 +99,7 @@ const CategoriesPage = () => {
             setTotalPages(result.totalPages || 1);
             setTotalElements(result.totalElements);
         } catch {
-            setError('Không thể tải danh sách danh mục. Vui lòng thử lại.');
+            setError('Unable to load categories. Please try again.');
         } finally {
             setLoading(false);
         }
@@ -152,11 +152,11 @@ const CategoriesPage = () => {
             await createCategory({ name: form.name.trim(), status: form.status, image: imageFile });
             setShowAdd(false);
             resetForm();
-            setNotice('Thêm danh mục thành công.');
+            setNotice('Category created successfully.');
             setPage(1);
             await loadCategories();
         } catch (err) {
-            setError(extractErrorMessage(err, 'Thêm danh mục thất bại.'));
+            setError(extractErrorMessage(err, 'Failed to create category.'));
         } finally {
             setSaving(false);
         }
@@ -183,10 +183,10 @@ const CategoriesPage = () => {
             setShowEdit(false);
             setCurrentCategory(null);
             resetForm();
-            setNotice('Cập nhật danh mục thành công.');
+            setNotice('Category updated successfully.');
             await loadCategories();
         } catch (err) {
-            setError(extractErrorMessage(err, 'Cập nhật danh mục thất bại.'));
+            setError(extractErrorMessage(err, 'Failed to update category.'));
         } finally {
             setSaving(false);
         }
@@ -204,7 +204,7 @@ const CategoriesPage = () => {
             await updateCategoryStatus(category.id, nextStatus);
             setCategories((prev) => prev.map((c) => (c.id === category.id ? { ...c, status: nextStatus } : c)));
         } catch (err) {
-            setError(extractErrorMessage(err, 'Không thể cập nhật trạng thái.'));
+            setError(extractErrorMessage(err, 'Unable to update status.'));
         }
     };
 
@@ -479,7 +479,7 @@ const CategoriesPage = () => {
                 onHide={() => setShowDeleteApproval(false)}
                 actionLabel="delete"
                 requestType="DELETE_IMPORTANT_DATA"
-                description={`Xóa danh mục ${currentCategory?.name ?? ''}`}
+                description={`Delete category ${currentCategory?.name ?? ''}`}
                 targetType="CATEGORY"
                 targetId={currentCategory?.id}
                 targetDisplay={currentCategory?.name}
@@ -491,7 +491,7 @@ const CategoriesPage = () => {
                 onSent={() => {
                     setShowDeleteApproval(false);
                     setCurrentCategory(null);
-                    setNotice('Yêu cầu xóa danh mục đã được gửi.');
+                    setNotice('Delete category request sent.');
                 }}
             />
 

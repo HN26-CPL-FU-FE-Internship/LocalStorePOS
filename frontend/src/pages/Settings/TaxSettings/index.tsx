@@ -266,7 +266,7 @@ const TaxSettingsPage = () => {
                 onHide={() => setShowDeleteApproval(false)}
                 actionLabel="delete"
                 requestType="DELETE_IMPORTANT_DATA"
-                description={`Xóa thuế ${currentTax?.title ?? ''}`}
+                description={`Delete tax ${currentTax?.title ?? ''}`}
                 targetType="TAX"
                 targetId={currentTax?.id}
                 targetDisplay={currentTax?.title}
@@ -274,7 +274,7 @@ const TaxSettingsPage = () => {
                 onSent={() => {
                     setShowDeleteApproval(false);
                     setCurrentTax(null);
-                    setSuccess('Yêu cầu xóa thuế đã được gửi.');
+                    setSuccess('Delete tax request sent.');
                 }}
             />
 
