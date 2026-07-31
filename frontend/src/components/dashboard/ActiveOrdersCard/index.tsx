@@ -5,6 +5,8 @@ import Icon from '../../common/Icon';
 import { DashboardCardShell } from '../common';
 import type { ActiveOrder } from '../../../types';
 import { Link } from 'react-router-dom';
+import { Image } from 'react-bootstrap';
+import { getCategoryImageUrl } from '@/api/category.api';
 
 export interface ActiveOrdersCardProps {
     orders: ActiveOrder[];
@@ -54,7 +56,11 @@ const ActiveOrdersCard = memo(({ orders, isLoading, errorMessage }: ActiveOrders
                             style={{ width: 40, height: 40 }}
                         >
                             {order.avatarUrl ? (
-                                <img src={order.avatarUrl} alt="customer" className="img-fluid rounded-circle" />
+                                <Image
+                                    src={getCategoryImageUrl(order.avatarUrl)}
+                                    alt="customer"
+                                    className="img-fluid rounded-circle"
+                                />
                             ) : (
                                 <Icon name="users-round" className="fs-16 text-muted" />
                             )}
