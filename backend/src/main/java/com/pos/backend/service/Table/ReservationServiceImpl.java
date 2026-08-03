@@ -17,6 +17,7 @@ import com.pos.backend.exception.AppException;
 import com.pos.backend.repository.CustomerRepository;
 import com.pos.backend.repository.ReservationRepository;
 import com.pos.backend.repository.RestaurantTableRepository;
+import com.pos.backend.service.Notification.EsmsSmsService;
 import com.pos.backend.service.NotificationService;
 
 import lombok.RequiredArgsConstructor;
@@ -29,6 +30,7 @@ public class ReservationServiceImpl implements ReservationService {
     private final CustomerRepository customerRepository;
     private final RestaurantTableRepository restaurantTableRepository;
     private final NotificationService notificationService;
+    private final EsmsSmsService esmsSmsService;
 
     @Override
     @Transactional(readOnly = true)
@@ -58,6 +60,14 @@ public class ReservationServiceImpl implements ReservationService {
         reservation = reservationRepository.save(reservation);
 
         notifyReservation("New Reservation", "booked table", reservation, customer, table);
+        try {
+            esmsSmsService.sendReservationConfirmation(
+                    reservation,
+                    customer,
+                    table);
+        } catch (Exception e) {
+            System.out.println("Send SMS failed");
+        }
 
         return toResponse(reservation);
     }

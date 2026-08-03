@@ -116,6 +116,32 @@ const TablesPage = () => {
     const [newAreaName, setNewAreaName] = useState('');
     const [reservationForm, setReservationForm] = useState(emptyReservationForm);
 
+    const [showTableAction, setShowTableAction] = useState(false);
+    const [showStatusModal, setShowStatusModal] = useState(false);
+    const [selectedStatus, setSelectedStatus] = useState<TableStatus>('available');
+
+    const openTableAction = (table: TableEntry) => {
+        setCurrentTable(table);
+        setSelectedStatus(table.status);
+        setShowTableAction(true);
+    };
+
+    const handleUpdateTableStatus = async () => {
+        if (!currentTable) return;
+
+        try {
+            await updateTableStatus(currentTable.id, selectedStatus);
+
+            setShowStatusModal(false);
+            setShowTableAction(false);
+
+            setNotice(`Table ${currentTable.tableNumber} updated.`);
+            await loadTables();
+        } catch (err) {
+            setError(extractErrorMessage(err, 'Cannot update table status.'));
+        }
+    };
+
     const extractErrorMessage = (err: unknown, fallback: string) => {
         if (isAxiosError(err) && err.response?.data && typeof err.response.data === 'object') {
             const data = err.response.data as { message?: string };
@@ -479,7 +505,7 @@ const TablesPage = () => {
                                     style={{ cursor: 'pointer' }}
                                     onClick={() => {
                                         if (table.status === 'available') {
-                                            openReserve(table);
+                                            openTableAction(table);
                                         } else {
                                             openReservationInfo(table);
                                         }
@@ -690,6 +716,86 @@ const TablesPage = () => {
                     </Form>
                 </Modal>
             ))}
+
+            {/* ---- Table Action Modal ---- */}
+            <Modal show={showTableAction} onHide={() => setShowTableAction(false)} centered>
+                <Modal.Header closeButton>
+                    <Modal.Title>Table {currentTable?.tableNumber}</Modal.Title>
+                </Modal.Header>
+
+                <Modal.Body>
+                    {currentTable?.status === 'available' ? (
+                        <div className="d-grid gap-3">
+                            <Button
+                                variant="outline-warning"
+                                onClick={() => {
+                                    setShowTableAction(false);
+                                    setShowStatusModal(true);
+                                }}
+                            >
+                                <Icon name="settings" className="me-2" />
+                                Set Status
+                            </Button>
+
+                            <Button
+                                variant="primary"
+                                onClick={() => {
+                                    setShowTableAction(false);
+                                    if (currentTable) {
+                                        openReserve(currentTable);
+                                    }
+                                }}
+                            >
+                                <Icon name="calendar" className="me-2" />
+                                Reservation
+                            </Button>
+                        </div>
+                    ) : (
+                        <Button
+                            className="w-100"
+                            onClick={() => {
+                                setShowTableAction(false);
+                                if (currentTable) {
+                                    openReservationInfo(currentTable);
+                                }
+                            }}
+                        >
+                            View Reservation
+                        </Button>
+                    )}
+                </Modal.Body>
+            </Modal>
+
+            {/* ---- Set Status Modal ---- */}
+            <Modal show={showStatusModal} onHide={() => setShowStatusModal(false)} centered>
+                <Modal.Header closeButton>
+                    <Modal.Title>Set Table Status</Modal.Title>
+                </Modal.Header>
+
+                <Modal.Body>
+                    <Form.Group>
+                        <Form.Label>Status</Form.Label>
+
+                        <Form.Select
+                            value={selectedStatus}
+                            onChange={(e) => setSelectedStatus(e.target.value as TableStatus)}
+                        >
+                            <option value="available">Available</option>
+                            <option value="occupied">Occupied</option>
+                        </Form.Select>
+                    </Form.Group>
+
+                    <div className="d-flex gap-2 mt-4">
+                        <Button variant="light" className="w-100" onClick={() => setShowStatusModal(false)}>
+                            Cancel
+                        </Button>
+
+                        <Button className="w-100" onClick={handleUpdateTableStatus}>
+                            Save
+                        </Button>
+                    </div>
+                </Modal.Body>
+            </Modal>
 
             {/* ---- Manage Areas Modal ---- */}
             <Modal show={showAddArea} onHide={() => setShowAddArea(false)} centered>
