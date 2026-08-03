@@ -21,6 +21,15 @@ const FakeBankPaymentPage = () => {
 
     const handlePay = useCallback(() => {
         if (!paymentCode || !data) return;
+        if (data.status.toUpperCase() !== 'PENDING') {
+            showToast(
+                'error',
+                data.status.toUpperCase() === 'FAILED'
+                    ? 'This QR payment has expired or was replaced'
+                    : 'This QR payment is no longer active',
+            );
+            return;
+        }
 
         confirm.mutate(
             { paymentCode, amount: data.amount },
@@ -102,9 +111,7 @@ const FakeBankPaymentPage = () => {
         );
     }
 
-    const statusLabel = data.status
-        ? data.status.charAt(0).toUpperCase() + data.status.slice(1)
-        : 'Pending';
+    const statusLabel = data.status ? data.status.charAt(0).toUpperCase() + data.status.slice(1) : 'Pending';
 
     const statusDotClass = cx('statusDot', {
         statusDotSuccess: hasPaid,
@@ -174,7 +181,7 @@ const FakeBankPaymentPage = () => {
                             </div>
                             <div className={cx('detailRow')}>
                                 <span className={cx('detailLabel')}>Order Number</span>
-                                <span className={cx('detailValue')}>#{data.orderNumber}</span>
+                                <span className={cx('detailValue')}>{data.orderNumber}</span>
                             </div>
                             <div className={cx('detailRow')}>
                                 <span className={cx('detailLabel')}>Amount</span>
@@ -187,6 +194,11 @@ const FakeBankPaymentPage = () => {
                                 <span className={cx('statusText')}>Status: </span>
                                 <PaymentStatus status={hasPaid ? 'success' : statusLabel} />
                             </div>
+                            {data.status.toUpperCase() === 'FAILED' && (
+                                <p className={cx('errorMessage')}>
+                                    This QR payment has expired or was replaced by a newer QR.
+                                </p>
+                            )}
 
                             {/* ── Actions ── */}
                             <div className={cx('actions')}>
@@ -194,7 +206,7 @@ const FakeBankPaymentPage = () => {
                                     type="button"
                                     className={cx('btnPay')}
                                     onClick={handlePay}
-                                    disabled={confirm.isPending}
+                                    disabled={confirm.isPending || data.status.toUpperCase() !== 'PENDING'}
                                 >
                                     {confirm.isPending ? (
                                         <>
@@ -209,7 +221,7 @@ const FakeBankPaymentPage = () => {
                                     type="button"
                                     className={cx('btnCancel')}
                                     onClick={handleCancel}
-                                    disabled={cancel.isPending}
+                                    disabled={cancel.isPending || data.status.toUpperCase() !== 'PENDING'}
                                 >
                                     {cancel.isPending ? 'Cancelling...' : 'Cancel Payment'}
                                 </button>

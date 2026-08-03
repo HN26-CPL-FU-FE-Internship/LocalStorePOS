@@ -48,6 +48,7 @@ export interface QrPaymentResponse {
     paymentCode: string;
     amount: number;
     qrContent: string;
+    expiresAt: string;
 }
 
 export interface QrPaymentInfoResponse {
@@ -56,6 +57,7 @@ export interface QrPaymentInfoResponse {
     status: string;
     orderNumber: string;
     merchantName: string;
+    expiresAt: string | null;
 }
 
 export interface QrPaymentConfirmRequest {

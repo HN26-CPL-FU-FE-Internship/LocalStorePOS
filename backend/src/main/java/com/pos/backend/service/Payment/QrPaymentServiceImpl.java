@@ -4,6 +4,8 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.time.OffsetDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.UUID;
@@ -49,6 +51,8 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public class QrPaymentServiceImpl implements QrPaymentService {
 
+    private static final long QR_PAYMENT_EXPIRATION_MINUTES = 15;
+
     private final PaymentRepository paymentRepository;
     private final OrderRepository orderRepository;
     private final PaymentMethodRepository paymentMethodRepository;
@@ -64,7 +68,7 @@ public class QrPaymentServiceImpl implements QrPaymentService {
     @Override
     @Transactional
     public QrPaymentResponse createQrPayment(Long orderId, QrPaymentCreateRequest request) {
-        Order order = orderRepository.findById(orderId)
+        Order order = orderRepository.findByIdForUpdate(orderId)
                 .orElseThrow(() -> new AppException(ErrorCode.ORDER_NOT_FOUND));
 
         if (order.getStatus() == OrderStatus.completed || order.getStatus() == OrderStatus.cancelled) {
@@ -85,8 +89,12 @@ public class QrPaymentServiceImpl implements QrPaymentService {
         PaymentMethod qrMethod = paymentMethodRepository.findByCode("qr")
                 .orElseThrow(() -> new AppException(ErrorCode.UNCATEGORIZED_EXCEPTION));
 
+        // A new QR replaces every still-pending QR for this order.
+        paymentRepository.invalidatePendingQrPayments(orderId);
+
         String paymentCode = generatePaymentCode();
         String transactionId = "TXN-" + UUID.randomUUID().toString().substring(0, 8).toUpperCase();
+        LocalDateTime expiresAt = LocalDateTime.now().plusMinutes(QR_PAYMENT_EXPIRATION_MINUTES);
 
         Payment payment = Payment.builder()
                 .transactionId(transactionId)
@@ -96,6 +104,7 @@ public class QrPaymentServiceImpl implements QrPaymentService {
                 .amount(finalAmount)
                 .status(PaymentStatus.pending)
                 .paidAt(null)
+                .expiresAt(expiresAt)
                 .build();
 
         order.setGrandTotal(finalAmount);
@@ -107,23 +116,34 @@ public class QrPaymentServiceImpl implements QrPaymentService {
                 .paymentCode(paymentCode)
                 .amount(finalAmount)
                 .qrContent(qrPaymentBaseUrl + "/payment/" + paymentCode)
+                .expiresAt(toOffsetDateTime(expiresAt))
                 .build();
     }
 
     @Override
-    @Transactional(readOnly = true)
+    @Transactional
     public QrPaymentInfoResponse getPaymentInfo(String paymentCode) {
-        Payment payment = paymentRepository.findByPaymentCode(paymentCode)
+        Payment payment = paymentRepository.findByPaymentCodeForUpdate(paymentCode)
                 .orElseThrow(() -> new AppException(ErrorCode.PAYMENT_NOT_FOUND));
 
+        expireIfNeeded(payment);
         return toInfoResponse(payment);
     }
 
     @Override
     @Transactional
     public QrPaymentConfirmResponse confirmQrPayment(String paymentCode, QrPaymentConfirmRequest request) {
-        Payment payment = paymentRepository.findByPaymentCode(paymentCode)
+        Payment payment = paymentRepository.findByPaymentCodeForUpdate(paymentCode)
                 .orElseThrow(() -> new AppException(ErrorCode.PAYMENT_NOT_FOUND));
+
+        if (expireIfNeeded(payment)) {
+            return QrPaymentConfirmResponse.builder()
+                    .status("EXPIRED")
+                    .message(ErrorCode.PAYMENT_EXPIRED.getMessage())
+                    .paymentCode(payment.getPaymentCode())
+                    .amount(payment.getAmount())
+                    .build();
+        }
 
         if (payment.getStatus() != PaymentStatus.pending) {
             throw new AppException(ErrorCode.PAYMENT_ALREADY_PROCESSED);
@@ -189,11 +209,13 @@ public class QrPaymentServiceImpl implements QrPaymentService {
     @Override
     @Transactional
     public QrPaymentInfoResponse cancelQrPayment(String paymentCode) {
-        Payment payment = paymentRepository.findByPaymentCode(paymentCode)
+        Payment payment = paymentRepository.findByPaymentCodeForUpdate(paymentCode)
                 .orElseThrow(() -> new AppException(ErrorCode.PAYMENT_NOT_FOUND));
 
+        expireIfNeeded(payment);
+
         if (payment.getStatus() != PaymentStatus.pending) {
-            throw new AppException(ErrorCode.PAYMENT_ALREADY_PROCESSED);
+            return toInfoResponse(payment);
         }
 
         payment.setStatus(PaymentStatus.failed);
@@ -287,6 +309,22 @@ public class QrPaymentServiceImpl implements QrPaymentService {
                 .status(payment.getStatus().name().toUpperCase())
                 .orderNumber(payment.getOrder().getOrderNumber())
                 .merchantName("Restaurant POS")
+                .expiresAt(toOffsetDateTime(payment.getExpiresAt()))
                 .build();
+    }
+
+    private OffsetDateTime toOffsetDateTime(LocalDateTime value) {
+        return value == null ? null : value.atZone(ZoneId.systemDefault()).toOffsetDateTime();
+    }
+
+    private boolean expireIfNeeded(Payment payment) {
+        if (payment.getStatus() == PaymentStatus.pending
+                && payment.getExpiresAt() != null
+                && !LocalDateTime.now().isBefore(payment.getExpiresAt())) {
+            payment.setStatus(PaymentStatus.failed);
+            paymentRepository.save(payment);
+            return true;
+        }
+        return false;
     }
 }

@@ -55,4 +55,7 @@ public class Payment extends CreatedAtEntity {
 
     @Column(name = "paid_at")
     private LocalDateTime paidAt;
+
+    @Column(name = "expires_at")
+    private LocalDateTime expiresAt;
 }

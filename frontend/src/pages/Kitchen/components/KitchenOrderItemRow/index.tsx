@@ -13,6 +13,9 @@ const KitchenOrderItemRow = ({ item }: { item: OrderItemType }) => {
     const updateStatusMutate = useUpdateItemStatus();
     const { showToast } = useContextData(ToastContext);
     const handleUpdateStatus = () => {
+        if (itemStatus === 'success') {
+            return;
+        }
         updateStatusMutate.mutate(
             { id: item.id, status: 'ready' },
             {

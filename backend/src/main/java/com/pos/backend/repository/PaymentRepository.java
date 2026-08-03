@@ -4,6 +4,9 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.jpa.repository.Modifying;
+import org.springframework.data.jpa.repository.Lock;
+import jakarta.persistence.LockModeType;
 import org.springframework.data.repository.query.Param;
 
 import com.pos.backend.constant.enums.PaymentStatus;
@@ -28,5 +31,17 @@ public interface PaymentRepository extends JpaRepository<Payment, Long> {
             @Param("status") PaymentStatus status,
             Pageable pageable);
 
-    Optional<Payment> findByPaymentCode(String paymentCode);
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("SELECT p FROM Payment p JOIN FETCH p.order o JOIN FETCH p.paymentMethod pm WHERE p.paymentCode = :paymentCode")
+    Optional<Payment> findByPaymentCodeForUpdate(@Param("paymentCode") String paymentCode);
+
+    @Modifying
+    @Query("""
+            UPDATE Payment p
+            SET p.status = com.pos.backend.constant.enums.PaymentStatus.failed
+            WHERE p.order.id = :orderId
+              AND p.paymentCode IS NOT NULL
+              AND p.status = com.pos.backend.constant.enums.PaymentStatus.pending
+            """)
+    int invalidatePendingQrPayments(@Param("orderId") Long orderId);
 }

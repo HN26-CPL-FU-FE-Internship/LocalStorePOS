@@ -1,6 +1,7 @@
 package com.pos.backend.dto.response.Payment;
 
 import java.math.BigDecimal;
+import java.time.OffsetDateTime;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -17,4 +18,5 @@ public class QrPaymentInfoResponse {
     private String status;
     private String orderNumber;
     private String merchantName;
+    private OffsetDateTime expiresAt;
 }

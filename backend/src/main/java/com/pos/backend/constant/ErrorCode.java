@@ -79,6 +79,7 @@ public enum ErrorCode {
 
     PAYMENT_NOT_FOUND(1050, HttpStatus.NOT_FOUND, "Payment not found"),
     PAYMENT_ALREADY_PROCESSED(1051, HttpStatus.BAD_REQUEST, "Payment has already been processed or cancelled"),
+    PAYMENT_EXPIRED(1054, HttpStatus.BAD_REQUEST, "Payment QR code has expired"),
     INVALID_PAYMENT_AMOUNT(1052, HttpStatus.BAD_REQUEST, "Invalid payment amount"),
     ORDER_NOT_ELIGIBLE_FOR_QR(1053, HttpStatus.BAD_REQUEST, "Order is not eligible for QR payment"),
     ;

@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { Button, Form, Spinner } from 'react-bootstrap';
 import { QRCodeSVG } from 'qrcode.react';
 import PaymentExtra from './PaymentExtra';
@@ -38,8 +38,32 @@ export default function QrPaymentTab({
     const [showDiscount, setShowDiscount] = useState(false);
     const [showTip, setShowTip] = useState(false);
     const [showCoupon, setShowCoupon] = useState(false);
-    const [payment, setPayment] = useState<{ paymentCode: string; amount: number; qrContent: string } | null>(null);
+    const [payment, setPayment] = useState<{
+        paymentCode: string;
+        amount: number;
+        qrContent: string;
+        expiresAt: string;
+    } | null>(null);
     const [status, setStatus] = useState<string>('Pending');
+    const [remainingSeconds, setRemainingSeconds] = useState<number | null>(null);
+
+    useEffect(() => {
+        if (!payment?.expiresAt || status !== 'Pending') {
+            return;
+        }
+
+        const updateRemaining = () => {
+            const seconds = Math.max(0, Math.ceil((Date.parse(payment.expiresAt) - Date.now()) / 1000));
+            setRemainingSeconds(seconds);
+            if (seconds === 0) {
+                setStatus('Expired');
+            }
+        };
+
+        updateRemaining();
+        const timer = window.setInterval(updateRemaining, 1000);
+        return () => window.clearInterval(timer);
+    }, [payment?.expiresAt, status]);
 
     useQrPaymentSubscription(order.id, (message) => {
         if (message.paymentStatus === 'PAID') {
@@ -48,7 +72,6 @@ export default function QrPaymentTab({
             onQrPaymentSuccess();
         }
     });
-    console.log(payment?.paymentCode);
     const handleGenerateQr = useCallback(() => {
         if (finalTotal <= 0) {
             showToast('error', 'Final total must be greater than zero');
@@ -70,6 +93,7 @@ export default function QrPaymentTab({
                 onSuccess: (data) => {
                     setPayment(data);
                     setStatus('Pending');
+                    setRemainingSeconds(Math.max(0, Math.ceil((Date.parse(data.expiresAt) - Date.now()) / 1000)));
                 },
                 onError: (error) => {
                     showToast('error', error.message || 'Failed to create QR payment');
@@ -115,7 +139,7 @@ export default function QrPaymentTab({
                 onRemove={!readOnly && !payment ? () => onCouponChange(null) : undefined}
             />
 
-            {!payment && (
+            {(!payment || status === 'Expired') && (
                 <div className="d-grid mb-3">
                     <Button
                         variant="primary"
@@ -128,7 +152,7 @@ export default function QrPaymentTab({
                                 Generating QR...
                             </>
                         ) : (
-                            'Generate QR'
+                            status === 'Expired' ? 'Generate New QR' : 'Generate QR'
                         )}
                     </Button>
                 </div>
@@ -136,11 +160,23 @@ export default function QrPaymentTab({
 
             {payment && (
                 <div className="text-center">
-                    <div className="mb-3">
-                        <QRCodeSVG value={payment.qrContent} size={200} />
-                    </div>
-                    <p className="text-muted mb-1">Scan with your banking app to pay</p>
+                    {status !== 'Expired' && (
+                        <div className="mb-3">
+                            <QRCodeSVG value={payment.qrContent} size={200} />
+                        </div>
+                    )}
+                    <p className="text-muted mb-1">
+                        {status === 'Expired'
+                            ? 'This QR code has expired. Generate a new QR to continue.'
+                            : 'Scan with your banking app to pay'}
+                    </p>
                     <h5 className="mb-2">${payment.amount.toFixed(2)}</h5>
+                    {remainingSeconds !== null && status !== 'Expired' && (
+                        <p className="text-warning mb-2">
+                            QR expires in {String(Math.floor(remainingSeconds / 60)).padStart(2, '0')}:
+                            {String(remainingSeconds % 60).padStart(2, '0')}
+                        </p>
+                    )}
                     <div className="d-flex align-items-center justify-content-center gap-2 mb-3">
                         <span>Status:</span>
                         <PaymentStatus status={status} />
