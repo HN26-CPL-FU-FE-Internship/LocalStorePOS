@@ -6,6 +6,7 @@ export type OrderQuery = Time & {
     page: number;
     size: number;
     orderNumber: string;
+    tableNumber: string;
 };
 
 export type OrderStatus = (typeof ORDER_STATUS)[keyof typeof ORDER_STATUS];

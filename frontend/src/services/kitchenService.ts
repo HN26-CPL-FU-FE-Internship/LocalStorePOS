@@ -17,9 +17,14 @@ const kitchenService = {
         return res.data;
     },
 
-    getKitchenOrder: async (page: number, size: number) => {
+    getKitchenOrder: async (page: number, size: number, search: string = '', kitchenStatus: string = '') => {
         const res = await api.get<ApiResponse<KitchenOrdersResponse>>('/kitchen/orders', {
-            params: { page, size },
+            params: {
+                page,
+                size,
+                search: search || undefined,
+                kitchenStatus: kitchenStatus || undefined,
+            },
         });
         return res.data;
     },

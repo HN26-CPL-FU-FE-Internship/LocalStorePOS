@@ -25,14 +25,17 @@ const Orders = () => {
         size: PAGE_SIZE,
         status: '',
         orderNumber: '',
+        tableNumber: '',
         fromDate: '2026-01-01',
         toDate: formatDateFilter(Date.now()),
     }));
 
-    const debounce = useDebounce(orderQuery.orderNumber, 800);
+    const debouncedOrderNumber = useDebounce(orderQuery.orderNumber, 800);
+    const debouncedTableNumber = useDebounce(orderQuery.tableNumber, 800);
     const debounceQuery = {
         ...orderQuery,
-        orderNumber: debounce,
+        orderNumber: debouncedOrderNumber,
+        tableNumber: debouncedTableNumber,
     };
 
     const handlePageChange = useCallback((page: number) => {
@@ -82,6 +85,14 @@ const Orders = () => {
         setOrderQuery((prev) => ({
             ...prev,
             orderNumber: value,
+        }));
+    };
+
+    const handleSearchByTable = (e: ChangeEvent<HTMLInputElement>) => {
+        const value = e.target.value.trim();
+        setOrderQuery((prev) => ({
+            ...prev,
+            tableNumber: value,
         }));
     };
 
@@ -158,10 +169,22 @@ const Orders = () => {
                         <div className="input-group input-group-flat w-auto">
                             <input
                                 className="form-control"
-                                placeholder="Search"
+                                placeholder="Search order number"
                                 type="text"
                                 value={orderQuery.orderNumber}
                                 onChange={handleSearch}
+                            />
+                            <span className="input-group-text">
+                                <Icon name="search" className="text-dark" />
+                            </span>
+                        </div>
+                        <div className="input-group input-group-flat w-auto">
+                            <input
+                                className="form-control"
+                                placeholder="Search table number"
+                                type="text"
+                                value={orderQuery.tableNumber}
+                                onChange={handleSearchByTable}
                             />
                             <span className="input-group-text">
                                 <Icon name="search" className="text-dark" />

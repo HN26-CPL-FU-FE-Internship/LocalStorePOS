@@ -18,5 +18,6 @@ export const KITCHEN_STATUSES: Record<
 export const KITCHEN_QUERY_KEYS = {
     all: ['kitchen'],
     kitchenStats: () => ['kitchen', 'stats'],
-    kitchenOrders: (page: number, size: number) => ['kitchen', 'orders', { page, size }],
+    kitchenOrders: (page: number, size: number, search: string, status: string) =>
+        ['kitchen', 'orders', { page, size, search, status }],
 };

@@ -24,7 +24,9 @@ import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestParam;
 
+import com.pos.backend.constant.enums.KitchenStatus;
 import com.pos.backend.dto.request.Kitchen.StartCookingRequest;
 import jakarta.validation.Valid;
 
@@ -51,8 +53,10 @@ public class KitchenController {
     @GetMapping("/orders")
     @PreAuthorize("@perm.hasPermission(authentication, 'Kitchen (KDS)', 'view')")
     public ApiResponse<Map<String, Object>> getKitchenOrders(
-            @PageableDefault(page = 0, size = 9, sort = "orderedAt", direction = Direction.DESC) Pageable pageable) {
-        Page<OrderResponse> page = kitchenService.getKitchenOrders(pageable);
+            @PageableDefault(page = 0, size = 9, sort = "orderedAt", direction = Direction.DESC) Pageable pageable,
+            @RequestParam(required = false) String search,
+            @RequestParam(required = false) KitchenStatus kitchenStatus) {
+        Page<OrderResponse> page = kitchenService.getKitchenOrders(pageable, search, kitchenStatus);
 
         Map<String, Object> result = new HashMap<>();
         result.put("content", page.getContent());

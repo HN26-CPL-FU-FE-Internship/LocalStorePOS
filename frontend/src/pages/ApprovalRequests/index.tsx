@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useState } from 'react';
+import { keepPreviousData, useMutation, useQuery } from '@tanstack/react-query';
 import { Table, Card, Badge, Button, Modal, Form, Spinner, Alert, Nav } from 'react-bootstrap';
 import PageHeader from '@/components/common/PageHeader';
+import { queryClient } from '@/lib';
 import Icon from '@/components/common/Icon';
 import Pagination from '@/components/common/Pagination';
 import {
@@ -12,6 +14,7 @@ import {
     type ApprovalRequestType,
     type ApprovalStatus,
     type ApprovalPageResponse,
+    type ApprovalActionPayload,
     approvalTypeLabels,
     approvalTypeBadgeColors,
 } from '@/services/api/approval.api';
@@ -49,11 +52,8 @@ const statusLabelMap: Record<ApprovalStatus, string> = {
 
 const ApprovalRequestsPage = () => {
     /* ---------- state ---------- */
-    const [data, setData] = useState<ApprovalPageResponse | null>(null);
-    const [loading, setLoading] = useState(false);
     const [currentPage, setCurrentPage] = useState(1);
     const [activeTab, setActiveTab] = useState<FilterTab>('all');
-    const [pendingCount, setPendingCount] = useState(0);
     const [feedback, setFeedback] = useState<{ type: 'success' | 'danger'; message: string } | null>(null);
 
     // Detail modal
@@ -64,7 +64,6 @@ const ApprovalRequestsPage = () => {
     const [showActionModal, setShowActionModal] = useState(false);
     const [actionType, setActionType] = useState<'approve' | 'reject'>('approve');
     const [actionReason, setActionReason] = useState('');
-    const [actionLoading, setActionLoading] = useState(false);
 
     // Type filter
     const [typeFilter, setTypeFilter] = useState<ApprovalRequestType | ''>('');
@@ -75,48 +74,56 @@ const ApprovalRequestsPage = () => {
         setTimeout(() => setFeedback(null), 4000);
     };
 
-    /* ---------- fetch data ---------- */
-    const loadData = useCallback(async () => {
-        setLoading(true);
-        try {
-            const statusParam = activeTab === 'all' ? undefined : (activeTab as ApprovalStatus);
-            const typeParam = typeFilter || undefined;
-            const result = await getApprovalRequests({
+    /* ---------- data (TanStack Query) ---------- */
+    const approvalQuery = useQuery<ApprovalPageResponse>({
+        queryKey: [
+            'approval-requests',
+            'list',
+            {
+                page: currentPage,
+                size: PAGE_SIZE,
+                status: activeTab === 'all' ? undefined : activeTab,
+                requestType: typeFilter || undefined,
+            },
+        ],
+        queryFn: () =>
+            getApprovalRequests({
                 page: currentPage - 1,
                 size: PAGE_SIZE,
-                status: statusParam,
-                requestType: typeParam as ApprovalRequestType | undefined,
-            });
-            setData(result);
-        } catch {
-            showFeedback('danger', 'Failed to load approval requests');
-        } finally {
-            setLoading(false);
-        }
-    }, [currentPage, activeTab, typeFilter]);
+                status: activeTab === 'all' ? undefined : (activeTab as ApprovalStatus),
+                requestType: typeFilter || undefined,
+            }),
+        placeholderData: keepPreviousData,
+    });
 
-    const loadPendingCount = useCallback(async () => {
-        try {
-            const count = await getPendingApprovalCount();
-            setPendingCount(count);
-        } catch {
-            // Ignore
-        }
-    }, []);
+    const { data: pendingCount = 0 } = useQuery({
+        queryKey: ['approval-requests', 'pending-count'],
+        queryFn: getPendingApprovalCount,
+        staleTime: 1000 * 60,
+    });
 
-    useEffect(() => {
-        loadData();
-    }, [loadData]);
+    const approveMutation = useMutation({
+        mutationFn: (payload: ApprovalActionPayload) => approveApprovalRequest(payload.requestId, payload.reason),
+        onSuccess: () => {
+            showFeedback('success', 'Request approved successfully');
+            queryClient.invalidateQueries({ queryKey: ['approval-requests'] });
+        },
+        onError: () => showFeedback('danger', 'Action failed'),
+    });
 
-    useEffect(() => {
-        loadPendingCount();
-    }, [loadPendingCount]);
+    const rejectMutation = useMutation({
+        mutationFn: (payload: ApprovalActionPayload) => rejectApprovalRequest(payload.requestId, payload.reason),
+        onSuccess: () => {
+            showFeedback('success', 'Request rejected');
+            queryClient.invalidateQueries({ queryKey: ['approval-requests'] });
+        },
+        onError: () => showFeedback('danger', 'Action failed'),
+    });
 
-    // Refresh pending count after actions
+    // Refresh after actions / when a new approval request arrives via WebSocket
     const refreshData = useCallback(() => {
-        loadData();
-        loadPendingCount();
-    }, [loadData, loadPendingCount]);
+        queryClient.invalidateQueries({ queryKey: ['approval-requests'] });
+    }, []);
 
     // Auto-refresh when a new/updated approval request arrives via WebSocket
     useEffect(() => {
@@ -162,27 +169,18 @@ const ApprovalRequestsPage = () => {
             showFeedback('danger', 'Please enter a reason');
             return;
         }
-        setActionLoading(true);
-        try {
-            if (actionType === 'approve') {
-                await approveApprovalRequest(detailRequest.id, actionReason);
-                showFeedback('success', 'Request approved successfully');
-            } else {
-                await rejectApprovalRequest(detailRequest.id, actionReason);
-                showFeedback('success', 'Request rejected');
-            }
-            setShowActionModal(false);
-            refreshData();
-        } catch {
-            showFeedback('danger', 'Action failed');
-        } finally {
-            setActionLoading(false);
-        }
+        const payload: ApprovalActionPayload = { requestId: detailRequest.id, reason: actionReason };
+        const mutation = actionType === 'approve' ? approveMutation : rejectMutation;
+        mutation.mutate(payload, {
+            onSuccess: () => setShowActionModal(false),
+        });
     };
 
     /* ---------- derived ---------- */
-    const items = data?.items ?? [];
-    const totalItems = data?.totalElements ?? 0;
+    const items = approvalQuery.data?.items ?? [];
+    const totalItems = approvalQuery.data?.totalElements ?? 0;
+    const loading = approvalQuery.isLoading || (approvalQuery.isFetching && !approvalQuery.data);
+    const isActionPending = approveMutation.isPending || rejectMutation.isPending;
 
     /* ---------- render ---------- */
     return (
@@ -585,7 +583,7 @@ const ApprovalRequestsPage = () => {
                             variant="light"
                             className="w-100"
                             onClick={() => setShowActionModal(false)}
-                            disabled={actionLoading}
+                            disabled={isActionPending}
                         >
                             Cancel
                         </Button>
@@ -593,9 +591,9 @@ const ApprovalRequestsPage = () => {
                             variant={actionType === 'approve' ? 'success' : 'danger'}
                             className="w-100"
                             onClick={handleActionConfirm}
-                            disabled={actionLoading || !actionReason.trim()}
+                            disabled={isActionPending || !actionReason.trim()}
                         >
-                            {actionLoading ? (
+                            {isActionPending ? (
                                 <>
                                     <Spinner animation="border" size="sm" className="me-1" />
                                     Processing...

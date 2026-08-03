@@ -16,6 +16,7 @@ import com.pos.backend.constant.enums.EventType;
 import com.pos.backend.constant.enums.KitchenStatus;
 import com.pos.backend.constant.enums.OrderItemStatus;
 import com.pos.backend.constant.enums.OrderStatus;
+import com.pos.backend.dto.request.Filter.OrderFilter;
 import com.pos.backend.dto.request.Kitchen.StartCookingRequest;
 import com.pos.backend.dto.response.Order.OrderResponse;
 import com.pos.backend.dto.response.OrderItem.OrderItemResponse;
@@ -30,6 +31,7 @@ import com.pos.backend.repository.OrderRepository;
 import com.pos.backend.service.NotificationService;
 import com.pos.backend.service.Order.OrderCommonService;
 import com.pos.backend.service.WebSocket.WebSocketService;
+import com.pos.backend.specification.OrderSpecification;
 import com.pos.backend.ws.WebSocketEvent;
 
 import lombok.AccessLevel;
@@ -64,9 +66,21 @@ public class KitchenService {
         return result;
     }
 
-    public Page<OrderResponse> getKitchenOrders(Pageable pageable) {
+    @Transactional(readOnly = true)
+    public Page<OrderResponse> getKitchenOrders(Pageable pageable, String search, KitchenStatus kitchenStatus) {
 
-        Page<Order> orders = orderRepository.findAll(pageable);
+        Page<Order> orders;
+        boolean hasFilters = (search != null && !search.isBlank()) || kitchenStatus != null;
+        if (hasFilters) {
+            OrderFilter filter = new OrderFilter();
+            if (search != null && !search.isBlank()) {
+                filter.setSearch(search.trim());
+            }
+            filter.setKitchenStatus(kitchenStatus);
+            orders = orderRepository.findAll(OrderSpecification.filter(filter), pageable);
+        } else {
+            orders = orderRepository.findAll(pageable);
+        }
         List<Long> orderIds = orders.stream().map(order -> order.getId()).toList();
 
         // Do not show items that were cancelled (e.g. removed when editing the order)
