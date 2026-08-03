@@ -4,6 +4,9 @@ server:
     context-path: /restaurant-pos
 
 spring:
+  profiles:
+    active: local
+
   servlet:
     multipart:
       max-file-size: 5MB
@@ -37,3 +40,10 @@ jwt:
   signer-key: "UoMH756YIqZAYeR8AuczJ0RrB0wO/mlwQiGxa+NahqXfUd6+OYxy0CkI4QnCGLWM"
   access-token-expiration: 30
   refresh-token-expiration: 10080
+
+esms:
+  api-key: ${ESMS_API_KEY:}
+  secret-key: ${ESMS_SECRET_KEY:}
+  brandname: ${ESMS_BRANDNAME:}
+  enabled: ${ESMS_ENABLED:false}
+  sandbox: ${ESMS_SANDBOX:false}
