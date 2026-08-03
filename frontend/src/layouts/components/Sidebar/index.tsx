@@ -74,6 +74,7 @@ const Sidebar = ({ onClose }: SidebarProps) => {
                             className="sidenav-toggle-btn border-0 p-0"
                             id="toggle_btn"
                             aria-label="collapse sidebar"
+                            onClick={onClose}
                         >
                             <Icon name="panel-right-open" className="fs-16" />
                         </Button>

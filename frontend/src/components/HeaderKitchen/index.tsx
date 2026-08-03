@@ -3,7 +3,6 @@ import Icon from '../common/Icon';
 import { useMemo } from 'react';
 import { toTitleCase } from '@/utils';
 import { KITCHEN_STATUSES } from '@/constants';
-import Search from '../common/Search';
 
 const HeaderKitchen = ({ data }: { data: KitchenOrderStat | undefined }) => {
     const statsEntries = useMemo(() => Object.entries(data ?? {}), [data]) as [KitchenStatus, number][];
@@ -22,8 +21,6 @@ const HeaderKitchen = ({ data }: { data: KitchenOrderStat | undefined }) => {
                     </div>
                 ))}
             </div>
-
-            <Search />
         </>
     );
 };

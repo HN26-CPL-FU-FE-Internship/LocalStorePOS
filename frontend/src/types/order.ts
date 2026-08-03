@@ -5,8 +5,8 @@ export type OrderQuery = Time & {
     status: OrderStatus | string;
     page: number;
     size: number;
-    orderNumber: string;
-    tableNumber: string;
+    /** Free-text search matched against order number / token / table / customer. */
+    search: string;
 };
 
 export type OrderStatus = (typeof ORDER_STATUS)[keyof typeof ORDER_STATUS];
