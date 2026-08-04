@@ -26,6 +26,17 @@ public interface ReservationRepository extends JpaRepository<Reservation, Long> 
             @Param("status")  ReservationStatus status);
 
     @Query("""
+            SELECT r FROM Reservation r
+            LEFT JOIN FETCH r.customer
+            LEFT JOIN FETCH r.table
+            WHERE r.status = :status
+              AND r.reservationTime <= :now
+            """)
+    List<Reservation> findOverdueBookings(
+            @Param("status") ReservationStatus status,
+            @Param("now") LocalDateTime now);
+
+    @Query("""
                 SELECT COUNT(r) FROM Reservation r
                 WHERE r.reservationTime >= :fromDate
                 AND r.reservationTime <= :toDate
