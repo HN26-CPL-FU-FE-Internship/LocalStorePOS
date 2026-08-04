@@ -1,5 +1,6 @@
 package com.pos.backend.service.Table;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 import org.springframework.stereotype.Service;
@@ -33,9 +34,26 @@ public class ReservationServiceImpl implements ReservationService {
     private final EsmsSmsService esmsSmsService;
 
     @Override
-    @Transactional(readOnly = true)
+    @Transactional
     public List<ReservationResponse> getReservations(Long tableId, ReservationStatus status) {
+        autoArriveReservations();
         return reservationRepository.search(tableId, status).stream().map(this::toResponse).toList();
+    }
+
+    private void autoArriveReservations() {
+        LocalDateTime now = LocalDateTime.now();
+        List<Reservation> overdue = reservationRepository.findOverdueBookings(ReservationStatus.booked, now);
+        if (!overdue.isEmpty()) {
+            for (Reservation r : overdue) {
+                r.setStatus(ReservationStatus.seated);
+                RestaurantTable table = r.getTable();
+                if (table != null) {
+                    table.setStatus(TableStatus.occupied);
+                    restaurantTableRepository.save(table);
+                }
+                reservationRepository.save(r);
+            }
+        }
     }
 
     @Override

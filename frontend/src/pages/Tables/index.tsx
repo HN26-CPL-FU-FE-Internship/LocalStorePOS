@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Row, Col, Card, Button, Modal, Form, Alert, Spinner, Badge } from 'react-bootstrap';
+import { Row, Col, Card, Button, Modal, Form, Alert, Spinner, Badge, Offcanvas } from 'react-bootstrap';
 import { isAxiosError } from 'axios';
 import Icon from '@/components/common/Icon';
 import ApprovalRequestModal from '@/components/common/ApprovalRequestModal';
@@ -107,6 +107,8 @@ const TablesPage = () => {
     const [showReserve, setShowReserve] = useState(false);
     const [showEditReservation, setShowEditReservation] = useState(false);
     const [showReservationInfo, setShowReservationInfo] = useState(false);
+    const [showBookingsSidebar, setShowBookingsSidebar] = useState(false);
+    const [sidebarTable, setSidebarTable] = useState<TableEntry | null>(null);
     const [currentTable, setCurrentTable] = useState<TableEntry | null>(null);
     const [currentReservation, setCurrentReservation] = useState<ReservationEntry | null>(null);
     const [saving, setSaving] = useState(false);
@@ -115,6 +117,25 @@ const TablesPage = () => {
     const [tableForm, setTableForm] = useState(emptyTableForm);
     const [newAreaName, setNewAreaName] = useState('');
     const [reservationForm, setReservationForm] = useState(emptyReservationForm);
+
+    const sidebarReservations = sidebarTable
+        ? allReservations.filter(
+              (r) => r.tableId === sidebarTable.id && (r.status === 'booked' || r.status === 'seated'),
+          )
+        : [];
+
+    const openSpecificReservationInfo = (table: TableEntry, reservation: ReservationEntry) => {
+        setCurrentTable(table);
+        setCurrentReservation(reservation);
+        setShowBookingsSidebar(false);
+        setShowReservationInfo(true);
+    };
+
+    const openBookingsSidebar = (e: React.MouseEvent, table: TableEntry) => {
+        e.stopPropagation();
+        setSidebarTable(table);
+        setShowBookingsSidebar(true);
+    };
 
     const [showTableAction, setShowTableAction] = useState(false);
     const [showStatusModal, setShowStatusModal] = useState(false);
@@ -386,15 +407,6 @@ const TablesPage = () => {
         setShowDeleteReservationApproval(true);
     };
 
-    const openReservationInfo = (table: TableEntry) => {
-        setCurrentTable(table);
-        const activeRes = allReservations.find(
-            (r) => r.tableId === table.id && (r.status === 'booked' || r.status === 'seated'),
-        );
-        setCurrentReservation(activeRes ?? null);
-        setShowReservationInfo(true);
-    };
-
     const handleCancelReservation = async () => {
         if (!currentReservation) return;
         try {
@@ -494,21 +506,25 @@ const TablesPage = () => {
             {!loading && (
                 <Row>
                     {tables.map((table) => {
-                        const tableReservation = allReservations.find(
+                        const tableReservations = allReservations.filter(
                             (r) => r.tableId === table.id && (r.status === 'booked' || r.status === 'seated'),
                         );
+                        const tableReservation = tableReservations[0] || null;
+
+                        // Nếu bàn đang "booked" nhưng reservation còn trong tương lai
+                        // → thực tế bàn vẫn trống, hiển thị Available
+                        const isFutureBooking =
+                            table.status === 'booked' &&
+                            tableReservation != null &&
+                            new Date(tableReservation.reservationTime) > now;
+                        const displayStatus: TableStatus = isFutureBooking ? 'available' : table.status;
+
                         return (
                             <Col xxl={3} lg={4} md={6} key={table.id}>
                                 <Card
                                     className="mb-4 text-center"
                                     style={{ cursor: 'pointer' }}
-                                    onClick={() => {
-                                        if (table.status === 'available') {
-                                            openTableAction(table);
-                                        } else {
-                                            openReservationInfo(table);
-                                        }
-                                    }}
+                                    onClick={() => openTableAction(table)}
                                 >
                                     <Card.Body className="position-relative">
                                         <div className="mt-3 mb-4">
@@ -520,28 +536,23 @@ const TablesPage = () => {
                                             <Icon name="users" className="me-1" size={14} /> {table.seats} seats
                                         </p>
 
-                                        <Badge bg="" className={statusBadgeClass[table.status]}>
-                                            {statusLabel[table.status]}
+                                        <Badge bg="" className={statusBadgeClass[displayStatus]}>
+                                            {statusLabel[displayStatus]}
                                         </Badge>
 
-                                        {tableReservation && (
+                                        {tableReservations.length > 0 && (
                                             <>
                                                 <hr className="my-3" />
-                                                <div className="text-center">
-                                                    <h6 className="mb-1 fw-bold">{tableReservation.customerName}</h6>
-                                                    <div className="text-warning small">
-                                                        {new Date(tableReservation.reservationTime).toLocaleDateString(
-                                                            'en-US',
-                                                            { month: 'short', day: '2-digit' },
-                                                        )}{' '}
-                                                        &bull;{' '}
-                                                        {new Date(tableReservation.reservationTime).toLocaleTimeString(
-                                                            'en-US',
-                                                            { hour: '2-digit', minute: '2-digit' },
-                                                        )}{' '}
-                                                        &bull; {tableReservation.guests} guests
-                                                    </div>
-                                                </div>
+                                                <Button
+                                                    variant="outline-warning"
+                                                    size="sm"
+                                                    className="w-100 d-inline-flex align-items-center justify-content-center py-2"
+                                                    onClick={(e) => openBookingsSidebar(e, table)}
+                                                    style={{ fontSize: '0.875rem' }}
+                                                >
+                                                    <Icon name="calendar-check" className="me-2" size={16} />
+                                                    Reserved ({tableReservations.length} {tableReservations.length === 1 ? 'booking' : 'bookings'})
+                                                </Button>
                                             </>
                                         )}
                                     </Card.Body>
@@ -723,45 +734,31 @@ const TablesPage = () => {
                 </Modal.Header>
 
                 <Modal.Body>
-                    {currentTable?.status === 'available' ? (
-                        <div className="d-grid gap-3">
-                            <Button
-                                variant="outline-warning"
-                                onClick={() => {
-                                    setShowTableAction(false);
-                                    setShowStatusModal(true);
-                                }}
-                            >
-                                <Icon name="settings" className="me-2" />
-                                Set Status
-                            </Button>
-
-                            <Button
-                                variant="primary"
-                                onClick={() => {
-                                    setShowTableAction(false);
-                                    if (currentTable) {
-                                        openReserve(currentTable);
-                                    }
-                                }}
-                            >
-                                <Icon name="calendar" className="me-2" />
-                                Reservation
-                            </Button>
-                        </div>
-                    ) : (
+                    <div className="d-grid gap-3">
                         <Button
-                            className="w-100"
+                            variant="outline-warning"
+                            onClick={() => {
+                                setShowTableAction(false);
+                                setShowStatusModal(true);
+                            }}
+                        >
+                            <Icon name="settings" className="me-2" />
+                            Set Status
+                        </Button>
+
+                        <Button
+                            variant="primary"
                             onClick={() => {
                                 setShowTableAction(false);
                                 if (currentTable) {
-                                    openReservationInfo(currentTable);
+                                    openReserve(currentTable);
                                 }
                             }}
                         >
-                            View Reservation
+                            <Icon name="calendar" className="me-2" />
+                            Reservation
                         </Button>
-                    )}
+                     </div>
                 </Modal.Body>
             </Modal>
 
@@ -1071,7 +1068,6 @@ const TablesPage = () => {
                                 }
                             >
                                 <option value="booked">Booked</option>
-                                <option value="seated">Seated</option>
                                 <option value="completed">Completed</option>
                                 <option value="cancelled">Cancelled</option>
                                 <option value="paid">Paid</option>
@@ -1240,6 +1236,59 @@ const TablesPage = () => {
                     )}
                 </Modal.Body>
             </Modal>
+
+            {/* ---- Bookings Sidebar ---- */}
+            <Offcanvas show={showBookingsSidebar} onHide={() => setShowBookingsSidebar(false)} placement="end">
+                <Offcanvas.Header closeButton className="border-bottom">
+                    <Offcanvas.Title>
+                        Bookings - Table {sidebarTable?.tableNumber}
+                    </Offcanvas.Title>
+                </Offcanvas.Header>
+                <Offcanvas.Body className="p-3">
+                    {sidebarReservations.length === 0 ? (
+                        <div className="text-center py-5 text-muted">
+                            No active reservations for this table.
+                        </div>
+                    ) : (
+                        <div className="d-flex flex-column gap-3">
+                            {sidebarReservations.map((res) => (
+                                <Card
+                                    key={res.id}
+                                    className="border shadow-sm border-light-subtle"
+                                    style={{ cursor: 'pointer', transition: 'all 0.2s ease-in-out' }}
+                                    onClick={() => {
+                                        if (sidebarTable) {
+                                            openSpecificReservationInfo(sidebarTable, res);
+                                        }
+                                    }}
+                                >
+                                    <Card.Body className="p-3">
+                                        <div className="d-flex justify-content-between align-items-start mb-2">
+                                            <h6 className="mb-0 fw-bold">{res.customerName}</h6>
+                                            <Badge bg="" className={reservationBadgeClass[res.status] || 'badge-soft-primary'}>
+                                                {res.status.charAt(0).toUpperCase() + res.status.slice(1)}
+                                            </Badge>
+                                        </div>
+                                        <div className="text-muted small mb-1">
+                                            <Icon name="clock" className="me-1 text-warning" size={14} />
+                                            {new Date(res.reservationTime).toLocaleString('en-US', {
+                                                month: 'short',
+                                                day: '2-digit',
+                                                hour: '2-digit',
+                                                minute: '2-digit',
+                                            })}
+                                        </div>
+                                        <div className="text-muted small">
+                                            <Icon name="users" className="me-1 text-warning" size={14} />
+                                            {res.guests} guests
+                                        </div>
+                                    </Card.Body>
+                                </Card>
+                            ))}
+                        </div>
+                    )}
+                </Offcanvas.Body>
+            </Offcanvas>
         </>
     );
 };
