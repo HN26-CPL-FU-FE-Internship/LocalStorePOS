@@ -225,7 +225,8 @@ public class POSService {
     public List<TableResponse> getAvailableTables() {
         return restaurantTableRepository.findAll().stream()
                 .filter(table -> table
-                        .getStatus() == com.pos.backend.constant.enums.TableStatus.available)
+                        .getStatus() == com.pos.backend.constant.enums.TableStatus.available
+                        || table.getStatus() == com.pos.backend.constant.enums.TableStatus.booked)
                 .map(table -> TableResponse.builder()
                         .id(table.getId())
                         .name(table.getTableNumber())
@@ -502,7 +503,7 @@ public class POSService {
         orderRepository.save(order);
 
         // 5. Merge order items: update existing lines, create new ones,
-        //    and mark removed lines as cancelled (keeps kitchen state & history)
+        // and mark removed lines as cancelled (keeps kitchen state & history)
         syncOrderItems(order, request.getItems(), maps, existingItems, existingAddonsByItemId);
 
         // 6. Return response
@@ -514,7 +515,7 @@ public class POSService {
     }
 
     /* ------------------------------------------------------------------ */
-    /*  Shared helpers                                                     */
+    /* Shared helpers */
     /* ------------------------------------------------------------------ */
 
     private OrderReferenceMaps loadReferenceMaps(CreateOrderRequest request) {

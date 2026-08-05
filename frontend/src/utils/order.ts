@@ -37,6 +37,7 @@ export interface CalculateOrderTotalsParams {
     tipAmount: number;
     taxAmount: number;
     serviceCharge: number;
+    deliveryCharge?: number;
 }
 
 export interface CalculateOrderTotalsResult {
@@ -50,10 +51,11 @@ export interface CalculateOrderTotalsResult {
  * Calculate all order totals including discounts, coupon, tax, service charge, and tip.
  * Returns the individual breakdown values plus the final total.
  *
- * Formula: finalTotal = subtotal - discountValue - couponDiscount + taxValue + serviceCharge + tipAmount
+ * Formula: finalTotal = subtotal - discountValue - couponDiscount + taxValue + serviceCharge + deliveryCharge + tipAmount
  */
 export function calculateOrderTotals(params: CalculateOrderTotalsParams): CalculateOrderTotalsResult {
-    const { subtotal, discountAmount, discountType, coupon, tipAmount, taxAmount, serviceCharge } = params;
+    const { subtotal, discountAmount, discountType, coupon, tipAmount, taxAmount, serviceCharge, deliveryCharge = 0 } =
+        params;
 
     const discVal = calculateDiscount(subtotal, discountAmount, discountType);
     const coupVal = coupon ? calculateDiscount(subtotal, coupon.discountAmount, coupon.discountType) : 0;
@@ -61,7 +63,9 @@ export function calculateOrderTotals(params: CalculateOrderTotalsParams): Calcul
     // taxAmount is the pre-computed monetary tax value (e.g. $10.00)
     const taxValue = taxAmount;
     const finalTotal =
-        Math.round(Math.max(0, subtotal - discVal - coupVal + taxValue + serviceCharge + tipAmount) * 100) / 100;
+        Math.round(
+            Math.max(0, subtotal - discVal - coupVal + taxValue + serviceCharge + deliveryCharge + tipAmount) * 100,
+        ) / 100;
 
     return { discountValue: discVal, couponDiscount: coupVal, taxValue, finalTotal };
 }

@@ -17,3 +17,4 @@ export { notifyTimerExpired, warmUpAudio } from './notification';
 export type { CalculateOrderTotalsParams, CalculateOrderTotalsResult } from './order';
 export { getFoodImage, getItemImage } from './image';
 export { calculateLineTotalPrice } from './pos';
+export { calculateDeliveryCharge, getDeliveryChargeLabel } from './delivery';

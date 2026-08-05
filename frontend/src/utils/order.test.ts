@@ -95,9 +95,8 @@ describe('calculateDiscount', () => {
 //               + tipAmount
 //    rounded to 2 decimal places (Math.round(*100)/100), never negative
 //
-//  DIFFERENCE: Backend also includes + deliveryCharge.
-//  In the PayOrderModal, the frontend passes chargeAmount (service OR delivery)
-//  as the "serviceCharge" param, so delivery charge is effectively included.
+//  The frontend now passes serviceCharge and deliveryCharge separately,
+//  matching the backend formula.
 // ─────────────────────────────────────────────────────────────────────
 
 describe('calculateOrderTotals', () => {
@@ -219,6 +218,16 @@ describe('calculateOrderTotals', () => {
         });
     });
 
+    it('includes service and delivery charges independently', () => {
+        const result = calculateOrderTotals({
+            ...baseParams,
+            serviceCharge: 5,
+            deliveryCharge: 8,
+        });
+
+        expect(result.finalTotal).toBe(123);
+    });
+
     it('handles zero tax amount', () => {
         const result = calculateOrderTotals({
             ...baseParams,
@@ -325,11 +334,12 @@ describe('End-to-End: Frontend vs Backend Payment Calculation', () => {
     //              - discountValue
     //              - couponDiscount
     //              + taxAmount
-    //              + serviceCharge    ← PAYMENT page passes chargeAmount here
-    //              + tipAmount
+//              + serviceCharge
+//              + deliveryCharge
+//              + tipAmount
     //              → Math.round(max(0) * 100) / 100
     //
-    // The PayOrderModal passes chargeAmount (service OR delivery) as serviceCharge.
+    // The PayOrderModal passes both persisted charges independently.
     // So both formulas agree when tested with the same inputs.
     // ─────────────────────────────────────────────────────────────────
 
@@ -379,10 +389,6 @@ describe('End-to-End: Frontend vs Backend Payment Calculation', () => {
             // Backend result (includes deliveryCharge separately)
             const backendResult = simulateBackendProcessPayment(scenario);
 
-            // Frontend PayOrderModal passes chargeAmount = (dine_in ? serviceCharge : deliveryCharge) as serviceCharge
-            // For dine_in: serviceCharge is used, for delivery: deliveryCharge is used
-            const chargeAmount = serviceCharge > 0 ? serviceCharge : deliveryCharge;
-
             const frontendParams: CalculateOrderTotalsParams = {
                 subtotal,
                 discountAmount,
@@ -390,7 +396,8 @@ describe('End-to-End: Frontend vs Backend Payment Calculation', () => {
                 coupon,
                 tipAmount,
                 taxAmount,
-                serviceCharge: chargeAmount,
+                serviceCharge,
+                deliveryCharge,
             };
             const frontendResult = calculateOrderTotals(frontendParams);
 

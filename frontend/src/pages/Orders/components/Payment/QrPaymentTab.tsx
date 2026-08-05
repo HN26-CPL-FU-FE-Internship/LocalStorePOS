@@ -96,7 +96,8 @@ export default function QrPaymentTab({
                     setRemainingSeconds(Math.max(0, Math.ceil((Date.parse(data.expiresAt) - Date.now()) / 1000)));
                 },
                 onError: (error) => {
-                    showToast('error', error.message || 'Failed to create QR payment');
+                    const message = (error as { response?: { data?: { message?: string } } })?.response?.data?.message;
+                    showToast('error', message || 'Failed to create QR payment');
                 },
             },
         );
@@ -151,8 +152,10 @@ export default function QrPaymentTab({
                                 <Spinner size="sm" className="me-2" />
                                 Generating QR...
                             </>
+                        ) : status === 'Expired' ? (
+                            'Generate New QR'
                         ) : (
-                            status === 'Expired' ? 'Generate New QR' : 'Generate QR'
+                            'Generate QR'
                         )}
                     </Button>
                 </div>
