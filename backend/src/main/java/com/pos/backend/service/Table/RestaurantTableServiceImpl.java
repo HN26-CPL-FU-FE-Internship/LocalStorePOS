@@ -1,17 +1,21 @@
 package com.pos.backend.service.Table;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.pos.backend.constant.ErrorCode;
+import com.pos.backend.constant.enums.ReservationStatus;
 import com.pos.backend.constant.enums.TableStatus;
 import com.pos.backend.dto.request.Table.RestaurantTableRequest;
 import com.pos.backend.dto.response.Table.RestaurantTableResponse;
+import com.pos.backend.entity.Reservation;
 import com.pos.backend.entity.RestaurantTable;
 import com.pos.backend.entity.TableArea;
 import com.pos.backend.exception.AppException;
+import com.pos.backend.repository.ReservationRepository;
 import com.pos.backend.repository.RestaurantTableRepository;
 import com.pos.backend.repository.TableAreaRepository;
 
@@ -23,11 +27,29 @@ public class RestaurantTableServiceImpl implements RestaurantTableService {
 
     private final RestaurantTableRepository restaurantTableRepository;
     private final TableAreaRepository tableAreaRepository;
+    private final ReservationRepository reservationRepository;
 
     @Override
-    @Transactional(readOnly = true)
+    @Transactional
     public List<RestaurantTableResponse> getTables(Long areaId, TableStatus status) {
+        autoArriveReservations();
         return restaurantTableRepository.search(areaId, status).stream().map(this::toResponse).toList();
+    }
+
+    private void autoArriveReservations() {
+        LocalDateTime now = LocalDateTime.now();
+        List<Reservation> overdue = reservationRepository.findOverdueBookings(ReservationStatus.booked, now);
+        if (!overdue.isEmpty()) {
+            for (Reservation r : overdue) {
+                r.setStatus(ReservationStatus.seated);
+                RestaurantTable table = r.getTable();
+                if (table != null) {
+                    table.setStatus(TableStatus.occupied);
+                    restaurantTableRepository.save(table);
+                }
+                reservationRepository.save(r);
+            }
+        }
     }
 
     @Override
