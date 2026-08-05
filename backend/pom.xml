@@ -31,8 +31,6 @@
 		<java.version>17</java.version>
 		<mapstruct.version>1.6.3</mapstruct.version>
 		<lombok.version>1.18.38</lombok.version>
-		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-		<project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
 	</properties>
 	<dependencies>
 		<dependency>
@@ -116,7 +114,6 @@
 				<configuration>
 					<source>${java.version}</source>
 					<target>${java.version}</target>
-					<encoding>UTF-8</encoding>
 
 					<annotationProcessorPaths>
 
