@@ -6,7 +6,8 @@ import type { Option } from '@/api/item.api';
 /*  Types                                                             */
 /* ------------------------------------------------------------------ */
 export type TableStatus = 'available' | 'booked' | 'occupied';
-export type ReservationStatus = 'booked' | 'seated' | 'completed' | 'cancelled';
+export type TableShape = 'ROUND' | 'RECTANGLE';
+export type ReservationStatus = 'booked' | 'seated' | 'completed' | 'cancelled' | 'paid';
 
 export interface TableEntry {
     id: number;
@@ -15,6 +16,12 @@ export interface TableEntry {
     areaName: string;
     seats: number;
     status: TableStatus;
+    /** X coordinate of the table centre on the floor map (grid 0-1000). */
+    xPosition: number | null;
+    /** Y coordinate of the table centre on the floor map (grid 0-640). */
+    yPosition: number | null;
+    /** Table shape rendered on the floor map: ROUND | RECTANGLE. */
+    shape: TableShape | null;
     createdAt: string;
     updatedAt: string;
 }
@@ -24,6 +31,9 @@ export interface TableFormData {
     areaId: number;
     seats: number;
     status?: TableStatus;
+    xPosition?: number | null;
+    yPosition?: number | null;
+    shape?: TableShape;
 }
 
 export interface ReservationEntry {

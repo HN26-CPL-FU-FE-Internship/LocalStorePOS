@@ -232,6 +232,7 @@ public class POSService {
                         .name(table.getTableNumber())
                         .seats(table.getSeats())
                         .areaName(table.getArea() != null ? table.getArea().getName() : null)
+                        .shape(table.getShape())
                         .build())
                 .toList();
     }

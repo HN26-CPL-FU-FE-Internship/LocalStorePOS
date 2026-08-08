@@ -1,0 +1,547 @@
+.floor-map {
+    position: relative;
+    width: 100%;
+    max-width: 1160px;
+    margin-inline: auto;
+    aspect-ratio: 1000 / 640;
+    border-radius: 18px;
+    overflow: visible;
+    background:
+        radial-gradient(1100px 360px at 50% -10%, rgba(255, 226, 178, 0.4), transparent 60%),
+        radial-gradient(700px 420px at 12% 108%, rgba(255, 198, 122, 0.2), transparent 55%),
+        radial-gradient(520px 300px at 92% 0%, rgba(255, 236, 200, 0.25), transparent 60%),
+        repeating-linear-gradient(180deg, rgba(122, 90, 48, 0.09) 0 1px, transparent 1px 64px),
+        linear-gradient(180deg, #f8f1e3 0%, #f0e5d0 55%, #e9dcc2 100%);
+    border: 1px solid rgba(90, 60, 25, 0.16);
+    box-shadow:
+        inset 0 0 64px rgba(120, 85, 45, 0.12),
+        inset 0 2px 0 rgba(255, 255, 255, 0.5),
+        0 18px 44px rgba(40, 30, 15, 0.16);
+    user-select: none;
+}
+
+/* ---------- Decorative layout elements ---------- */
+
+.windows-top {
+    position: absolute;
+    left: 2.5%;
+    right: 2.5%;
+    top: 0.55%;
+    height: 2.6%;
+    border-radius: 6px;
+    background: repeating-linear-gradient(
+        90deg,
+        rgba(165, 205, 240, 0.75) 0 5.2%,
+        rgba(250, 252, 255, 0.5) 5.2% 6.1%,
+        rgba(165, 205, 240, 0.75) 6.1% 100%
+    );
+    border: 1px solid rgba(100, 140, 180, 0.3);
+    box-shadow: inset 0 2px 6px rgba(255, 255, 255, 0.6);
+}
+
+.windows-left,
+.windows-right {
+    position: absolute;
+    width: 3.4%;
+    border-radius: 6px;
+    background: repeating-linear-gradient(
+        180deg,
+        rgba(165, 205, 240, 0.75) 0 6%,
+        rgba(250, 252, 255, 0.5) 6% 7.4%,
+        rgba(165, 205, 240, 0.75) 7.4% 100%
+    );
+    border: 1px solid rgba(100, 140, 180, 0.3);
+    box-shadow: inset 0 2px 6px rgba(255, 255, 255, 0.6);
+}
+
+.windows-left {
+    left: 0;
+    top: 25.5%;
+    height: 62%;
+}
+
+.windows-right {
+    right: 0;
+    top: 25.5%;
+    height: 45%;
+}
+
+.map-bar {
+    position: absolute;
+    left: 62.6%;
+    top: 25.8%;
+    width: 2.8%;
+    height: 47.6%;
+    border-radius: 12px;
+    background: linear-gradient(180deg, #c78d54, #96683b);
+    border: 1px solid rgba(80, 50, 20, 0.35);
+    box-shadow:
+        inset 3px 0 6px rgba(255, 255, 255, 0.3),
+        inset -2px 0 4px rgba(0, 0, 0, 0.14),
+        0 4px 12px rgba(60, 35, 10, 0.3);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.map-bar-label {
+    writing-mode: vertical-rl;
+    transform: rotate(180deg);
+    color: rgba(255, 245, 230, 0.9);
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+}
+
+.map-kitchen {
+    position: absolute;
+    left: 66%;
+    top: 81.3%;
+    width: 30%;
+    height: 16.4%;
+    border-radius: 12px;
+    background: linear-gradient(165deg, #f6f6f8 0%, #e7e7ec 100%);
+    border: 1px dashed rgba(110, 110, 125, 0.4);
+    box-shadow: inset 0 0 26px rgba(0, 0, 0, 0.06);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.map-kitchen-label,
+.map-entrance-label {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: rgba(110, 110, 125, 0.75);
+    background: rgba(255, 255, 255, 0.75);
+    padding: 3px 10px;
+    border-radius: 999px;
+}
+
+.map-entrance {
+    position: absolute;
+    left: 23%;
+    top: 93.9%;
+    width: 15%;
+    height: 5%;
+    border-radius: 8px 8px 0 0;
+    background: rgba(255, 255, 255, 0.8);
+    border: 2px solid rgba(90, 60, 25, 0.28);
+    border-bottom: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    box-shadow: inset 0 4px 8px rgba(0, 0, 0, 0.06);
+}
+
+.map-entrance-arrow {
+    color: rgba(110, 80, 40, 0.6);
+    font-size: 10px;
+}
+
+/* ---------- Zones ---------- */
+
+.map-zone {
+    position: absolute;
+    border: 1.5px dashed rgba(110, 80, 40, 0.32);
+    border-radius: 16px;
+    background: linear-gradient(165deg, rgba(255, 253, 247, 0.52), rgba(249, 242, 227, 0.34));
+    box-shadow:
+        inset 0 0 0 1px rgba(255, 255, 255, 0.4),
+        inset 0 2px 10px rgba(120, 85, 45, 0.05);
+    transition: background 0.2s ease, opacity 0.2s ease, box-shadow 0.2s ease;
+    pointer-events: none;
+}
+
+.map-zone-active {
+    background: linear-gradient(165deg, rgba(255, 253, 247, 0.78), rgba(250, 243, 228, 0.5));
+    box-shadow: inset 0 0 0 1px rgba(110, 80, 40, 0.14);
+}
+
+.map-zone-dimmed {
+    opacity: 0.45;
+}
+
+.map-zone-label {
+    position: absolute;
+    top: 6px;
+    left: 10px;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: rgba(90, 60, 25, 0.7);
+    background: rgba(255, 255, 255, 0.85);
+    padding: 2px 9px;
+    border-radius: 999px;
+    border: 1px solid rgba(120, 85, 45, 0.12);
+    box-shadow: 0 2px 8px rgba(60, 35, 10, 0.1);
+}
+
+/* ---------- Table nodes ---------- */
+
+.table-node {
+    position: absolute;
+    transform: translate(-50%, -50%);
+    z-index: 5;
+    cursor: pointer;
+}
+
+/* Soft contact shadow on the floor beneath each table. */
+.table-node::after {
+    content: '';
+    position: absolute;
+    left: 50%;
+    bottom: -7px;
+    transform: translateX(-50%);
+    width: 70%;
+    height: 11px;
+    border-radius: 50%;
+    background: radial-gradient(ellipse at center, rgba(60, 40, 20, 0.24), transparent 70%);
+    opacity: 0.5;
+    pointer-events: none;
+    transition: opacity 0.16s ease, width 0.16s ease, transform 0.16s ease;
+}
+
+.table-body {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    border-radius: 999px;
+    border: none;
+    background: transparent;
+    color: #1a1a2e;
+    transition: transform 0.16s ease, filter 0.16s ease;
+    cursor: pointer;
+}
+
+.table-node:hover .table-body {
+    transform: scale(1.12);
+    filter: drop-shadow(0 6px 10px rgba(0, 0, 0, 0.22));
+}
+
+.table-node:hover::after {
+    opacity: 0.9;
+    width: 96%;
+    transform: translateX(-50%) scaleY(1.35);
+}
+
+.table-node:hover .table-body.is-dimmed {
+    transform: none;
+    box-shadow: none;
+    filter: none;
+}
+
+/* ---- drag-and-drop state ---- */
+
+.table-node.is-dragging {
+    z-index: 40;
+    cursor: grabbing;
+}
+
+.table-node.is-dragging .table-body {
+    transform: scale(1.12);
+    filter: drop-shadow(0 10px 16px rgba(0, 0, 0, 0.3));
+}
+
+.table-node.is-dragging::after {
+    opacity: 0.9;
+    width: 98%;
+    transform: translateX(-50%) scaleY(1.4);
+}
+
+.drag-coords {
+    position: absolute;
+    left: 50%;
+    top: calc(100% + 10px);
+    transform: translateX(-50%);
+    background: rgba(23, 23, 28, 0.92);
+    color: #fff;
+    font-size: 10px;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: 0.04em;
+    padding: 3px 9px;
+    border-radius: 999px;
+    white-space: nowrap;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    z-index: 50;
+    pointer-events: none;
+}
+
+.is-rect {
+    border-radius: 12px;
+}
+
+.is-dimmed {
+    opacity: 0.3;
+    filter: grayscale(0.8);
+    pointer-events: none;
+}
+
+/* Status classes (kept for potential future use / border coloring). */
+.status-available { color: #047857; }
+.status-booked    { color: #B45309; }
+.status-occupied  { color: #B91C1C; }
+
+.table-label {
+    font-size: 11px;
+    font-weight: 800;
+    line-height: 1;
+    color: #1a1a2e;
+    text-shadow: 0 1px 3px rgba(255, 255, 255, 0.9);
+    pointer-events: none;
+    position: relative;
+    z-index: 3;
+}
+
+.table-seats {
+    font-size: 9px;
+    font-weight: 600;
+    margin-top: 2px;
+    color: #374151;
+    pointer-events: none;
+    position: relative;
+    z-index: 3;
+}
+
+.reserved-badge {
+    position: absolute;
+    top: -8px;
+    right: -10px;
+    min-width: 20px;
+    height: 20px;
+    border-radius: 999px;
+    background: linear-gradient(145deg, #fbbf24, #d97706);
+    color: #fff;
+    font-size: 10px;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 2px solid #fff;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.22);
+    padding: 0 3px;
+    z-index: 6;
+    pointer-events: none;
+}
+
+/* ---------- Tooltip (rendered at map level, above all table nodes) ---------- */
+
+.table-tooltip {
+    position: absolute;
+    /* left/bottom are set inline (map %); translateX keeps the box centred
+       on the table. Rendered as a sibling of the table nodes (not a child),
+       so no neighbouring table's stacking context can paint over it. */
+    transform: translateX(-50%);
+    width: 196px;
+    background: rgba(23, 23, 28, 0.95);
+    color: #fff;
+    border-radius: 12px;
+    padding: 10px 12px;
+    box-shadow: 0 14px 34px rgba(0, 0, 0, 0.35);
+    backdrop-filter: blur(6px);
+    /* The tooltip may visually overlap its own table (and the bridge extends
+       toward it); keep the container transparent to pointer events so the
+       table underneath stays draggable. Interactive children re-enable it. */
+    pointer-events: none;
+    z-index: 60;
+    cursor: default;
+}
+
+.table-tooltip::after {
+    content: '';
+    position: absolute;
+    left: 50%;
+    bottom: -5px;
+    width: 10px;
+    height: 10px;
+    background: rgba(23, 23, 28, 0.95);
+    transform: translateX(-50%) rotate(45deg);
+}
+
+.table-tooltip.tooltip-below::after {
+    top: -5px;
+    bottom: auto;
+}
+
+/* Invisible connector covering the whole gap between the table edge and the
+   tooltip (height set inline to match the real gap) so the hover path is
+   continuous — the tooltip never unmounts while the mouse travels from the
+   table to the “active booking — view” button. */
+.tt-bridge {
+    position: absolute;
+    width: 140px;
+    pointer-events: auto;
+}
+
+.tt-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 7px;
+}
+
+.tt-title {
+    font-weight: 700;
+    font-size: 13px;
+}
+
+.tt-status {
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: capitalize;
+    padding: 2px 8px;
+    border-radius: 999px;
+}
+
+.tt-status-available {
+    background: rgba(16, 185, 129, 0.25);
+    color: #6ee7b7;
+}
+
+.tt-status-booked {
+    background: rgba(245, 158, 11, 0.25);
+    color: #fcd34d;
+}
+
+.tt-status-occupied {
+    background: rgba(239, 68, 68, 0.25);
+    color: #fca5a5;
+}
+
+.tt-row {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    font-size: 11.5px;
+    color: rgba(255, 255, 255, 0.78);
+    margin-bottom: 4px;
+}
+
+.tt-row svg {
+    color: rgba(255, 255, 255, 0.55);
+    flex-shrink: 0;
+}
+
+.tt-bookings {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    width: 100%;
+    margin-top: 7px;
+    padding: 6px 8px;
+    border: none;
+    border-radius: 8px;
+    background: rgba(245, 158, 11, 0.16);
+    color: #fcd34d;
+    font-size: 11.5px;
+    font-weight: 600;
+    cursor: pointer;
+    pointer-events: auto;
+    transition: background 0.15s ease;
+}
+
+.tt-bookings:hover {
+    background: rgba(245, 158, 11, 0.28);
+}
+
+/* ---------- Preview ghost (Add/Edit modal in progress) ---------- */
+
+.preview-ghost {
+    position: absolute;
+    transform: translate(-50%, -50%);
+    border: 2px dashed #6366f1;
+    border-radius: 999px;
+    background: rgba(99, 102, 241, 0.14);
+    pointer-events: none;
+    z-index: 4;
+    animation: ghost-pulse 1.6s ease-in-out infinite;
+}
+
+.preview-ghost-rect {
+    border-radius: 12px;
+}
+
+@keyframes ghost-pulse {
+    0%,
+    100% {
+        box-shadow: 0 0 0 0 rgba(99, 102, 241, 0.35);
+    }
+    50% {
+        box-shadow: 0 0 0 12px rgba(99, 102, 241, 0);
+    }
+}
+
+/* ---------- Legend ---------- */
+
+.map-legend {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 16px;
+    margin-top: 14px;
+}
+
+.map-legend-item {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    font-size: 12.5px;
+    font-weight: 500;
+    color: #64748b;
+}
+
+.legend-dot {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.08);
+}
+
+.legend-dot-available {
+    background: #10b981;
+}
+
+.legend-dot-booked {
+    background: #f59e0b;
+}
+
+.legend-dot-occupied {
+    background: #ef4444;
+}
+
+.legend-sample-round {
+    width: 15px;
+    height: 15px;
+    border-radius: 50%;
+    background: linear-gradient(145deg, #34d399, #059669);
+    box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.12);
+}
+
+.legend-sample-rect {
+    width: 24px;
+    height: 14px;
+    border-radius: 5px;
+    background: linear-gradient(145deg, #34d399, #059669);
+    box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.12);
+}
+
+.map-hint {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 11.5px;
+    color: #94a3b8;
+    margin-left: auto;
+}
+
+.map-hint svg {
+    color: #94a3b8;
+}

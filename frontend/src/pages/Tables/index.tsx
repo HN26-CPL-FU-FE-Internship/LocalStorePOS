@@ -2,11 +2,11 @@ import { useEffect, useState } from 'react';
 import { Row, Col, Card, Button, Modal, Form, Alert, Spinner, Badge } from 'react-bootstrap';
 import { isAxiosError } from 'axios';
 import Icon from '@/components/common/Icon';
-import ApprovalRequestModal from '@/components/common/ApprovalRequestModal';
+import ConfirmModal from '@/components/common/ConfirmModal';
 import {
     createReservation,
     createTable,
-    createTableArea,
+    deleteTable,
     getReservations,
     getTableAreas,
     getTables,
@@ -17,26 +17,19 @@ import {
     type ReservationEntry,
     type ReservationStatus,
     type TableEntry,
+    type TableShape,
     type TableStatus,
 } from '@/api/table.api';
 import { getCustomerOptions } from '@/api/customer.api';
 import type { Option } from '@/api/item.api';
 import useContextData from '@/hooks/useContextData';
 import { ToastContext } from '@/provider/ToastProvider/ToastContext';
+import FloorMap from './components/FloorMap';
+import PositionPicker from './components/PositionPicker';
+import TableVisual from '@/components/common/TableVisual';
+import { findFreeSpot, getTableSize, tableRect, ZONE_GEOMETRY } from './components/floorMapConstants';
 // import styles from './Tables.module.scss';
 // import { bindCx } from '@/utils';
-
-const statusBadgeClass: Record<TableStatus, string> = {
-    available: 'badge-soft-success',
-    booked: 'badge-soft-warning',
-    occupied: 'badge-soft-danger',
-};
-
-const statusLabel: Record<TableStatus, string> = {
-    available: 'Available',
-    booked: 'Booked',
-    occupied: 'Occupied',
-};
 
 const reservationBadgeClass: Record<string, string> = {
     booked: 'badge-soft-warning',
@@ -46,7 +39,19 @@ const reservationBadgeClass: Record<string, string> = {
     paid: 'badge-soft-purple',
 };
 
-const emptyTableForm = { tableNumber: '', areaId: '', seats: '4' };
+const SEATS_BY_SHAPE: Record<string, string[]> = {
+    ROUND: ['6', '8', '10'],
+    RECTANGLE: ['4', '6', '8'],
+};
+
+const emptyTableForm = {
+    tableNumber: '',
+    areaId: '',
+    seats: '6',
+    xPosition: '500',
+    yPosition: '320',
+    shape: 'ROUND' as TableShape,
+};
 const emptyReservationForm = {
     customerId: '',
     tableId: '',
@@ -55,35 +60,6 @@ const emptyReservationForm = {
     notes: '',
     status: 'booked' as ReservationStatus,
 };
-
-const getTableColor = (seats: number) => {
-    if (seats <= 4) return { table: '#ccfbf1', seat: '#99f6e4' };
-    if (seats <= 6) return { table: '#e0e7ff', seat: '#93c5fd' };
-    return { table: '#f3e8ff', seat: '#d8b4fe' };
-};
-
-const TableGraphic = ({ seats }: { seats: number }) => {
-    const { table, seat } = getTableColor(seats);
-    return (
-        <svg width="100" height="60" viewBox="0 0 100 60" className="mx-auto d-block">
-            <rect x="25" y="15" width="50" height="30" rx="8" fill={table} />
-            <rect x="35" y="8" width="12" height="5" rx="2.5" fill={seat} />
-            <rect x="53" y="8" width="12" height="5" rx="2.5" fill={seat} />
-            <rect x="35" y="47" width="12" height="5" rx="2.5" fill={seat} />
-            <rect x="53" y="47" width="12" height="5" rx="2.5" fill={seat} />
-            <rect x="18" y="22" width="5" height="16" rx="2.5" fill={seat} />
-            <rect x="77" y="22" width="5" height="16" rx="2.5" fill={seat} />
-        </svg>
-    );
-};
-
-const formatDateTime = (value: string) =>
-    new Date(value).toLocaleString('en-US', {
-        month: 'short',
-        day: '2-digit',
-        hour: '2-digit',
-        minute: '2-digit',
-    });
 
 // const cx = bindCx(styles);
 
@@ -95,29 +71,53 @@ const TablesPage = () => {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [notice, setNotice] = useState<string | null>(null);
-    const [areaFilter, setAreaFilter] = useState<number | ''>('');
 
     const [showAddTable, setShowAddTable] = useState(false);
     const [showEditTable, setShowEditTable] = useState(false);
-    const [showDeleteTableApproval, setShowDeleteTableApproval] = useState(false);
-    const [showDeleteAreaApproval, setShowDeleteAreaApproval] = useState(false);
-    const [showDeleteReservationApproval, setShowDeleteReservationApproval] = useState(false);
-    const [currentArea, setCurrentArea] = useState<Option | null>(null);
-    const [showAddArea, setShowAddArea] = useState(false);
     const [showReserve, setShowReserve] = useState(false);
     const [showEditReservation, setShowEditReservation] = useState(false);
     const [showReservationInfo, setShowReservationInfo] = useState(false);
     const [currentTable, setCurrentTable] = useState<TableEntry | null>(null);
     const [currentReservation, setCurrentReservation] = useState<ReservationEntry | null>(null);
     const [saving, setSaving] = useState(false);
-    const [showReservations, setShowReservations] = useState(true);
 
     const [tableForm, setTableForm] = useState(emptyTableForm);
-    const [newAreaName, setNewAreaName] = useState('');
     const [reservationForm, setReservationForm] = useState(emptyReservationForm);
+
+    const sidebarReservations = sidebarTable
+        ? allReservations.filter(
+              (r) => r.tableId === sidebarTable.id && (r.status === 'booked' || r.status === 'seated'),
+          )
+        : [];
+
+    // Live ghost marker on the map while typing coordinates in Add/Edit modal.
+    const previewCoords =
+        showAddTable || showEditTable
+            ? {
+                  x: Math.min(1000, Math.max(0, Number(tableForm.xPosition) || 0)),
+                  y: Math.min(640, Math.max(0, Number(tableForm.yPosition) || 0)),
+                  shape: tableForm.shape,
+                  seats: Number(tableForm.seats) || 6,
+              }
+            : null;
+
+    const openSpecificReservationInfo = (table: TableEntry, reservation: ReservationEntry) => {
+        setCurrentTable(table);
+        setCurrentReservation(reservation);
+        setShowBookingsSidebar(false);
+        setShowReservationInfo(true);
+    };
+
+    const openBookingsSidebar = (e: React.MouseEvent | null, table: TableEntry) => {
+        if (e) e.stopPropagation();
+        setSidebarTable(table);
+        setShowBookingsSidebar(true);
+    };
 
     const [showTableAction, setShowTableAction] = useState(false);
     const [showStatusModal, setShowStatusModal] = useState(false);
+    const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+    const [deleting, setDeleting] = useState(false);
     const [selectedStatus, setSelectedStatus] = useState<TableStatus>('available');
 
     const openTableAction = (table: TableEntry) => {
@@ -154,10 +154,9 @@ const TablesPage = () => {
         setLoading(true);
         setError(null);
         try {
-            const [tablesData, reservationsData] = await Promise.all([
-                getTables({ areaId: areaFilter || undefined, status: undefined }),
-                getReservations({}),
-            ]);
+            // Always load every table: the map is a single fixed layout and
+            // shows the whole restaurant at once.
+            const [tablesData, reservationsData] = await Promise.all([getTables({}), getReservations({})]);
             setTables(tablesData);
             setAllReservations(reservationsData);
         } catch {
@@ -181,8 +180,7 @@ const TablesPage = () => {
 
     useEffect(() => {
         loadTables();
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [areaFilter]);
+    }, []);
 
     useEffect(() => {
         if (!notice) return;
@@ -192,13 +190,64 @@ const TablesPage = () => {
 
     /* ---------- Table CRUD ---------- */
     const openAddTable = () => {
-        setTableForm({ ...emptyTableForm, areaId: areas[0] ? String(areas[0].id) : '' });
+        const areaId = areas[0] ? areas[0].id : 1;
+        // Default to a free spot inside the zone so the new table never
+        // starts on top of an existing one.
+        const size = getTableSize(6, 'ROUND');
+        const zone = ZONE_GEOMETRY[areaId];
+        const spot = zone
+            ? findFreeSpot(zone, size.width, size.height, tables
+                  .filter((t) => t.areaId === areaId && t.xPosition != null && t.yPosition != null)
+                  .map((t) => {
+                      const s = getTableSize(t.seats, t.shape);
+                      return tableRect(s.width, s.height, t.xPosition as number, t.yPosition as number);
+                  }))
+            : { x: 500, y: 320 };
+        setTableForm({
+            ...emptyTableForm,
+            areaId: String(areaId),
+            xPosition: String(spot.x),
+            yPosition: String(spot.y),
+        });
         setShowAddTable(true);
     };
 
     const { showToast } = useContextData(ToastContext);
 
+    /* Position used for collision checks when adding/editing. */
+    const tablePositionCheck = () => {
+        const size = getTableSize(Number(tableForm.seats) || 6, tableForm.shape);
+        const x = Number(tableForm.xPosition) || 0;
+        const y = Number(tableForm.yPosition) || 0;
+        return { size, x, y };
+    };
+
+    /**
+     * True when the form position overlaps another table (used for manual
+     * X/Y input — the picker already prevents overlap during drag).
+     */
+    const positionOverlapsExisting = (excludeId?: number) => {
+        const { size, x, y } = tablePositionCheck();
+        const own = tableRect(size.width, size.height, x, y);
+        return tables.some((t) => {
+            if (excludeId != null && t.id === excludeId) return false;
+            if (t.xPosition == null || t.yPosition == null) return false;
+            const s = getTableSize(t.seats, t.shape);
+            return (
+                own.left < t.xPosition + s.width / 2 &&
+                own.right > t.xPosition - s.width / 2 &&
+                own.top < t.yPosition + s.height / 2 &&
+                own.bottom > t.yPosition - s.height / 2
+            );
+        });
+    };
+
     const handleAddTable = async () => {
+        if (positionOverlapsExisting()) {
+            setError('Position overlaps another table. Pick a free spot on the map.');
+            showToast('error', 'Position overlaps another table.');
+            return;
+        }
         setSaving(true);
         setError(null);
         try {
@@ -206,6 +255,9 @@ const TablesPage = () => {
                 tableNumber: tableForm.tableNumber.trim(),
                 areaId: Number(tableForm.areaId),
                 seats: Number(tableForm.seats),
+                xPosition: Number(tableForm.xPosition),
+                yPosition: Number(tableForm.yPosition),
+                shape: tableForm.shape,
             });
             setShowAddTable(false);
             setNotice('Table added successfully.');
@@ -219,14 +271,31 @@ const TablesPage = () => {
         }
     };
 
-    // const openEditTable = (table: TableEntry) => {
-    //     setCurrentTable(table);
-    //     setTableForm({ tableNumber: table.tableNumber, areaId: String(table.areaId), seats: String(table.seats) });
-    //     setShowEditTable(true);
-    // };
+    const openEditTable = (table: TableEntry) => {
+        setCurrentTable(table);
+        const shape = table.shape ?? 'ROUND';
+        // Snap legacy seat counts (e.g. a 4-seat round table) to the first
+        // valid option for the shape, so the dropdown always matches the DB.
+        const validSeats = SEATS_BY_SHAPE[shape];
+        const seats = validSeats.includes(String(table.seats)) ? String(table.seats) : validSeats[0];
+        setTableForm({
+            tableNumber: table.tableNumber,
+            areaId: String(table.areaId),
+            seats,
+            xPosition: String(table.xPosition ?? 500),
+            yPosition: String(table.yPosition ?? 320),
+            shape,
+        });
+        setShowEditTable(true);
+    };
 
     const handleEditTable = async () => {
         if (!currentTable) return;
+        if (positionOverlapsExisting(currentTable.id)) {
+            setError('Position overlaps another table. Pick a free spot on the map.');
+            showToast('error', 'Position overlaps another table.');
+            return;
+        }
         setSaving(true);
         setError(null);
         try {
@@ -234,6 +303,9 @@ const TablesPage = () => {
                 tableNumber: tableForm.tableNumber.trim(),
                 areaId: Number(tableForm.areaId),
                 seats: Number(tableForm.seats),
+                xPosition: Number(tableForm.xPosition),
+                yPosition: Number(tableForm.yPosition),
+                shape: tableForm.shape,
             });
             setShowEditTable(false);
             setCurrentTable(null);
@@ -246,10 +318,67 @@ const TablesPage = () => {
         }
     };
 
-    // const openDeleteTable = (table: TableEntry) => {
-    //     setCurrentTable(table);
-    //     setShowDeleteTableApproval(true);
-    // };
+    /* ---- drag-and-drop position update (from the floor map) ---- */
+    const handleDragTable = async (tableId: number, x: number, y: number) => {
+        const table = tables.find((t) => t.id === tableId);
+        if (!table) return;
+
+        // Optimistic update: move the table immediately on the map.
+        setTables((prev) =>
+            prev.map((t) => (t.id === tableId ? { ...t, xPosition: x, yPosition: y } : t)),
+        );
+
+        try {
+            // Snap legacy seat counts to a valid value for the shape, so a
+            // stale row never blocks a drag (mirrors openEditTable).
+            const shape = table.shape ?? 'ROUND';
+            const validSeats = SEATS_BY_SHAPE[shape];
+            const seats = validSeats.includes(String(table.seats)) ? table.seats : Number(validSeats[0]);
+            await updateTable(tableId, {
+                tableNumber: table.tableNumber,
+                areaId: table.areaId,
+                seats,
+                xPosition: x,
+                yPosition: y,
+                shape,
+            });
+            setNotice(`Table ${table.tableNumber} moved to (${x}, ${y}).`);
+        } catch (err) {
+            setError(extractErrorMessage(err, 'Failed to save table position.'));
+            await loadTables(); // roll back to the server state
+        }
+    };
+
+    const activeTableBookings = (table: TableEntry) =>
+        allReservations.filter(
+            (r) => r.tableId === table.id && (r.status === 'booked' || r.status === 'seated'),
+        );
+
+    const openDeleteTable = (table: TableEntry) => {
+        setCurrentTable(table);
+        setShowTableAction(false);
+        setShowDeleteConfirm(true);
+    };
+
+    const handleDeleteTable = async () => {
+        if (!currentTable) return;
+        setDeleting(true);
+        setError(null);
+        try {
+            await deleteTable(currentTable.id);
+            setShowDeleteConfirm(false);
+            setNotice(`Table ${currentTable.tableNumber} deleted.`);
+            showToast('success', `Table ${currentTable.tableNumber} deleted.`);
+            setCurrentTable(null);
+            await loadTables();
+        } catch (err) {
+            setError(extractErrorMessage(err, 'Failed to delete table.'));
+            showToast('error', 'Failed to delete table.');
+            setShowDeleteConfirm(false);
+        } finally {
+            setDeleting(false);
+        }
+    };
 
     // const handleMarkOccupied = async (table: TableEntry) => {
     //     try {
@@ -270,28 +399,6 @@ const TablesPage = () => {
         } catch (err) {
             setError(extractErrorMessage(err, 'Cannot update table status.'));
         }
-    };
-
-    /* ---------- Area management ---------- */
-    const handleAddArea = async () => {
-        if (!newAreaName.trim()) return;
-        setSaving(true);
-        setError(null);
-        try {
-            await createTableArea(newAreaName.trim());
-            setNewAreaName('');
-            setAreas(await getTableAreas());
-            setNotice('Table area added successfully.');
-        } catch (err) {
-            setError(extractErrorMessage(err, 'Failed to add table area.'));
-        } finally {
-            setSaving(false);
-        }
-    };
-
-    const openDeleteArea = (area: Option) => {
-        setCurrentArea(area);
-        setShowDeleteAreaApproval(true);
     };
 
     /* ---------- Reservation ---------- */
@@ -381,20 +488,6 @@ const TablesPage = () => {
         }
     };
 
-    const openDeleteReservation = (reservation: ReservationEntry) => {
-        setCurrentReservation(reservation);
-        setShowDeleteReservationApproval(true);
-    };
-
-    const openReservationInfo = (table: TableEntry) => {
-        setCurrentTable(table);
-        const activeRes = allReservations.find(
-            (r) => r.tableId === table.id && (r.status === 'booked' || r.status === 'seated'),
-        );
-        setCurrentReservation(activeRes ?? null);
-        setShowReservationInfo(true);
-    };
-
     const handleCancelReservation = async () => {
         if (!currentReservation) return;
         try {
@@ -445,30 +538,11 @@ const TablesPage = () => {
                     </h3>
                 </div>
                 <div className="gap-2 d-flex align-items-center flex-wrap">
-                    <Button variant="white" onClick={() => setShowAddArea(true)}>
-                        <Icon name="map-pin-plus" className="me-1" />
-                        Manage Areas
-                    </Button>
                     <Button variant="primary" className="d-inline-flex align-items-center" onClick={openAddTable}>
                         <Icon name="circle-plus" className="me-1" />
                         Add Table
                     </Button>
                 </div>
-            </div>
-
-            <div className="d-flex flex-wrap gap-2 mb-4">
-                <Button variant={areaFilter === '' ? 'dark' : 'outline-warning'} onClick={() => setAreaFilter('')}>
-                    All Floors
-                </Button>
-                {areas.map((a) => (
-                    <Button
-                        key={a.id}
-                        variant={areaFilter === a.id ? 'dark' : 'outline-warning'}
-                        onClick={() => setAreaFilter(a.id)}
-                    >
-                        {a.name}
-                    </Button>
-                ))}
             </div>
 
             {notice && (
@@ -492,159 +566,15 @@ const TablesPage = () => {
             {!loading && tables.length === 0 && <div className="text-center py-5 text-muted">No tables found.</div>}
 
             {!loading && (
-                <Row>
-                    {tables.map((table) => {
-                        const tableReservation = allReservations.find(
-                            (r) => r.tableId === table.id && (r.status === 'booked' || r.status === 'seated'),
-                        );
-                        return (
-                            <Col xxl={3} lg={4} md={6} key={table.id}>
-                                <Card
-                                    className="mb-4 text-center"
-                                    style={{ cursor: 'pointer' }}
-                                    onClick={() => {
-                                        if (table.status === 'available') {
-                                            openTableAction(table);
-                                        } else {
-                                            openReservationInfo(table);
-                                        }
-                                    }}
-                                >
-                                    <Card.Body className="position-relative">
-                                        <div className="mt-3 mb-4">
-                                            <TableGraphic seats={table.seats} />
-                                        </div>
-
-                                        <h5 className="mb-1 fw-bold">{table.tableNumber}</h5>
-                                        <p className="mb-3 text-warning d-flex align-items-center justify-content-center small">
-                                            <Icon name="users" className="me-1" size={14} /> {table.seats} seats
-                                        </p>
-
-                                        <Badge bg="" className={statusBadgeClass[table.status]}>
-                                            {statusLabel[table.status]}
-                                        </Badge>
-
-                                        {tableReservation && (
-                                            <>
-                                                <hr className="my-3" />
-                                                <div className="text-center">
-                                                    <h6 className="mb-1 fw-bold">{tableReservation.customerName}</h6>
-                                                    <div className="text-warning small">
-                                                        {new Date(tableReservation.reservationTime).toLocaleDateString(
-                                                            'en-US',
-                                                            { month: 'short', day: '2-digit' },
-                                                        )}{' '}
-                                                        &bull;{' '}
-                                                        {new Date(tableReservation.reservationTime).toLocaleTimeString(
-                                                            'en-US',
-                                                            { hour: '2-digit', minute: '2-digit' },
-                                                        )}{' '}
-                                                        &bull; {tableReservation.guests} guests
-                                                    </div>
-                                                </div>
-                                            </>
-                                        )}
-                                    </Card.Body>
-                                </Card>
-                            </Col>
-                        );
-                    })}
-                </Row>
-            )}
-
-            {/* Upcoming Reservations */}
-            <div className="d-flex align-items-center justify-content-between mt-5 mb-4 border-top pt-4">
-                <h4 className="mb-0">Upcoming Reservations</h4>
-                <Button variant="outline-warning" onClick={() => setShowReservations(!showReservations)}>
-                    {showReservations ? 'Hide' : 'Show'}
-                </Button>
-            </div>
-
-            {showReservations && (
-                <Row>
-                    {allReservations.length === 0 && (
-                        <Col>
-                            <p className="text-muted">No upcoming reservations.</p>
-                        </Col>
-                    )}
-                    {allReservations.map((res) => (
-                        <Col xl={4} md={6} key={res.id}>
-                            <Card className="mb-4 shadow-sm border-0">
-                                <Card.Body>
-                                    <div className="d-flex justify-content-between mb-3">
-                                        <div className="d-flex align-items-center gap-3">
-                                            <div
-                                                className="bg-dark text-white text-center rounded p-2"
-                                                style={{ minWidth: '60px' }}
-                                            >
-                                                <div className="fw-bold">
-                                                    {new Date(res.reservationTime).toLocaleDateString('en-US', {
-                                                        month: 'short',
-                                                        day: '2-digit',
-                                                    })}
-                                                </div>
-                                                <div className="small text-muted">
-                                                    {new Date(res.reservationTime).getFullYear()}
-                                                </div>
-                                            </div>
-                                            <div>
-                                                <h6 className="mb-1 fw-bold">{res.customerName}</h6>
-                                                <div className="text-muted small d-flex align-items-center gap-2">
-                                                    <span>
-                                                        <Icon name="clock" className="me-1" />
-                                                        {new Date(res.reservationTime).toLocaleTimeString('en-US', {
-                                                            hour: '2-digit',
-                                                            minute: '2-digit',
-                                                        })}
-                                                    </span>
-                                                    <span>
-                                                        <Icon name="armchair" className="me-1" />
-                                                        Table {res.tableNumber}
-                                                    </span>
-                                                    <span>
-                                                        <Icon name="users" className="me-1" />
-                                                        {res.guests}
-                                                    </span>
-                                                </div>
-                                            </div>
-                                        </div>
-                                        <div>
-                                            <Badge
-                                                bg=""
-                                                className={reservationBadgeClass[res.status] || 'badge-soft-primary'}
-                                            >
-                                                {res.status.charAt(0).toUpperCase() + res.status.slice(1)}
-                                            </Badge>
-                                        </div>
-                                    </div>
-                                    <div className="d-flex justify-content-between align-items-center border-top pt-3">
-                                        <span className="text-muted small">
-                                            Created {formatDateTime(res.createdAt)}
-                                        </span>
-                                        <div className="d-flex gap-2">
-                                            <Button
-                                                variant="white"
-                                                size="sm"
-                                                className="btn-icon rounded-circle"
-                                                onClick={() => openEditReservation(res)}
-                                            >
-                                                <Icon name="pencil-line" />
-                                            </Button>
-                                            <Button
-                                                variant="white"
-                                                size="sm"
-                                                className="btn-icon rounded-circle text-danger"
-                                                onClick={() => openDeleteReservation(res)}
-                                            >
-                                                <Icon name="trash-2" />
-                                            </Button>
-                                        </div>
-                                    </div>
-                                </Card.Body>
-                            </Card>
-                        </Col>
-                    ))}
-                </Row>
+                <FloorMap
+                    tables={tables}
+                    reservations={allReservations}
+                    areas={areas}
+                    preview={previewCoords}
+                    onTableClick={openTableAction}
+                    onViewBookings={(table) => openBookingsSidebar(null, table)}
+                    onDragEnd={handleDragTable}
+                />
             )}
 
             {/* ---- Add / Edit Table Modal ---- */}
@@ -652,68 +582,192 @@ const TablesPage = () => {
                 { show: showAddTable, setShow: setShowAddTable, title: 'Add Table', onSubmit: handleAddTable },
                 { show: showEditTable, setShow: setShowEditTable, title: 'Edit Table', onSubmit: handleEditTable },
             ].map(({ show, setShow, title, onSubmit }) => (
-                <Modal key={title} show={show} onHide={() => setShow(false)} centered>
-                    <Modal.Header closeButton className="border-0 p-4 pb-3">
+                <Offcanvas
+                    key={title}
+                    show={show}
+                    onHide={() => setShow(false)}
+                    placement="end"
+                    style={{ width: 'min(92vw, 780px)' }}
+                >
+                    <Offcanvas.Header closeButton className="border-0 p-4 pb-2">
                         <h4 className="modal-title">{title}</h4>
-                    </Modal.Header>
+                    </Offcanvas.Header>
                     <Form
                         onSubmit={(e) => {
                             e.preventDefault();
                             onSubmit();
                         }}
                     >
-                        <Modal.Body className="p-4 pt-1">
-                            <Form.Group className="mb-3">
-                                <Form.Label>
-                                    Table Name<span className="text-danger"> *</span>
-                                </Form.Label>
-                                <Form.Control
-                                    type="text"
-                                    value={tableForm.tableNumber}
-                                    onChange={(e) => setTableForm((p) => ({ ...p, tableNumber: e.target.value }))}
-                                    required
-                                />
-                            </Form.Group>
-                            <Form.Group className="mb-3">
-                                <Form.Label>
-                                    Area<span className="text-danger"> *</span>
-                                </Form.Label>
-                                <Form.Select
-                                    value={tableForm.areaId}
-                                    onChange={(e) => setTableForm((p) => ({ ...p, areaId: e.target.value }))}
-                                    required
-                                >
-                                    <option value="">Select</option>
-                                    {areas.map((a) => (
-                                        <option key={a.id} value={a.id}>
-                                            {a.name}
-                                        </option>
-                                    ))}
-                                </Form.Select>
-                            </Form.Group>
-                            <Form.Group className="mb-3">
-                                <Form.Label>
-                                    Seats<span className="text-danger"> *</span>
-                                </Form.Label>
-                                <Form.Control
-                                    type="number"
-                                    min={1}
-                                    value={tableForm.seats}
-                                    onChange={(e) => setTableForm((p) => ({ ...p, seats: e.target.value }))}
-                                    required
-                                />
-                            </Form.Group>
-                            <div className="d-flex align-items-center justify-content-between gap-2 pt-1">
-                                <Button variant="light" className="w-100" onClick={() => setShow(false)}>
-                                    Cancel
-                                </Button>
-                                <Button variant="primary" type="submit" className="w-100" disabled={saving}>
-                                    {saving ? 'Saving...' : 'Save'}
-                                </Button>
-                            </div>
-                        </Modal.Body>
+                        <Offcanvas.Body className="p-4 pt-3">
+                            <Row className="g-4">
+                                <Col md={5}>
+                                    <Form.Group className="mb-3">
+                                        <Form.Label>
+                                            Table Name<span className="text-danger"> *</span>
+                                        </Form.Label>
+                                        <Form.Control
+                                            type="text"
+                                            placeholder="e.g. T10"
+                                            value={tableForm.tableNumber}
+                                            onChange={(e) => setTableForm((p) => ({ ...p, tableNumber: e.target.value }))}
+                                            required
+                                        />
+                                    </Form.Group>
+                                    <Form.Group className="mb-3">
+                                        <Form.Label>
+                                            Area<span className="text-danger"> *</span>
+                                        </Form.Label>
+                                        <Form.Select
+                                            value={tableForm.areaId}
+                                            onChange={(e) => setTableForm((p) => ({ ...p, areaId: e.target.value }))}
+                                            required
+                                        >
+                                            <option value="">Select</option>
+                                            {areas.map((a) => (
+                                                <option key={a.id} value={a.id}>
+                                                    {a.name}
+                                                </option>
+                                            ))}
+                                        </Form.Select>
+                                    </Form.Group>
+                                    {/* ---- Shape selector ---- */}
+                                    <Form.Group className="mb-3">
+                                        <Form.Label>
+                                            Table Type<span className="text-danger"> *</span>
+                                        </Form.Label>
+                                        <div className="d-flex gap-3">
+                                            {(['ROUND', 'RECTANGLE'] as const).map((s) => {
+                                                const isActive = tableForm.shape === s;
+                                                return (
+                                                    <button
+                                                        key={s}
+                                                        type="button"
+                                                        onClick={() =>
+                                                            setTableForm((p) => ({
+                                                                ...p,
+                                                                shape: s,
+                                                                seats: SEATS_BY_SHAPE[s][0],
+                                                            }))
+                                                        }
+                                                        style={{
+                                                            flex: 1,
+                                                            border: `2px solid ${isActive ? '#4361ee' : '#dee2e6'}`,
+                                                            borderRadius: 12,
+                                                            padding: '10px 8px 8px',
+                                                            background: isActive ? '#f0f3ff' : '#fff',
+                                                            cursor: 'pointer',
+                                                            transition: 'all 0.18s ease',
+                                                            outline: 'none',
+                                                        }}
+                                                    >
+                                                        <div
+                                                            style={{
+                                                                width: '100%',
+                                                                height: 68,
+                                                                position: 'relative',
+                                                                display: 'flex',
+                                                                alignItems: 'center',
+                                                                justifyContent: 'center',
+                                                            }}
+                                                        >
+                                                            <div style={{ width: s === 'ROUND' ? 68 : 90, height: s === 'ROUND' ? 68 : 56, position: 'relative' }}>
+                                                                <TableVisual
+                                                                    shape={s}
+                                                                    seats={Number(SEATS_BY_SHAPE[s][0])}
+                                                                    status="preview"
+                                                                />
+                                                            </div>
+                                                        </div>
+                                                        <div style={{ fontSize: 12, fontWeight: 600, color: isActive ? '#4361ee' : '#6c757d', marginTop: 4 }}>
+                                                            {s === 'ROUND' ? 'Round' : 'Rectangle'}
+                                                            <span style={{ fontSize: 11, fontWeight: 400, display: 'block', color: isActive ? '#6b7cda' : '#adb5bd' }}>
+                                                                {s === 'ROUND' ? '6 / 8 / 10 seats' : '4 / 6 / 8 seats'}
+                                                            </span>
+                                                        </div>
+                                                    </button>
+                                                );
+                                            })}
+                                        </div>
+                                    </Form.Group>
+                                    {/* ---- Seats dropdown (conditioned on shape) ---- */}
+                                    <Form.Group className="mb-3">
+                                        <Form.Label>
+                                            Seats<span className="text-danger"> *</span>
+                                        </Form.Label>
+                                        <Form.Select
+                                            value={tableForm.seats}
+                                            onChange={(e) => setTableForm((p) => ({ ...p, seats: e.target.value }))}
+                                            required
+                                        >
+                                            {SEATS_BY_SHAPE[tableForm.shape].map((s) => (
+                                                <option key={s} value={s}>
+                                                    {s} seats
+                                                </option>
+                                            ))}
+                                        </Form.Select>
+                                    </Form.Group>
+                                    <Row>
+                                        <Col xs={6}>
+                                            <Form.Group>
+                                                <Form.Label>Position X</Form.Label>
+                                                <Form.Control
+                                                    type="number"
+                                                    min={0}
+                                                    max={1000}
+                                                    value={tableForm.xPosition}
+                                                    onChange={(e) => setTableForm((p) => ({ ...p, xPosition: e.target.value }))}
+                                                    required
+                                                />
+                                            </Form.Group>
+                                        </Col>
+                                        <Col xs={6}>
+                                            <Form.Group>
+                                                <Form.Label>Position Y</Form.Label>
+                                                <Form.Control
+                                                    type="number"
+                                                    min={0}
+                                                    max={640}
+                                                    value={tableForm.yPosition}
+                                                    onChange={(e) => setTableForm((p) => ({ ...p, yPosition: e.target.value }))}
+                                                    required
+                                                />
+                                            </Form.Group>
+                                        </Col>
+                                    </Row>
+                                    <p className="text-muted small mb-0 mt-3">
+                                        <Icon name="info" size={13} className="me-1" />
+                                        Tip: click or drag on the floor plan to fine-tune the position.
+                                    </p>
+                                </Col>
+                                <Col md={7}>
+                                    <Form.Label className="d-block fw-semibold mb-2">
+                                        Place on floor plan
+                                    </Form.Label>
+                                    <PositionPicker
+                                        x={Number(tableForm.xPosition) || 0}
+                                        y={Number(tableForm.yPosition) || 0}
+                                        shape={tableForm.shape}
+                                        seats={Number(tableForm.seats) || 2}
+                                        areas={areas}
+                                        activeAreaId={tableForm.areaId ? Number(tableForm.areaId) : undefined}
+                                        existing={showEditTable && currentTable ? tables.filter((t) => t.id !== currentTable.id) : tables}
+                                        onPositionChange={(px, py) =>
+                                            setTableForm((p) => ({ ...p, xPosition: String(px), yPosition: String(py) }))
+                                        }
+                                    />
+                                </Col>
+                            </Row>
+                        </Offcanvas.Body>
+                        <div className="d-flex justify-content-end gap-2 border-top px-4 py-3">
+                            <Button variant="light" className="px-4" onClick={() => setShow(false)}>
+                                Cancel
+                            </Button>
+                            <Button variant="primary" type="submit" className="px-4" disabled={saving}>
+                                {saving ? 'Saving...' : title === 'Add Table' ? 'Add Table' : 'Save Changes'}
+                            </Button>
+                        </div>
                     </Form>
-                </Modal>
+                </Offcanvas>
             ))}
 
             {/* ---- Table Action Modal ---- */}
@@ -751,7 +805,20 @@ const TablesPage = () => {
                         </div>
                     ) : (
                         <Button
-                            className="w-100"
+                            variant="outline-primary"
+                            onClick={() => {
+                                setShowTableAction(false);
+                                if (currentTable) {
+                                    openEditTable(currentTable);
+                                }
+                            }}
+                        >
+                            <Icon name="pencil-line" className="me-2" />
+                            Edit Table (Position / Shape)
+                        </Button>
+
+                        <Button
+                            variant="primary"
                             onClick={() => {
                                 setShowTableAction(false);
                                 if (currentTable) {
@@ -761,9 +828,40 @@ const TablesPage = () => {
                         >
                             View Reservation
                         </Button>
-                    )}
+
+                        <hr className="my-1" />
+
+                        {currentTable && activeTableBookings(currentTable).length > 0 && (
+                            <p className="text-muted small mb-0">
+                                <Icon name="info" size={13} className="me-1" />
+                                Table has active bookings — delete is disabled.
+                            </p>
+                        )}
+                        <Button
+                            variant="outline-danger"
+                            disabled={currentTable ? activeTableBookings(currentTable).length > 0 : false}
+                            onClick={() => {
+                                if (currentTable) {
+                                    openDeleteTable(currentTable);
+                                }
+                            }}
+                        >
+                            <Icon name="trash-2" className="me-2" />
+                            Delete Table
+                        </Button>
+                     </div>
                 </Modal.Body>
             </Modal>
+
+            {/* ---- Delete Table Confirmation ---- */}
+            <ConfirmModal
+                show={showDeleteConfirm}
+                handleClose={() => setShowDeleteConfirm(false)}
+                type="delete"
+                data={`table ${currentTable?.tableNumber ?? ''}`}
+                action={handleDeleteTable}
+                actionDisabled={deleting}
+            />
 
             {/* ---- Set Status Modal ---- */}
             <Modal show={showStatusModal} onHide={() => setShowStatusModal(false)} centered>
@@ -793,44 +891,6 @@ const TablesPage = () => {
                             Save
                         </Button>
                     </div>
-                </Modal.Body>
-            </Modal>
-
-            {/* ---- Manage Areas Modal ---- */}
-            <Modal show={showAddArea} onHide={() => setShowAddArea(false)} centered>
-                <Modal.Header closeButton className="border-0 p-4 pb-3">
-                    <h4 className="modal-title">Manage Areas</h4>
-                </Modal.Header>
-                <Modal.Body className="p-4 pt-1">
-                    <div className="d-flex gap-2 mb-3">
-                        <Form.Control
-                            type="text"
-                            placeholder="New area name"
-                            value={newAreaName}
-                            onChange={(e) => setNewAreaName(e.target.value)}
-                        />
-                        <Button variant="primary" onClick={handleAddArea} disabled={saving}>
-                            Add
-                        </Button>
-                    </div>
-                    <ul className="list-unstyled mb-0">
-                        {areas.map((a) => (
-                            <li
-                                key={a.id}
-                                className="d-flex align-items-center justify-content-between border-bottom py-2"
-                            >
-                                {a.name}
-                                <Button
-                                    variant="white"
-                                    size="sm"
-                                    className="btn-icon rounded-circle"
-                                    onClick={() => openDeleteArea(a)}
-                                >
-                                    <Icon name="trash-2" className="text-danger" />
-                                </Button>
-                            </li>
-                        ))}
-                    </ul>
                 </Modal.Body>
             </Modal>
 
@@ -1097,68 +1157,6 @@ const TablesPage = () => {
                     </Modal.Body>
                 </Form>
             </Modal>
-
-            {/* ---- Delete Table Request Modal (requires approval) ---- */}
-            <ApprovalRequestModal
-                show={showDeleteTableApproval}
-                onHide={() => setShowDeleteTableApproval(false)}
-                actionLabel="delete"
-                requestType="DELETE_IMPORTANT_DATA"
-                description={`Delete table ${currentTable?.tableNumber ?? ''}`}
-                targetType="TABLE"
-                targetId={currentTable?.id}
-                targetDisplay={currentTable?.tableNumber}
-                additionalData={
-                    currentTable ? JSON.stringify({ targetType: 'TABLE', targetId: currentTable.id }) : null
-                }
-                onSent={() => {
-                    setShowDeleteTableApproval(false);
-                    setCurrentTable(null);
-                    setNotice('Delete table request sent.');
-                }}
-            />
-
-            {/* ---- Delete Area Request Modal (requires approval) ---- */}
-            <ApprovalRequestModal
-                show={showDeleteAreaApproval}
-                onHide={() => setShowDeleteAreaApproval(false)}
-                actionLabel="delete"
-                requestType="DELETE_IMPORTANT_DATA"
-                description={`Delete area ${currentArea?.name ?? ''}`}
-                targetType="TABLE_AREA"
-                targetId={currentArea?.id}
-                targetDisplay={currentArea?.name}
-                additionalData={
-                    currentArea ? JSON.stringify({ targetType: 'TABLE_AREA', targetId: currentArea.id }) : null
-                }
-                onSent={() => {
-                    setShowDeleteAreaApproval(false);
-                    setCurrentArea(null);
-                    setNotice('Delete area request sent.');
-                }}
-            />
-
-            {/* ---- Delete Reservation Request Modal (requires approval) ---- */}
-            <ApprovalRequestModal
-                show={showDeleteReservationApproval}
-                onHide={() => setShowDeleteReservationApproval(false)}
-                actionLabel="delete"
-                requestType="DELETE_IMPORTANT_DATA"
-                description={`Delete reservation of ${currentReservation?.customerName ?? ''}`}
-                targetType="RESERVATION"
-                targetId={currentReservation?.id}
-                targetDisplay={currentReservation?.customerName}
-                additionalData={
-                    currentReservation
-                        ? JSON.stringify({ targetType: 'RESERVATION', targetId: currentReservation.id })
-                        : null
-                }
-                onSent={() => {
-                    setShowDeleteReservationApproval(false);
-                    setCurrentReservation(null);
-                    setNotice('Delete reservation request sent.');
-                }}
-            />
 
             {/* ---- Reservation Info Modal ---- */}
             <Modal show={showReservationInfo} onHide={() => setShowReservationInfo(false)} centered>

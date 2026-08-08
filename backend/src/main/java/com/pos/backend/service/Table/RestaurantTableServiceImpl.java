@@ -33,6 +33,7 @@ public class RestaurantTableServiceImpl implements RestaurantTableService {
     @Override
     @Transactional
     public RestaurantTableResponse createTable(RestaurantTableRequest request) {
+        validateShapeAndSeats(request.getShape(), request.getSeats());
         TableArea area = findAreaOrThrow(request.getAreaId());
 
         String tableNumber = request.getTableNumber().trim();
@@ -45,6 +46,9 @@ public class RestaurantTableServiceImpl implements RestaurantTableService {
                 .tableNumber(tableNumber)
                 .seats(request.getSeats())
                 .status(request.getStatus() != null ? request.getStatus() : TableStatus.available)
+                .xPosition(request.getXPosition())
+                .yPosition(request.getYPosition())
+                .shape(normalizeShape(request.getShape()))
                 .build();
 
         table = restaurantTableRepository.save(table);
@@ -56,6 +60,7 @@ public class RestaurantTableServiceImpl implements RestaurantTableService {
     @Transactional
     public RestaurantTableResponse updateTable(Long id, RestaurantTableRequest request) {
         RestaurantTable table = findTableOrThrow(id);
+        validateShapeAndSeats((request.getShape() != null && !request.getShape().isBlank()) ? request.getShape() : table.getShape(), request.getSeats());
         TableArea area = findAreaOrThrow(request.getAreaId());
 
         String tableNumber = request.getTableNumber().trim();
@@ -69,6 +74,15 @@ public class RestaurantTableServiceImpl implements RestaurantTableService {
 
         if (request.getStatus() != null) {
             table.setStatus(request.getStatus());
+        }
+        if (request.getXPosition() != null) {
+            table.setXPosition(request.getXPosition());
+        }
+        if (request.getYPosition() != null) {
+            table.setYPosition(request.getYPosition());
+        }
+        if (request.getShape() != null && !request.getShape().isBlank()) {
+            table.setShape(normalizeShape(request.getShape()));
         }
 
         table = restaurantTableRepository.save(table);
@@ -102,6 +116,30 @@ public class RestaurantTableServiceImpl implements RestaurantTableService {
                 .orElseThrow(() -> new AppException(ErrorCode.TABLE_AREA_NOT_FOUND));
     }
 
+    private String normalizeShape(String shape) {
+        if (shape == null || shape.isBlank()) {
+            return "ROUND";
+        }
+        String normalized = shape.trim().toUpperCase();
+        return "RECTANGLE".equals(normalized) ? "RECTANGLE" : "ROUND";
+    }
+
+    private void validateShapeAndSeats(String shape, Integer seats) {
+        String normShape = normalizeShape(shape);
+        if (seats == null) {
+            return;
+        }
+        if ("ROUND".equals(normShape)) {
+            if (seats != 6 && seats != 8 && seats != 10) {
+                throw new AppException(ErrorCode.INVALID_TABLE_CAPACITY);
+            }
+        } else if ("RECTANGLE".equals(normShape)) {
+            if (seats != 4 && seats != 6 && seats != 8) {
+                throw new AppException(ErrorCode.INVALID_TABLE_CAPACITY);
+            }
+        }
+    }
+
     private RestaurantTableResponse toResponse(RestaurantTable table) {
         return RestaurantTableResponse.builder()
                 .id(table.getId())
@@ -110,6 +148,9 @@ public class RestaurantTableServiceImpl implements RestaurantTableService {
                 .areaName(table.getArea() != null ? table.getArea().getName() : null)
                 .seats(table.getSeats())
                 .status(table.getStatus().name())
+                .xPosition(table.getXPosition())
+                .yPosition(table.getYPosition())
+                .shape(table.getShape())
                 .createdAt(table.getCreatedAt())
                 .updatedAt(table.getUpdatedAt())
                 .build();
