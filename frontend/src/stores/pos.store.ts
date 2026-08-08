@@ -1,6 +1,7 @@
-import type { CartItem, OrderSummary, POSItem } from '@/types';
+import type { CartItem, CartItemStatus, OrderSummary, POSItem } from '@/types';
 import type { SingleValue } from 'react-select';
 import { create } from 'zustand';
+import { buildMenuItemKey, isItemStarted } from '@/utils';
 
 type CreateOrderStore = {
     orderActiveType: string;
@@ -82,15 +83,22 @@ const usePOSCreateOrder = create<CreateOrderStore>((set) => ({
             waiter: null,
         })),
     addToCart: (payload) => {
-        const cartId = `${payload.item.id}-${payload.variationId ?? 'base'}-${payload.item.addons.map((a) => `${a.id}x${a.quantity}`).join('-') ?? 'no-addons'}`;
+        const cartId = buildMenuItemKey(
+            payload.item.id,
+            payload.variationId != null ? String(payload.variationId) : null,
+            payload.item.addons.map((a) => ({ addonId: a.id, quantity: a.quantity })),
+        );
 
         set((state) => {
             const { cartItems } = state;
-            const existing = cartItems.find((item) => item.id === cartId);
+            // Never merge a new addition into a line the kitchen has already
+            // started (preparing) or finished (ready/served) — the new quantity
+            // stays a separate pending line.
+            const existing = cartItems.find((item) => item.id === cartId && !isItemStarted(item.status));
             if (existing) {
                 return {
                     cartItems: cartItems.map((c) =>
-                        c.id === cartId
+                        c.id === cartId && !isItemStarted(c.status)
                             ? {
                                   ...c,
                                   quantity: c.quantity + payload.quantity,
@@ -172,13 +180,28 @@ const usePOSCreateOrder = create<CreateOrderStore>((set) => ({
         })),
 
     loadFromOrder: (order, menuItems) => {
-        // Build minimal POSItem for each order item
-        const cartItems: CartItem[] = order.items.map((item) => {
-            const addonKey = item.addons.map((a) => `${a.addonId}x${a.quantity}`).join('-');
-            const cartId = `${item.itemId}-${item.sizeName ?? 'base'}-${addonKey || 'no-addons'}`;
+        const cartItems: CartItem[] = [];
+        // Fresh (pending) lines are merged into a single cart line per key;
+        // lines the kitchen already started or finished (preparing/ready/served)
+        // are kept separate so new additions can never merge into them.
+        // Cancelled history lines are skipped entirely.
+        const pendingByKey = new Map<string, CartItem>();
+
+        order.items.forEach((item) => {
+            if (item.status === 'cancelled') return;
+
+            // Canonical key uses the variation id (same as addToCart and the
+            // backend's buildExistingItemKey) so sized lines load and re-add
+            // with the same id and merge correctly.
+            const baseId = buildMenuItemKey(
+                item.itemId,
+                item.variationId != null ? String(item.variationId) : null,
+                item.addons,
+            );
             const matchItem = menuItems.find((menuItem) => menuItem.id === item.itemId);
-            return {
-                id: cartId,
+
+            const buildLine = (id: string, status?: CartItemStatus): CartItem => ({
+                id,
                 item: {
                     id: item.itemId,
                     name: item.itemName,
@@ -216,7 +239,22 @@ const usePOSCreateOrder = create<CreateOrderStore>((set) => ({
                 quantity: item.quantity,
                 unitPrice: item.unitPrice,
                 note: item.kitchenNote ?? undefined,
-            };
+                status,
+            });
+
+            if (isItemStarted(item.status)) {
+                // Unique id so the started line can never be merged with a new addition
+                cartItems.push(buildLine(`${baseId}-${item.id}`, item.status as CartItemStatus));
+            } else {
+                const existing = pendingByKey.get(baseId);
+                if (existing) {
+                    existing.quantity += item.quantity;
+                } else {
+                    const line = buildLine(baseId, 'pending');
+                    pendingByKey.set(baseId, line);
+                    cartItems.push(line);
+                }
+            }
         });
 
         set(() => ({

@@ -4,7 +4,7 @@ import { Link, useLocation } from 'react-router-dom';
 import { useCallback, useMemo, useState } from 'react';
 
 import styles from './TabContent.module.scss';
-import { bindCx, formatHourAndMinute, formatString, orderUtils, toTitleCase } from '@/utils';
+import { bindCx, computeKitchenSplitItems, formatHourAndMinute, formatString, orderUtils, toTitleCase } from '@/utils';
 import {
     ROUTE_PERMISSION_MAP,
     type ConfirmType,
@@ -23,6 +23,7 @@ import ConfirmModal from '@/components/common/ConfirmModal';
 import ApprovalRequestModal from '@/components/common/ApprovalRequestModal';
 import OrderModal from '../OrderModal';
 import PayOrderModal from '../PayOrderModal';
+import PrintBillModal from '../PrintBillModal';
 import OrderItemRow from '../OrderItemRow';
 import { queryClient } from '@/lib';
 import useAuth from '@/hooks/useAuth';
@@ -40,6 +41,7 @@ const TabContent = ({ order }: { order: OrderSummary }) => {
     const [showConfirmModal, setShowConfirmModal] = useState(false);
     const [showOrderModal, setShowOrderModal] = useState(false);
     const [showOrderPay, setShowOrderPay] = useState(false);
+    const [showPrintModal, setShowPrintModal] = useState(false);
     const [updateStatus, setUpdateStatus] = useState<OrderUpdateStatus>();
     const [confirmType, setConfirmType] = useState<ConfirmType>('update');
     const [showApprovalModal, setShowApprovalModal] = useState(false);
@@ -52,6 +54,14 @@ const TabContent = ({ order }: { order: OrderSummary }) => {
     const visibleItems = useMemo(() => order.items.slice(0, VISIBLE_ITEMS_COUNT), [order.items]);
     const hiddenItems = useMemo(() => order.items.slice(VISIBLE_ITEMS_COUNT), [order.items]);
     const hiddenCount = hiddenItems.length;
+
+    // Same split detection as the order-detail modal & kitchen card: when the
+    // same menu item was ordered again after the first batch was prepared, tag
+    // the fresh lines as "Extra" and their started siblings with their status.
+    const { extraIds, splitStartedIds } = useMemo(
+        () => computeKitchenSplitItems(order.items),
+        [order.items],
+    );
 
     const handleOpenOrderModal = useCallback(() => setShowOrderModal(true), []);
     const handleCloseOrderModal = useCallback(() => setShowOrderModal(false), []);
@@ -145,7 +155,7 @@ const TabContent = ({ order }: { order: OrderSummary }) => {
                                         cx,
                                         onUpdateStatus: handleRequestStatusUpdate,
                                         onPay: orderUtils.onPay,
-                                        onPrint: orderUtils.onPrint,
+                                        onPrint: () => setShowPrintModal(true),
                                         onOpenModal: setShowOrderPay,
                                     }}
                                     order={order}
@@ -176,13 +186,23 @@ const TabContent = ({ order }: { order: OrderSummary }) => {
                                 }}
                             >
                                 {visibleItems.map((item) => (
-                                    <OrderItemRow key={item.id} item={item} />
+                                    <OrderItemRow
+                                        key={item.id}
+                                        item={item}
+                                        isExtra={extraIds.has(item.id)}
+                                        inSplit={splitStartedIds.has(item.id)}
+                                    />
                                 ))}
 
                                 {showItems && (
                                     <div className="more-menu">
                                         {hiddenItems.map((item) => (
-                                            <OrderItemRow key={item.id} item={item} />
+                                            <OrderItemRow
+                                                key={item.id}
+                                                item={item}
+                                                isExtra={extraIds.has(item.id)}
+                                                inSplit={splitStartedIds.has(item.id)}
+                                            />
                                         ))}
                                     </div>
                                 )}
@@ -246,6 +266,8 @@ const TabContent = ({ order }: { order: OrderSummary }) => {
                 onPaymentComplete={handlePaymentComplete}
                 isPaymentProcessing={payOrderMutate.isPending}
             />
+
+            <PrintBillModal show={showPrintModal} onHide={() => setShowPrintModal(false)} order={order} />
 
             <ConfirmModal
                 action={handleConfirm}

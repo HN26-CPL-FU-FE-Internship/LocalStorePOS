@@ -240,6 +240,7 @@ export type {
     ItemVariation,
     ItemAddon,
     CartItem,
+    CartItemStatus,
     PlaceOrder,
 } from './pos';
 export type {

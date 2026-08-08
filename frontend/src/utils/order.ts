@@ -70,14 +70,41 @@ export function calculateOrderTotals(params: CalculateOrderTotalsParams): Calcul
     return { discountValue: discVal, couponDiscount: coupVal, taxValue, finalTotal };
 }
 
+// ── Kitchen item status helpers ─────────────────────────────────────────
+
+/**
+ * Whether an order-item line has already been started or finished by the
+ * kitchen. New additions must never merge into these lines — the extra
+ * quantity is split off into a separate {@code pending} line instead.
+ */
+export function isItemStarted(status: string | null | undefined): boolean {
+    return status === 'preparing' || status === 'ready' || status === 'served';
+}
+
+/**
+ * Human-readable label + bootstrap variant for a line that is already in the
+ * kitchen (started or finished). Returns {@code null} for statuses that have
+ * not reached the kitchen yet (pending/cancelled).
+ */
+export function itemKitchenStatusBadge(status: string | null | undefined): { label: string; variant: string } | null {
+    switch (status) {
+        case 'preparing':
+            return { label: 'Cooking', variant: 'primary' };
+        case 'ready':
+            return { label: 'Ready', variant: 'success' };
+        case 'served':
+            return { label: 'Served', variant: 'secondary' };
+        default:
+            return null;
+    }
+}
+
 // ── Utilities object (backward compat for existing imports) ─────────────
 
 const orderUtils = {
     onPay: (order: OrderSummary) => {
         console.log(order);
     },
-
-    onPrint: () => {},
 
     canTransition: (currentStatus: OrderStatus, nextStatus: OrderStatus): boolean => {
         return ALLOWED_TRANSITIONS[currentStatus].has(nextStatus);

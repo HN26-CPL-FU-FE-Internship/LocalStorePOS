@@ -12,9 +12,16 @@ export {
     formatMonthDay,
     getYear,
 } from './date';
-export { default as orderUtils, calcPriceWithTax, calculateDiscount, calculateOrderTotals } from './order';
+export {
+    default as orderUtils,
+    calcPriceWithTax,
+    calculateDiscount,
+    calculateOrderTotals,
+    isItemStarted,
+    itemKitchenStatusBadge,
+} from './order';
 export { notifyTimerExpired, warmUpAudio } from './notification';
 export type { CalculateOrderTotalsParams, CalculateOrderTotalsResult } from './order';
 export { getFoodImage, getItemImage } from './image';
-export { calculateLineTotalPrice } from './pos';
+export { calculateLineTotalPrice, buildMenuItemKey, computeKitchenSplitItems } from './pos';
 export { calculateDeliveryCharge, getDeliveryChargeLabel } from './delivery';
