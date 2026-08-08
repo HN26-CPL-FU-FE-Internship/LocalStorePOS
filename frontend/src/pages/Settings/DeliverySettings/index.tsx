@@ -1,7 +1,15 @@
 import { useCallback, useEffect, useState } from 'react';
+import { queryClient } from '@/lib';
+import { DELIVERY_SETTING_QUERY_KEY } from '@/hooks/pos/useDeliverySetting';
 import { Card, Button, Form, Alert } from 'react-bootstrap';
 import Icon from '@/components/common/Icon';
-import { getDeliverySetting, updateDeliverySetting, type DeliverySetting, type DeliverySettingFormData, type DeliveryChargeTypeValue } from '@/api/delivery-setting.api';
+import {
+    getDeliverySetting,
+    updateDeliverySetting,
+    type DeliverySetting,
+    type DeliverySettingFormData,
+    type DeliveryChargeTypeValue,
+} from '@/api/delivery-setting.api';
 
 const CHARGE_TYPES: { value: DeliveryChargeTypeValue; label: string }[] = [
     { value: 'free', label: 'Free Delivery' },
@@ -42,8 +50,10 @@ const DeliverySettingsPage = () => {
         }
     }, []);
 
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    useEffect(() => { loadSetting(); }, [loadSetting]);
+    useEffect(() => {
+        // eslint-disable-next-line react-hooks/set-state-in-effect
+        loadSetting();
+    }, [loadSetting]);
     useEffect(() => {
         if (!success) return;
         const t = setTimeout(() => setSuccess(null), 3000);
@@ -68,7 +78,9 @@ const DeliverySettingsPage = () => {
                 payload.minDeliveryOver = parseFloat(minDeliveryOver) || 0;
                 payload.minDistanceForFreeKm = parseFloat(minDistanceForFreeKm) || 0;
             }
-            await updateDeliverySetting(payload);
+            const updatedSetting = await updateDeliverySetting(payload);
+            setSetting(updatedSetting);
+            queryClient.setQueryData(DELIVERY_SETTING_QUERY_KEY, updatedSetting);
             setSuccess('Delivery settings updated successfully.');
         } catch (err: unknown) {
             setError(err instanceof Error ? err.message : 'Failed to update delivery settings.');
@@ -80,7 +92,9 @@ const DeliverySettingsPage = () => {
     if (loading && !setting) {
         return (
             <div className="d-flex justify-content-center align-items-center" style={{ minHeight: 200 }}>
-                <div className="spinner-border text-primary" role="status"><span className="visually-hidden">Loading...</span></div>
+                <div className="spinner-border text-primary" role="status">
+                    <span className="visually-hidden">Loading...</span>
+                </div>
             </div>
         );
     }
@@ -91,15 +105,28 @@ const DeliverySettingsPage = () => {
                 <div className="flex-grow-1">
                     <h3 className="mb-0">
                         Delivery Settings
-                        <Button variant="white" size="sm" className="btn-icon rounded-circle ms-2" onClick={loadSetting}>
+                        <Button
+                            variant="white"
+                            size="sm"
+                            className="btn-icon rounded-circle ms-2"
+                            onClick={loadSetting}
+                        >
                             <Icon name="refresh-ccw" />
                         </Button>
                     </h3>
                 </div>
             </div>
 
-            {success && <Alert variant="success" onClose={() => setSuccess(null)} dismissible>{success}</Alert>}
-            {error && <Alert variant="danger" onClose={() => setError(null)} dismissible>{error}</Alert>}
+            {success && (
+                <Alert variant="success" onClose={() => setSuccess(null)} dismissible>
+                    {success}
+                </Alert>
+            )}
+            {error && (
+                <Alert variant="danger" onClose={() => setError(null)} dismissible>
+                    {error}
+                </Alert>
+            )}
 
             <Card className="mb-0">
                 <Card.Body>
@@ -131,8 +158,15 @@ const DeliverySettingsPage = () => {
                                 <Card.Body>
                                     <h6 className="fw-bold text-dark mb-3">Free Delivery</h6>
                                     <Form.Group className="mb-0">
-                                        <Form.Label>Free Delivery Over ($) <span className="text-danger">*</span></Form.Label>
-                                        <Form.Control type="number" step="0.01" value={freeDeliveryOver} onChange={(e) => setFreeDeliveryOver(e.target.value)} />
+                                        <Form.Label>
+                                            Free Delivery Over ($) <span className="text-danger">*</span>
+                                        </Form.Label>
+                                        <Form.Control
+                                            type="number"
+                                            step="0.01"
+                                            value={freeDeliveryOver}
+                                            onChange={(e) => setFreeDeliveryOver(e.target.value)}
+                                        />
                                     </Form.Group>
                                 </Card.Body>
                             </Card>
@@ -144,8 +178,15 @@ const DeliverySettingsPage = () => {
                                 <Card.Body>
                                     <h6 className="fw-bold text-dark mb-3">Fixed Delivery Charges</h6>
                                     <Form.Group className="mb-0">
-                                        <Form.Label>Fixed Delivery Amount ($) <span className="text-danger">*</span></Form.Label>
-                                        <Form.Control type="number" step="0.01" value={fixedCharge} onChange={(e) => setFixedCharge(e.target.value)} />
+                                        <Form.Label>
+                                            Fixed Delivery Amount (%) <span className="text-danger">*</span>
+                                        </Form.Label>
+                                        <Form.Control
+                                            type="number"
+                                            step="0.01"
+                                            value={fixedCharge}
+                                            onChange={(e) => setFixedCharge(e.target.value)}
+                                        />
                                     </Form.Group>
                                 </Card.Body>
                             </Card>
@@ -157,23 +198,47 @@ const DeliverySettingsPage = () => {
                                 <Card.Body>
                                     <h6 className="fw-bold text-dark mb-3">Kilometer Based Delivery Charges</h6>
                                     <Form.Group className="mb-3">
-                                        <Form.Label>Per KM Delivery Charge ($) <span className="text-danger">*</span></Form.Label>
-                                        <Form.Control type="number" step="0.01" value={chargePerKm} onChange={(e) => setChargePerKm(e.target.value)} />
+                                        <Form.Label>
+                                            Per KM Delivery Charge ($) <span className="text-danger">*</span>
+                                        </Form.Label>
+                                        <Form.Control
+                                            type="number"
+                                            step="0.01"
+                                            value={chargePerKm}
+                                            onChange={(e) => setChargePerKm(e.target.value)}
+                                        />
                                     </Form.Group>
                                     <Form.Group className="mb-3">
-                                        <Form.Label>Minimum Delivery Over ($) <span className="text-danger">*</span></Form.Label>
-                                        <Form.Control type="number" step="0.01" value={minDeliveryOver} onChange={(e) => setMinDeliveryOver(e.target.value)} />
+                                        <Form.Label>
+                                            Minimum Delivery Over ($) <span className="text-danger">*</span>
+                                        </Form.Label>
+                                        <Form.Control
+                                            type="number"
+                                            step="0.01"
+                                            value={minDeliveryOver}
+                                            onChange={(e) => setMinDeliveryOver(e.target.value)}
+                                        />
                                     </Form.Group>
                                     <Form.Group className="mb-0">
-                                        <Form.Label>Minimum Distance for Free Delivery (KM) <span className="text-danger">*</span></Form.Label>
-                                        <Form.Control type="number" step="0.1" value={minDistanceForFreeKm} onChange={(e) => setMinDistanceForFreeKm(e.target.value)} />
+                                        <Form.Label>
+                                            Minimum Distance for Free Delivery (KM){' '}
+                                            <span className="text-danger">*</span>
+                                        </Form.Label>
+                                        <Form.Control
+                                            type="number"
+                                            step="0.1"
+                                            value={minDistanceForFreeKm}
+                                            onChange={(e) => setMinDistanceForFreeKm(e.target.value)}
+                                        />
                                     </Form.Group>
                                 </Card.Body>
                             </Card>
                         )}
 
                         <div className="d-flex align-items-center justify-content-end flex-wrap row-gap-2 border-top mt-4 pt-4">
-                            <Button variant="light" className="me-2" onClick={loadSetting}>Cancel</Button>
+                            <Button variant="light" className="me-2" onClick={loadSetting}>
+                                Cancel
+                            </Button>
                             <Button variant="primary" type="submit" disabled={saving}>
                                 {saving ? 'Saving...' : 'Save Changes'}
                             </Button>

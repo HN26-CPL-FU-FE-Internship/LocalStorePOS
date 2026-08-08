@@ -46,7 +46,7 @@ function OrderActionDropdown({ actions, order }: { actions: OrderActionDropdownP
             icon: 'pointer',
             label: 'Pay & Complete',
             onClick: handlePay,
-            visible: ['cashier', 'admin / owner'],
+            visible: ['cashier', 'admin / owner', 'delivery'],
         },
         {
             key: 'print',

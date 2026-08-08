@@ -40,6 +40,7 @@ public class ApprovalService {
         /**
          * Get paginated list of approval requests with optional filters.
          */
+        @Transactional(readOnly = true)
         public PageResponse<ApprovalRequestResponse> getApprovalRequests(ApprovalRequestFilter filter) {
                 PageRequest pageRequest = PageRequest.of(
                                 filter.getPage(),
@@ -70,6 +71,7 @@ public class ApprovalService {
         /**
          * Get a single approval request by ID.
          */
+        @Transactional(readOnly = true)
         public ApprovalRequestResponse getApprovalRequestById(Long id) {
                 ApprovalRequest request = approvalRequestRepository.findById(id)
                                 .orElseThrow(() -> new AppException(ErrorCode.APPROVAL_REQUEST_NOT_FOUND));
@@ -85,6 +87,8 @@ public class ApprovalService {
                 ApprovalRequest request = approvalRequestRepository.findById(requestId)
                                 .orElseThrow(() -> new AppException(ErrorCode.APPROVAL_REQUEST_NOT_FOUND));
 
+                ensureNotOwnRequest(request, approver);
+
                 if (request.getStatus() != ApprovalStatus.PENDING) {
                         throw new AppException(ErrorCode.APPROVAL_REQUEST_ALREADY_RESOLVED);
                 }
@@ -96,7 +100,14 @@ public class ApprovalService {
                 approvalRequestRepository.save(request);
 
                 // Execute the underlying business action now that the request
-                // has been approved (only then is the change applied).
+                // has been approved (only then is the change applied). If the
+                // action fails, the executor flips the request to FAILED.
+                //
+                // The action itself commits in a separate (REQUIRES_NEW)
+                // transaction, so if anything below fails the request status
+                // rolls back while the action may already be applied — a
+                // known trade-off, kept because the notification writes here
+                // are practically infallible.
                 approvalRequestExecutor.execute(request);
 
                 // Remove the pending broadcast notification so the resolved
@@ -104,18 +115,25 @@ public class ApprovalService {
                 notificationService.deleteTargetNotifications(
                                 request.getRequestType().name(), request.getId());
 
-                auditLogService.log(approver, AuditAction.APPROVAL_REQUEST_APPROVED,
-                                "ADMINISTRATION", "ApprovalRequest", request.getId(),
-                                "Approval request approved: " + request.getDescription()
-                                                + " | Type: " + request.getRequestType()
-                                                + " | Reason: " + actionRequest.getReason(),
-                                null, null, "SUCCESS", null);
+                boolean failed = request.getStatus() == ApprovalStatus.FAILED;
+                if (!failed) {
+                        auditLogService.log(approver, AuditAction.APPROVAL_REQUEST_APPROVED,
+                                        "ADMINISTRATION", "ApprovalRequest", request.getId(),
+                                        "Approval request approved: " + request.getDescription()
+                                                        + " | Type: " + request.getRequestType()
+                                                        + " | Reason: " + actionRequest.getReason(),
+                                        null, null, "SUCCESS", null);
+                }
 
                 // Notify the requester via WebSocket
-                String notifyTitle = "Approval request approved";
-                String notifyMsg = "Request \"" + request.getDescription()
-                                + "\" was approved by " + approver.getFirstName() + " " + approver.getLastName()
-                                + ".";
+                String notifyTitle = failed ? "Approval execution failed" : "Approval request approved";
+                String notifyMsg = failed
+                                ? "Request \"" + request.getDescription() + "\" was approved by "
+                                                + approver.getFirstName() + " " + approver.getLastName()
+                                                + " but the action could not be executed. Please check the approval request for details."
+                                : "Request \"" + request.getDescription()
+                                                + "\" was approved by " + approver.getFirstName() + " " + approver.getLastName()
+                                                + ".";
                 notificationService.createNotification(notifyTitle, notifyMsg, request.getRequestedBy());
 
                 return toResponse(request);
@@ -140,6 +158,8 @@ public class ApprovalService {
                         String notifyTitle, boolean approved) {
                 ApprovalRequest request = approvalRequestRepository.findById(requestId)
                                 .orElseThrow(() -> new AppException(ErrorCode.APPROVAL_REQUEST_NOT_FOUND));
+
+                ensureNotOwnRequest(request, actor);
 
                 if (request.getStatus() != ApprovalStatus.PENDING) {
                         throw new AppException(ErrorCode.APPROVAL_REQUEST_ALREADY_RESOLVED);
@@ -223,8 +243,18 @@ public class ApprovalService {
         }
 
         /**
+         * Prevent users from approving or rejecting their own requests.
+         */
+        private void ensureNotOwnRequest(ApprovalRequest request, User actor) {
+                if (request.getRequestedBy().getId().equals(actor.getId())) {
+                        throw new AppException(ErrorCode.CANNOT_RESOLVE_OWN_REQUEST);
+                }
+        }
+
+        /**
          * Get count of pending approval requests.
          */
+        @Transactional(readOnly = true)
         public long getPendingCount() {
                 return approvalRequestRepository.countByStatus(ApprovalStatus.PENDING);
         }

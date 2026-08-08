@@ -1,4 +1,5 @@
 import Icon from '@/components/common/Icon';
+import ItemStatusBadge from '@/components/common/ItemStatusBadge';
 import useUpdateItemStatus from '@/hooks/kitchen/useUpdateItemStatus';
 import useContextData from '@/hooks/useContextData';
 import { ToastContext } from '@/provider/ToastProvider/ToastContext';
@@ -6,7 +7,15 @@ import type { OrderItemType } from '@/types';
 import { formatAddonNote } from '@/utils';
 import { memo } from 'react';
 
-const KitchenOrderItemRow = ({ item }: { item: OrderItemType }) => {
+interface KitchenOrderItemRowProps {
+    item: OrderItemType;
+    /** This line is the freshly-added portion of a menu item already in the kitchen. */
+    isExtra?: boolean;
+    /** This started line has a sibling "extra" line — shows the split at a glance. */
+    inSplit?: boolean;
+}
+
+const KitchenOrderItemRow = ({ item, isExtra = false, inSplit = false }: KitchenOrderItemRowProps) => {
     const { addons, status } = item;
 
     const itemStatus = ['pending', 'preparing'].includes(status) ? 'danger' : 'success';
@@ -41,6 +50,7 @@ const KitchenOrderItemRow = ({ item }: { item: OrderItemType }) => {
                     <span className={`dot ${itemStatus}`}></span>
                     {item.itemName}
                     {item.sizeName ? ` - ${item.sizeName}` : ''}
+                    <ItemStatusBadge status={inSplit ? status : null} extra={isExtra} />
                 </p>
                 <p className="text-dark">×{item.quantity}</p>
             </div>

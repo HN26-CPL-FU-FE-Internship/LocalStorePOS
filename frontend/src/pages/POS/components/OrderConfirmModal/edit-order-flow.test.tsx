@@ -53,6 +53,15 @@ vi.mock('@/provider/ToastProvider/ToastContext', () => ({
 vi.mock('@/utils', () => ({
     calculateLineTotalPrice: vi.fn((price: number, qty: number) => price * qty),
     toTitleCase: vi.fn((s: string) => s.charAt(0).toUpperCase() + s.slice(1).replace(/_/g, ' ')),
+    isItemStarted: vi.fn((status: string | null | undefined) =>
+        status === 'preparing' || status === 'ready' || status === 'served',
+    ),
+    itemKitchenStatusBadge: vi.fn((status: string | null | undefined) => {
+        if (status === 'preparing') return { label: 'Cooking', variant: 'primary' };
+        if (status === 'ready') return { label: 'Ready', variant: 'success' };
+        if (status === 'served') return { label: 'Served', variant: 'secondary' };
+        return null;
+    }),
 }));
 
 // ── Mock Icon component ───────────────────────────────────────────
@@ -261,5 +270,37 @@ describe('Edit Order Flow — OrderConfirmModal', () => {
         expect(twentyDollarElements.length).toBeGreaterThanOrEqual(1);
         expect(screen.getByText('$22')).toBeInTheDocument(); // total
         expect(screen.getByText('$2')).toBeInTheDocument(); // tax
+    });
+
+    // ── Already-cooked summary strip ─────────────────────
+
+    it('shows the already-cooked summary strip when the cart has cooked lines', () => {
+        mockStore = {
+            ...defaultStore,
+            cartItems: [
+                { ...sampleCartItems[0], status: 'ready' },
+                { ...sampleCartItems[0], id: '101-base-no-addons-new', quantity: 1 },
+            ],
+        };
+        render(<OrderConfirmModal {...defaultProps} />);
+        expect(screen.getByText(/Already cooking or cooked/)).toBeInTheDocument();
+        expect(screen.getByText(/not sent to the kitchen again/)).toBeInTheDocument();
+        expect(screen.getByText(/new pending items/)).toBeInTheDocument();
+        expect(screen.getByText(/· Ready/)).toBeInTheDocument(); // chip shows the status label
+    });
+
+    it('shows the summary strip for preparing lines too', () => {
+        mockStore = {
+            ...defaultStore,
+            cartItems: [{ ...sampleCartItems[0], status: 'preparing' }],
+        };
+        render(<OrderConfirmModal {...defaultProps} />);
+        expect(screen.getByText(/Already cooking or cooked/)).toBeInTheDocument();
+        expect(screen.getByText(/Cooking/)).toBeInTheDocument();
+    });
+
+    it('hides the already-cooked summary strip when nothing is cooked', () => {
+        render(<OrderConfirmModal {...defaultProps} />);
+        expect(screen.queryByText(/Already cooking or cooked/)).not.toBeInTheDocument();
     });
 });

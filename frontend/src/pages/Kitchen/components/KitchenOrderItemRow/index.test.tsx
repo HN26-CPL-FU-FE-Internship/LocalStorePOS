@@ -108,6 +108,36 @@ describe('KitchenOrderItemRow', () => {
         expect(screen.getByText(/x3/)).toBeInTheDocument();
     });
 
+    // ── Split labels (cooked + extra) ─────────────────────
+
+    it('renders an Extra badge when the line is the newly-added portion', () => {
+        renderWithProviders(<KitchenOrderItemRow item={baseItem} isExtra />);
+        expect(screen.getByText('Extra')).toBeInTheDocument();
+    });
+
+    it('renders a Cooking badge for a preparing line in a split', () => {
+        renderWithProviders(<KitchenOrderItemRow item={{ ...baseItem, status: 'preparing' }} inSplit />);
+        expect(screen.getByText('Cooking')).toBeInTheDocument();
+    });
+
+    it('renders a Ready badge for a ready line in a split', () => {
+        renderWithProviders(<KitchenOrderItemRow item={{ ...baseItem, status: 'ready' }} inSplit />);
+        expect(screen.getByText('Ready')).toBeInTheDocument();
+    });
+
+    it('renders a Served badge for a served line in a split', () => {
+        renderWithProviders(<KitchenOrderItemRow item={{ ...baseItem, status: 'served' }} inSplit />);
+        expect(screen.getByText('Served')).toBeInTheDocument();
+    });
+
+    it('does not render split badges by default', () => {
+        renderWithProviders(<KitchenOrderItemRow item={baseItem} />);
+        expect(screen.queryByText('Extra')).not.toBeInTheDocument();
+        expect(screen.queryByText('Cooking')).not.toBeInTheDocument();
+        expect(screen.queryByText('Ready')).not.toBeInTheDocument();
+        expect(screen.queryByText('Served')).not.toBeInTheDocument();
+    });
+
     // ── Combined rendering ────────────────────────────────
 
     it('renders item with all optional fields', () => {

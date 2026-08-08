@@ -56,6 +56,10 @@ class OrderFullFlowIntegrationTest {
     @Autowired private PaymentRepository paymentRepository;
     @Autowired private InvoiceRepository invoiceRepository;
     @Autowired private ReservationRepository reservationRepository;
+    @Autowired private ApprovalRequestRepository approvalRequestRepository;
+    @Autowired private HeldOrderRepository heldOrderRepository;
+    @Autowired private OrderRefundRepository orderRefundRepository;
+    @Autowired private UserPermissionOverrideRepository userPermissionOverrideRepository;
 
     // ── Shared test data ──────────────────────────────────────────────
 
@@ -69,6 +73,9 @@ class OrderFullFlowIntegrationTest {
     /** Delete all data in FK-safe order (children before parents). */
     private void cleanupDatabase() {
         reservationRepository.deleteAll();
+        approvalRequestRepository.deleteAll();
+        heldOrderRepository.deleteAll();
+        orderRefundRepository.deleteAll();
         invoiceRepository.deleteAll();
         paymentRepository.deleteAll();
         orderRepository.deleteAll();
@@ -77,6 +84,7 @@ class OrderFullFlowIntegrationTest {
         itemRepository.deleteAll();
         taxRepository.deleteAll();
         categoryRepository.deleteAll();
+        userPermissionOverrideRepository.deleteAll();
         userRepository.deleteAll();
         roleRepository.deleteAll();
         restaurantTableRepository.deleteAll();
@@ -452,5 +460,80 @@ class OrderFullFlowIntegrationTest {
             System.out.println("✅ " + c.name + ": $" + actual);
         }
         System.out.println("✅ TEST 7: All " + cases.size() + " formula cases match frontend");
+    }
+
+    // ═══════════════════════════════════════════════════════════════════
+    //  TEST 8  —  Re-order a ready item: updateOrder splits the extra
+    //             amount into a brand-new pending line (kitchen split)
+    // ═══════════════════════════════════════════════════════════════════
+    //
+    //  Create 2× $120 → kitchen marks complete (items become ready)
+    //  → waiter adds 1 more via updateOrder.
+    //  The ready line keeps its id & status at ×2, and the extra amount
+    //  spills into a new pending ×1 line — only the extra goes to the
+    //  kitchen. Totals are recomputed from the full new cart (3 × 120).
+
+    @Test
+    void test08_updateOrder_readyItemReordered() {
+        CreateOrderRequest req = CreateOrderRequest.builder()
+                .orderType(OrderType.dine_in.name())
+                .waiterId(waiter.getId()).tableId(table.getId())
+                .subtotal(item120.getPrice().multiply(bd("2")))
+                .taxAmount(bd("24.00"))
+                .serviceCharge(bd("12.00"))
+                .deliveryCharge(BigDecimal.ZERO)
+                .grandTotal(BigDecimal.ZERO)
+                .items(List.of(CreateOrderItemRequest.builder()
+                        .itemId(item120.getId()).itemName(item120.getName())
+                        .unitPrice(item120.getPrice()).quantity(2)
+                        .lineTotal(item120.getPrice().multiply(bd("2"))).build()))
+                .build();
+
+        OrderResponse order = posService.createOrder(req);
+        Long id = order.getId();
+
+        // Kitchen finishes the first batch → the item line becomes ready
+        kitchenService.markComplete(id);
+
+        // Waiter re-orders the same item, now wanting 3 in total
+        CreateOrderRequest updateReq = CreateOrderRequest.builder()
+                .orderType(OrderType.dine_in.name())
+                .waiterId(waiter.getId()).tableId(table.getId())
+                .subtotal(item120.getPrice().multiply(bd("3")))
+                .taxAmount(bd("36.00"))
+                .serviceCharge(bd("18.00"))
+                .deliveryCharge(BigDecimal.ZERO)
+                .grandTotal(BigDecimal.ZERO)
+                .items(List.of(CreateOrderItemRequest.builder()
+                        .itemId(item120.getId()).itemName(item120.getName())
+                        .unitPrice(item120.getPrice()).quantity(3)
+                        .lineTotal(item120.getPrice().multiply(bd("3"))).build()))
+                .build();
+
+        OrderResponse updated = posService.updateOrder(order.getOrderNumber(), updateReq);
+
+        // Totals are recomputed from the full new cart: 3 × 120 = 360
+        assertBdEq(bd("360.00"), updated.getSubtotal(), "subtotal after update");
+        assertBdEq(bd("36.00"), updated.getTaxAmount(), "tax after update");
+        assertBdEq(bd("18.00"), updated.getServiceCharge(), "service after update");
+        assertBdEq(bd("414.00"), updated.getGrandTotal(), "grandTotal after update");
+
+        // The split: one ready line (the cooked batch) + one pending line (the extra)
+        OrderResponse detail = orderService.getOrderDetail(order.getOrderNumber());
+        assertEquals(2, detail.getItems().size(), "re-order should produce two split lines");
+
+        var readyLine = detail.getItems().stream()
+                .filter(i -> "ready".equals(i.status())).findFirst().orElseThrow();
+        var pendingLine = detail.getItems().stream()
+                .filter(i -> "pending".equals(i.status())).findFirst().orElseThrow();
+
+        assertEquals(Integer.valueOf(2), readyLine.quantity(), "ready line keeps the cooked qty");
+        assertEquals(Integer.valueOf(1), pendingLine.quantity(), "pending line carries only the extra");
+        assertEquals(item120.getId(), readyLine.itemId());
+        assertEquals(item120.getId(), pendingLine.itemId());
+        assertEquals(item120.getName(), pendingLine.itemName());
+
+        System.out.println("✅ TEST 8: ready ×2 + pending ×1 after re-ordering 3 of "
+                + item120.getName() + " ($" + updated.getGrandTotal() + " total)");
     }
 }

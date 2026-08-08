@@ -71,6 +71,15 @@ export interface POSItem {
 /* ------------------------------------------------------------------ */
 /*  POS - Cart Item                                                   */
 /* ------------------------------------------------------------------ */
+
+/**
+ * Kitchen status of an order item loaded into the cart while editing an
+ * order. Lines the kitchen already started or finished ({@code preparing}/
+ * {@code ready}/{@code served}) are kept separate from newly-added ones so
+ * the kitchen cooks only the new quantity.
+ */
+export type CartItemStatus = 'pending' | 'preparing' | 'ready' | 'served';
+
 export interface CartItem {
     id: string; // unique key for cart line (itemId-variationId combo)
     item: POSItem;
@@ -80,6 +89,8 @@ export interface CartItem {
     quantity: number;
     unitPrice: number;
     note?: string;
+    /** Status of the underlying order item when editing (undefined = new line). */
+    status?: CartItemStatus;
 }
 
 export type PlaceOrder = {

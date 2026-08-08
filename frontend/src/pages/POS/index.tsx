@@ -10,10 +10,16 @@ import ItemDetailModal from './components/ItemDetailModal';
 import OrderConfirmModal from './components/OrderConfirmModal';
 import './components/ItemDetailModal/ItemDetailModal.scss';
 import Icon from '@/components/common/Icon';
-import { usePOSItems } from '@/hooks';
+import { useDeliverySetting, usePOSItems } from '@/hooks';
 import { useOrderDetail } from '@/hooks/order';
 import type { POSItem } from '@/types';
-import { calculateDiscount, calculateLineTotalPrice, formatDateTimeKitchen } from '@/utils';
+import {
+    calculateDeliveryCharge,
+    calculateDiscount,
+    calculateLineTotalPrice,
+    formatDateTimeKitchen,
+    getDeliveryChargeLabel,
+} from '@/utils';
 import POSRecentOrder from './components/POSRecentOrder';
 import AvailableTable from './components/AvailableTable';
 import MenuCategory from './components/MenuCategory';
@@ -24,7 +30,7 @@ import CartItemList from './components/CartItemList';
 import usePOSCreateOrder from '@/stores/pos.store';
 import { useShallow } from 'zustand/react/shallow';
 import PlaceOrder from './components/PlaceOrder';
-import { DELIVERY_CHARGE_RATE, SERVICE_CHARGE_RATE } from '@/constants';
+import { SERVICE_CHARGE_RATE } from '@/constants';
 
 function POS() {
     const categoriesSwiperRef = useRef<SwiperType>(null);
@@ -66,6 +72,11 @@ function POS() {
 
     /* ---- hooks ---- */
     const { data: menuItems = [], isLoading: itemsLoading } = usePOSItems(activeCategory);
+    const {
+        data: deliverySetting,
+        isLoading: isDeliverySettingLoading,
+        isError: isDeliverySettingError,
+    } = useDeliverySetting();
     const { data: editOrderData, isLoading: isEditOrderLoading } = useOrderDetail(
         editingOrderNumber === editOrderNumber ? editOrderNumber : null,
     );
@@ -158,8 +169,8 @@ function POS() {
     );
 
     const deliveryChargeAmount = useMemo(
-        () => calculateDiscount(cartSubtotal, DELIVERY_CHARGE_RATE * 100, 'percentage'),
-        [cartSubtotal],
+        () => calculateDeliveryCharge(cartSubtotal, deliverySetting),
+        [cartSubtotal, deliverySetting],
     );
 
     const orderTotal = useMemo(() => {
@@ -168,6 +179,9 @@ function POS() {
         else if (orderActiveType === 'delivery') charge = deliveryChargeAmount;
         return cartSubtotal + taxAmount + charge;
     }, [cartSubtotal, deliveryChargeAmount, orderActiveType, serviceChargeAmount, taxAmount]);
+
+    const isDeliveryChargeUnavailable =
+        orderActiveType === 'delivery' && (isDeliverySettingLoading || isDeliverySettingError || !deliverySetting);
 
     const cartTotalQty = useMemo(() => {
         return cartItems.reduce((sum, c) => sum + c.quantity, 0);
@@ -324,7 +338,7 @@ function POS() {
                                     )}
                                     {orderActiveType === 'delivery' && (
                                         <p className="fs-14 fw-normal d-flex align-items-center justify-content-between mb-0 mt-1">
-                                            Delivery Charge ({(DELIVERY_CHARGE_RATE * 100).toFixed(0)}%)
+                                            {getDeliveryChargeLabel(deliverySetting)}
                                             <span className="fw-medium text-dark">
                                                 ${deliveryChargeAmount.toLocaleString()}
                                             </span>
@@ -340,7 +354,14 @@ function POS() {
                         </div>
 
                         <div className="p-3">
-                            <PlaceOrder onShow={handleShowOrderConfirm} />
+                            <PlaceOrder onShow={handleShowOrderConfirm} disabled={isDeliveryChargeUnavailable} />
+                        {isDeliveryChargeUnavailable && (
+                            <p className="text-danger fs-13 mb-0 mt-2">
+                                {isDeliverySettingLoading
+                                    ? 'Loading delivery settings...'
+                                    : 'Delivery settings are unavailable. Please try again.'}
+                            </p>
+                        )}
                         </div>
                     </div>
                 </Col>

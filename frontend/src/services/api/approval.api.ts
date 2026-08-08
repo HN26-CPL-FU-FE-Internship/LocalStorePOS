@@ -18,7 +18,7 @@ export type ApprovalRequestType =
     | 'USER_CREATE_DELETE'
     | 'DELETE_IMPORTANT_DATA';
 
-export type ApprovalStatus = 'PENDING' | 'APPROVED' | 'REJECTED';
+export type ApprovalStatus = 'PENDING' | 'APPROVED' | 'REJECTED' | 'FAILED';
 
 export interface ApprovalRequestEntry {
     id: number;

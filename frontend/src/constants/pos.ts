@@ -37,4 +37,3 @@ export const ORDER_FILTERS = [
 ] as const;
 
 export const SERVICE_CHARGE_RATE = 0.05;
-export const DELIVERY_CHARGE_RATE = 0.05;

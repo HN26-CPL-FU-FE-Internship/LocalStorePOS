@@ -1,5 +1,11 @@
 import { describe, it, expect } from 'vitest';
-import { calculateDiscount, calculateOrderTotals, type CalculateOrderTotalsParams } from './order';
+import {
+    calculateDiscount,
+    calculateOrderTotals,
+    isItemStarted,
+    itemKitchenStatusBadge,
+    type CalculateOrderTotalsParams,
+} from './order';
 import type { CouponOrder } from '@/types';
 
 // ─────────────────────────────────────────────────────────────────────
@@ -95,9 +101,8 @@ describe('calculateDiscount', () => {
 //               + tipAmount
 //    rounded to 2 decimal places (Math.round(*100)/100), never negative
 //
-//  DIFFERENCE: Backend also includes + deliveryCharge.
-//  In the PayOrderModal, the frontend passes chargeAmount (service OR delivery)
-//  as the "serviceCharge" param, so delivery charge is effectively included.
+//  The frontend now passes serviceCharge and deliveryCharge separately,
+//  matching the backend formula.
 // ─────────────────────────────────────────────────────────────────────
 
 describe('calculateOrderTotals', () => {
@@ -219,6 +224,16 @@ describe('calculateOrderTotals', () => {
         });
     });
 
+    it('includes service and delivery charges independently', () => {
+        const result = calculateOrderTotals({
+            ...baseParams,
+            serviceCharge: 5,
+            deliveryCharge: 8,
+        });
+
+        expect(result.finalTotal).toBe(123);
+    });
+
     it('handles zero tax amount', () => {
         const result = calculateOrderTotals({
             ...baseParams,
@@ -325,11 +340,12 @@ describe('End-to-End: Frontend vs Backend Payment Calculation', () => {
     //              - discountValue
     //              - couponDiscount
     //              + taxAmount
-    //              + serviceCharge    ← PAYMENT page passes chargeAmount here
-    //              + tipAmount
+//              + serviceCharge
+//              + deliveryCharge
+//              + tipAmount
     //              → Math.round(max(0) * 100) / 100
     //
-    // The PayOrderModal passes chargeAmount (service OR delivery) as serviceCharge.
+    // The PayOrderModal passes both persisted charges independently.
     // So both formulas agree when tested with the same inputs.
     // ─────────────────────────────────────────────────────────────────
 
@@ -379,10 +395,6 @@ describe('End-to-End: Frontend vs Backend Payment Calculation', () => {
             // Backend result (includes deliveryCharge separately)
             const backendResult = simulateBackendProcessPayment(scenario);
 
-            // Frontend PayOrderModal passes chargeAmount = (dine_in ? serviceCharge : deliveryCharge) as serviceCharge
-            // For dine_in: serviceCharge is used, for delivery: deliveryCharge is used
-            const chargeAmount = serviceCharge > 0 ? serviceCharge : deliveryCharge;
-
             const frontendParams: CalculateOrderTotalsParams = {
                 subtotal,
                 discountAmount,
@@ -390,7 +402,8 @@ describe('End-to-End: Frontend vs Backend Payment Calculation', () => {
                 coupon,
                 tipAmount,
                 taxAmount,
-                serviceCharge: chargeAmount,
+                serviceCharge,
+                deliveryCharge,
             };
             const frontendResult = calculateOrderTotals(frontendParams);
 
@@ -715,7 +728,7 @@ describe('End-to-End: Frontend vs Backend Payment Calculation', () => {
             serviceCharge: 5,
         });
 
-        // 200% capped to 100% → Math.round(100 * 100 / 100) = 100
+        // 200% capped to 100% -> Math.round(100 * 100 / 100) = 100
         expect(result.discountValue).toBe(100);
         // final: 100 - 100 + 10 + 5 = 15
         expect(result.finalTotal).toBe(15);
@@ -733,11 +746,36 @@ describe('End-to-End: Frontend vs Backend Payment Calculation', () => {
             serviceCharge: 0,
         });
 
-        // 100% of 50 = 50 discount, coupon fixed $20 → Math.min(20, 50) = 20
-        // 50 - 50 - 20 + 0 + 0 + 0 = -20 → max(0, -20) = 0
+        // 100% of 50 = 50 discount, coupon fixed $20 -> Math.min(20, 50) = 20
+        // 50 - 50 - 20 + 0 + 0 + 0 = -20 -> max(0, -20) = 0
         // Backend would reject this with ZERO_TOTAL error
         expect(result.discountValue).toBe(50);
         expect(result.couponDiscount).toBe(20);
         expect(result.finalTotal).toBe(0);
+    });
+});
+
+// ─────────────────────────────────────────────────────────────────────
+//  isItemStarted / itemKitchenStatusBadge
+// ─────────────────────────────────────────────────────────────────────
+
+describe('kitchen item status helpers', () => {
+    it('isItemStarted returns true only for preparing/ready/served', () => {
+        expect(isItemStarted('preparing')).toBe(true);
+        expect(isItemStarted('ready')).toBe(true);
+        expect(isItemStarted('served')).toBe(true);
+        expect(isItemStarted('pending')).toBe(false);
+        expect(isItemStarted('cancelled')).toBe(false);
+        expect(isItemStarted(undefined)).toBe(false);
+        expect(isItemStarted(null)).toBe(false);
+    });
+
+    it('itemKitchenStatusBadge maps kitchen statuses to labels and variants', () => {
+        expect(itemKitchenStatusBadge('preparing')).toEqual({ label: 'Cooking', variant: 'primary' });
+        expect(itemKitchenStatusBadge('ready')).toEqual({ label: 'Ready', variant: 'success' });
+        expect(itemKitchenStatusBadge('served')).toEqual({ label: 'Served', variant: 'secondary' });
+        expect(itemKitchenStatusBadge('pending')).toBeNull();
+        expect(itemKitchenStatusBadge('cancelled')).toBeNull();
+        expect(itemKitchenStatusBadge(undefined)).toBeNull();
     });
 });

@@ -1,6 +1,6 @@
 import { Button, Modal, Table } from 'react-bootstrap';
 import Icon from '@/components/common/Icon';
-import { calculateLineTotalPrice, toTitleCase } from '@/utils';
+import { calculateLineTotalPrice, isItemStarted, itemKitchenStatusBadge, toTitleCase } from '@/utils';
 import usePOSCreateOrder from '@/stores/pos.store';
 import { useShallow } from 'zustand/react/shallow';
 import useContextData from '@/hooks/useContextData';
@@ -60,6 +60,11 @@ function OrderConfirmModal({
     const updateOrderMutation = useUpdateOrder();
     const isPending = placeOrderMutation.isPending || updateOrderMutation.isPending;
     const isEditing = Boolean(editingOrderNumber);
+
+    // Lines the kitchen has already started or finished (preparing/ready/served)
+    // keep their status on update — surface them so the waiter can see the
+    // started/new split before submitting.
+    const startedLines = cartItems.filter((c) => isItemStarted(c.status));
 
     const buildOrderPayload = () => ({
         orderType: orderActiveType,
@@ -200,6 +205,31 @@ function OrderConfirmModal({
                     <span className="badge bg-primary rounded-pill fs-12">{cartItems.length}</span>
                 </h6>
 
+                {startedLines.length > 0 && (
+                    <div className="alert alert-warning d-flex align-items-start gap-2 py-2 px-3 mb-3 rounded-3">
+                        <Icon name="chef-hat" className="fs-5 text-warning mt-1" />
+                        <div className="fs-13">
+                            <p className="mb-1 fw-semibold d-flex align-items-center">
+                                Already cooking or cooked — not sent to the kitchen again
+                            </p>
+                            <p className="mb-1 d-flex flex-wrap gap-1">
+                                {startedLines.map((c) => {
+                                    const badge = itemKitchenStatusBadge(c.status);
+                                    return (
+                                        <span key={c.id} className="badge bg-warning text-dark fs-12">
+                                            {c.item.name} ×{c.quantity}
+                                            {badge ? ` · ${badge.label}` : ''}
+                                        </span>
+                                    );
+                                })}
+                            </p>
+                            <p className="mb-0 text-muted">
+                                Everything else below will be sent to the kitchen as new pending items.
+                            </p>
+                        </div>
+                    </div>
+                )}
+
                 <div className="border rounded-3 overflow-hidden mb-3">
                     <Table className="mb-0 fs-13" size="sm">
                         <thead className="bg-light">
@@ -220,7 +250,15 @@ function OrderConfirmModal({
                             {cartItems.map((item) => (
                                 <tr key={item.id}>
                                     <td className="ps-3 py-2">
-                                        <div className="fw-medium text-dark">{item.item.name}</div>
+                                        <div className="fw-medium text-dark">
+                                            {item.item.name}
+                                            {item.status === 'ready' && (
+                                                <span className="badge bg-success fs-11 ms-1">Ready</span>
+                                            )}
+                                            {item.status === 'served' && (
+                                                <span className="badge bg-secondary fs-11 ms-1">Served</span>
+                                            )}
+                                        </div>
                                         {item.variationName && (
                                             <small className="text-muted">{item.variationName}</small>
                                         )}

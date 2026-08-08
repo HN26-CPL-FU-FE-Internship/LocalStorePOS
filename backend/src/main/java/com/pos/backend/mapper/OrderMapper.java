@@ -10,12 +10,9 @@ import com.pos.backend.entity.Order;
 public interface OrderMapper {
 
     @Mapping(target = "tableNumber", source = "table.tableNumber")
-    @Mapping(target = "tableId",     source = "table.id")
-    @Mapping(target = "waiterId",    source = "waiter.id")
-    @Mapping(target = "customerId",  source = "customer.id")
-    @Mapping(target = "items",       ignore = true)
-    @Mapping(target = "coupon",      ignore = true)
+    @Mapping(target = "items", ignore = true)
+    @Mapping(target = "coupon", ignore = true)
     @Mapping(target = "customerName", ignore = true)
-    @Mapping(target = "waiter",      ignore = true)
+    @Mapping(target = "waiter", ignore = true)
     OrderResponse toOrderResponse(Order order);
 }
