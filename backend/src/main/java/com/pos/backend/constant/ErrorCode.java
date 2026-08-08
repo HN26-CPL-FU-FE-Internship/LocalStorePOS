@@ -2,9 +2,14 @@ package com.pos.backend.constant;
 
 import org.springframework.http.HttpStatus;
 
+import lombok.AccessLevel;
 import lombok.Getter;
+import lombok.RequiredArgsConstructor;
+import lombok.experimental.FieldDefaults;
 
 @Getter
+@FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
+@RequiredArgsConstructor
 public enum ErrorCode {
     UNCATEGORIZED_EXCEPTION(9999, HttpStatus.INTERNAL_SERVER_ERROR, "Uncategorized Exception"),
     VALID_FAILED(1001, HttpStatus.UNPROCESSABLE_ENTITY, "Validated failed"),
@@ -23,7 +28,7 @@ public enum ErrorCode {
     USER_NOT_FOUND(1012, HttpStatus.NOT_FOUND, "User not found"),
     INVALID_AVATAR_FILE(1013, HttpStatus.BAD_REQUEST, "Invalid avatar file"),
     CAN_NOT_UPLOAD_FILE(1014, HttpStatus.INTERNAL_SERVER_ERROR, "Can not upload file"),
-    CATEGORY_NOT_FOUND(1015, HttpStatus.NOT_FOUND, "Category not found"),
+    CATEGORY_NOT_FOUND(1043, HttpStatus.NOT_FOUND, "Category not found"),
     CATEGORY_NAME_ALREADY_EXISTS(1016, HttpStatus.BAD_REQUEST, "Category name already exists"),
     CATEGORY_HAS_ITEMS(1017, HttpStatus.BAD_REQUEST, "Cannot delete category that still has items"),
     INVALID_IMAGE_FILE(1018, HttpStatus.BAD_REQUEST, "Invalid image file"),
@@ -57,35 +62,33 @@ public enum ErrorCode {
     CUSTOMER_PHONE_ALREADY_EXISTS(1041, HttpStatus.BAD_REQUEST, "Phone number already exists"),
 
     TABLE_AREA_NOT_FOUND(1042, HttpStatus.NOT_FOUND, "Table area not found"),
-    TABLE_AREA_NAME_ALREADY_EXISTS(1042, HttpStatus.BAD_REQUEST, "Table area name already exists"),
+    TABLE_AREA_NAME_ALREADY_EXISTS(1057, HttpStatus.BAD_REQUEST, "Table area name already exists"),
     RESTAURANT_TABLE_NOT_FOUND(1044, HttpStatus.NOT_FOUND, "Table not found"),
     TABLE_NUMBER_ALREADY_EXISTS(1045, HttpStatus.BAD_REQUEST, "Table number already exists"),
     TABLE_NOT_AVAILABLE(1046, HttpStatus.BAD_REQUEST, "Table is not available"),
 
     RESERVATION_NOT_FOUND(1047, HttpStatus.NOT_FOUND, "Reservation not found"),
 
-    INVOICE_NOT_FOUND(1045, HttpStatus.NOT_FOUND, "Invoice not found"),
-    ORDER_CANNOT_BE_EDITED(1046, HttpStatus.BAD_REQUEST, "Only unpaid pending orders can be edited."),
-    APPROVAL_REQUEST_NOT_FOUND(1047, HttpStatus.NOT_FOUND, "Approval request not found"),
+    INVOICE_NOT_FOUND(1058, HttpStatus.NOT_FOUND, "Invoice not found"),
+    ORDER_CANNOT_BE_EDITED(1059, HttpStatus.BAD_REQUEST, "Only unpaid pending orders can be edited."),
+    APPROVAL_REQUEST_NOT_FOUND(1060, HttpStatus.NOT_FOUND, "Approval request not found"),
     APPROVAL_REQUEST_ALREADY_RESOLVED(1048, HttpStatus.BAD_REQUEST, "Approval request has already been resolved"),
     APPROVAL_REQUEST_ALREADY_EXISTS(1050, HttpStatus.BAD_REQUEST,
             "A pending approval request already exists for this action"),
+    CANNOT_RESOLVE_OWN_REQUEST(1055, HttpStatus.BAD_REQUEST,
+            "You cannot approve or reject your own request"),
+    APPROVAL_DATA_INVALID(1056, HttpStatus.BAD_REQUEST,
+            "Approval request data is missing or invalid"),
     NOTIFICATION_NOT_FOUND(1049, HttpStatus.NOT_FOUND, "Notification not found"),
 
-    PAYMENT_NOT_FOUND(1050, HttpStatus.NOT_FOUND, "Payment not found"),
+    PAYMENT_NOT_FOUND(1061, HttpStatus.NOT_FOUND, "Payment not found"),
     PAYMENT_ALREADY_PROCESSED(1051, HttpStatus.BAD_REQUEST, "Payment has already been processed or cancelled"),
     PAYMENT_EXPIRED(1054, HttpStatus.BAD_REQUEST, "Payment QR code has expired"),
     INVALID_PAYMENT_AMOUNT(1052, HttpStatus.BAD_REQUEST, "Invalid payment amount"),
     ORDER_NOT_ELIGIBLE_FOR_QR(1053, HttpStatus.BAD_REQUEST, "Order is not eligible for QR payment"),
     ;
 
-    private final int code;
-    private final HttpStatus status;
-    private final String message;
-
-    ErrorCode(int code, HttpStatus status, String message) {
-        this.code = code;
-        this.status = status;
-        this.message = message;
-    }
+    int code;
+    HttpStatus status;
+    String message;
 }

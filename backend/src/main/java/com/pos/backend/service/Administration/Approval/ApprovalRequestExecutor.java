@@ -1,15 +1,21 @@
 package com.pos.backend.service.Administration.Approval;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.TransactionDefinition;
+import org.springframework.transaction.support.TransactionTemplate;
+
+import jakarta.annotation.PostConstruct;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.pos.backend.constant.ErrorCode;
+import com.pos.backend.constant.enums.ApprovalStatus;
 import com.pos.backend.constant.enums.AuditAction;
 import com.pos.backend.constant.enums.OrderItemStatus;
 import com.pos.backend.constant.enums.OrderStatus;
@@ -21,6 +27,7 @@ import com.pos.backend.dto.request.OrderItem.UpdateOrderItemRequest;
 import com.pos.backend.dto.request.User.UserCreationRequest;
 import com.pos.backend.entity.ApprovalRequest;
 import com.pos.backend.exception.AppException;
+import com.pos.backend.repository.ApprovalRequestRepository;
 import com.pos.backend.service.Addon.AddonService;
 import com.pos.backend.service.Administration.Permission.PermissionService;
 import com.pos.backend.service.Administration.UserServices.UserService;
@@ -73,31 +80,59 @@ public class ApprovalRequestExecutor {
     PermissionService permissionService;
     PaymentService paymentService;
     AuditLogService auditLogService;
+    ApprovalRequestRepository approvalRequestRepository;
+    PlatformTransactionManager transactionManager;
 
     /**
-     * Execute the approved request. Failures are caught, audit-logged with a
-     * FAILED status, but do NOT roll back the approval itself.
+     * Runs the approved business action in its own transaction so a failure
+     * never poisons the caller's approval transaction.
      */
-    @Transactional
+    @lombok.experimental.NonFinal
+    private TransactionTemplate actionTransactionTemplate;
+
+    @PostConstruct
+    void init() {
+        actionTransactionTemplate = new TransactionTemplate(transactionManager);
+        actionTransactionTemplate.setPropagationBehavior(TransactionDefinition.PROPAGATION_REQUIRES_NEW);
+    }
+
+    /**
+     * Execute the approved request. The underlying business action runs in its
+     * own transaction (REQUIRES_NEW) so a failure can never poison the approval
+     * transaction (which would otherwise end in an UnexpectedRollbackException
+     * or leave the request silently marked APPROVED).
+     *
+     * <p>If the action fails, the request is flipped to FAILED and the failure
+     * is audit-logged, so the outcome is visible to the approver and the
+     * requester instead of showing as a successful approval.</p>
+     */
     public void execute(ApprovalRequest request) {
         try {
-            switch (request.getRequestType()) {
-                case CANCEL_INVOICE -> cancelInvoice(request);
-                case REOPEN_PAID_INVOICE -> reopenPaidInvoice(request);
-                case DISCOUNT_EXCEEDS_THRESHOLD -> discountExceedsThreshold(request);
-                case CANCEL_KITCHEN_TICKET -> cancelKitchenTicket(request);
-                case CANCEL_ITEM_AFTER_KITCHEN -> cancelItemAfterKitchen(request);
-                case PRICE_CHANGE -> priceChange(request);
-                case PERMISSION_CHANGE -> permissionChange(request);
-                case USER_CREATE_DELETE -> userCreateDelete(request);
-                case DELETE_IMPORTANT_DATA -> deleteImportantData(request);
-                case REFUND_RETURN -> refundReturn(request);
-                case COMPLIMENTARY -> complimentary(request);
-                default -> log.warn("No executor for approval request type {}", request.getRequestType());
-            }
-        } catch (Exception e) {
+            actionTransactionTemplate.executeWithoutResult(status -> {
+                switch (request.getRequestType()) {
+                    case CANCEL_INVOICE -> cancelInvoice(request);
+                    case REOPEN_PAID_INVOICE -> reopenPaidInvoice(request);
+                    case DISCOUNT_EXCEEDS_THRESHOLD -> discountExceedsThreshold(request);
+                    case CANCEL_KITCHEN_TICKET -> cancelKitchenTicket(request);
+                    case CANCEL_ITEM_AFTER_KITCHEN -> cancelItemAfterKitchen(request);
+                    case PRICE_CHANGE -> priceChange(request);
+                    case PERMISSION_CHANGE -> permissionChange(request);
+                    case USER_CREATE_DELETE -> userCreateDelete(request);
+                    case DELETE_IMPORTANT_DATA -> deleteImportantData(request);
+                    case REFUND_RETURN -> refundReturn(request);
+                    case COMPLIMENTARY -> complimentary(request);
+                    default -> log.warn("No executor for approval request type {}", request.getRequestType());
+                }
+            });
+        } catch (RuntimeException e) {
+            // The action transaction has already rolled back; record the failure
+            // on the request (in the caller's transaction) so it does not stay
+            // silently APPROVED.
             log.error("Failed to execute approval request {} ({})",
                     request.getId(), request.getRequestType(), e);
+            request.setStatus(ApprovalStatus.FAILED);
+            request.setResolvedAt(LocalDateTime.now());
+            approvalRequestRepository.save(request);
             auditLogService.log(null, AuditAction.APPROVAL_REQUEST_APPROVED,
                     "ADMINISTRATION", "ApprovalRequest", request.getId(),
                     "Approval request executed but FAILED: " + request.getDescription()
@@ -125,7 +160,7 @@ public class ApprovalRequestExecutor {
         Long orderId = longField(data, "orderId");
         Object payment = data.get("paymentRequest");
         if (payment == null) {
-            throw new AppException(ErrorCode.APPROVAL_REQUEST_NOT_FOUND);
+            throw new AppException(ErrorCode.APPROVAL_DATA_INVALID);
         }
         OrderPaymentRequest paymentRequest = objectMapper.convertValue(payment, OrderPaymentRequest.class);
         orderService.processPayment(paymentRequest, orderId);
@@ -155,7 +190,7 @@ public class ApprovalRequestExecutor {
         }
         Object newPrice = data.get("newPrice");
         if (newPrice == null) {
-            throw new AppException(ErrorCode.APPROVAL_REQUEST_NOT_FOUND);
+            throw new AppException(ErrorCode.APPROVAL_DATA_INVALID);
         }
         itemService.updatePrice(itemId, new BigDecimal(String.valueOf(newPrice)));
     }
@@ -176,7 +211,7 @@ public class ApprovalRequestExecutor {
 
         Object permissions = data.get("permissions");
         if (permissions == null) {
-            throw new AppException(ErrorCode.APPROVAL_REQUEST_NOT_FOUND);
+            throw new AppException(ErrorCode.APPROVAL_DATA_INVALID);
         }
         RolePermissionsUpdateRequest req = new RolePermissionsUpdateRequest();
         req.setPermissions(objectMapper.convertValue(permissions,
@@ -194,7 +229,7 @@ public class ApprovalRequestExecutor {
                 payload = data.get("payload");
             }
             if (payload == null) {
-                throw new AppException(ErrorCode.APPROVAL_REQUEST_NOT_FOUND);
+                throw new AppException(ErrorCode.APPROVAL_DATA_INVALID);
             }
             UserCreationRequest userRequest = objectMapper.convertValue(payload, UserCreationRequest.class);
             userService.createUser(userRequest, null);
@@ -208,7 +243,7 @@ public class ApprovalRequestExecutor {
         String targetType = request.getTargetType();
         Long targetId = request.getTargetId();
         if (targetId == null) {
-            throw new AppException(ErrorCode.APPROVAL_REQUEST_NOT_FOUND);
+            throw new AppException(ErrorCode.APPROVAL_DATA_INVALID);
         }
         switch (targetType == null ? "" : targetType.toUpperCase()) {
             case "ITEM" -> itemService.deleteItem(targetId);
@@ -222,7 +257,7 @@ public class ApprovalRequestExecutor {
             case "TABLE_AREA" -> tableAreaService.deleteArea(targetId);
             case "RESERVATION" -> reservationService.deleteReservation(targetId);
             case "ROLE" -> permissionService.deleteRole(targetId);
-            default -> throw new AppException(ErrorCode.APPROVAL_REQUEST_NOT_FOUND);
+            default -> throw new AppException(ErrorCode.APPROVAL_DATA_INVALID);
         }
     }
 
@@ -253,7 +288,7 @@ public class ApprovalRequestExecutor {
         if (request.getTargetId() != null) {
             return request.getTargetId();
         }
-        throw new AppException(ErrorCode.APPROVAL_REQUEST_NOT_FOUND);
+        throw new AppException(ErrorCode.APPROVAL_DATA_INVALID);
     }
 
     private Long longField(Map<String, Object> data, String key) {
@@ -261,7 +296,7 @@ public class ApprovalRequestExecutor {
         if (value instanceof Number number) {
             return number.longValue();
         }
-        throw new AppException(ErrorCode.APPROVAL_REQUEST_NOT_FOUND);
+        throw new AppException(ErrorCode.APPROVAL_DATA_INVALID);
     }
 
     private Map<String, Object> parseData(ApprovalRequest request) {
@@ -273,7 +308,7 @@ public class ApprovalRequestExecutor {
             return objectMapper.readValue(raw, new TypeReference<Map<String, Object>>() {
             });
         } catch (Exception e) {
-            throw new AppException(ErrorCode.APPROVAL_REQUEST_NOT_FOUND);
+            throw new AppException(ErrorCode.APPROVAL_DATA_INVALID);
         }
     }
 }

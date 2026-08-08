@@ -1,7 +1,7 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import Icon from '@/components/common/Icon';
 import type { OrderSummary } from '@/types';
-import { formatDateTimeKitchen, notifyTimerExpired, toTitleCase, warmUpAudio } from '@/utils';
+import { computeKitchenSplitItems, formatDateTimeKitchen, notifyTimerExpired, toTitleCase, warmUpAudio } from '@/utils';
 import { Button, Card, Col, Spinner } from 'react-bootstrap';
 import KitchenOrderItemRow from '../KitchenOrderItemRow';
 import { KITCHEN_STATUSES } from '@/constants';
@@ -135,6 +135,13 @@ const OrderKitchenCard = ({ order }: { order: OrderSummary }) => {
           ? 'bg-danger'
           : 'bg-success';
 
+    // ── Split detection ───────────────────────────────────────────────
+    // When the same menu item (same variation + addons) appears more than
+    // once and at least one line has already been started/finished by the
+    // kitchen (preparing/ready/served), the fresh lines are the "extra" amount
+    // the customer added — tag them so the chef knows what still needs cooking.
+    const { extraIds, splitStartedIds } = useMemo(() => computeKitchenSplitItems(order.items), [order.items]);
+
     return (
         <Col xl={4} lg={6} md={6} className="d-flex">
             <Card className="flex-fill mb-0">
@@ -169,7 +176,12 @@ const OrderKitchenCard = ({ order }: { order: OrderSummary }) => {
                         }}
                     >
                         {order.items.map((item) => (
-                            <KitchenOrderItemRow key={item.id} item={item} />
+                            <KitchenOrderItemRow
+                                key={item.id}
+                                item={item}
+                                isExtra={extraIds.has(item.id)}
+                                inSplit={splitStartedIds.has(item.id)}
+                            />
                         ))}
                     </div>
                 </Card.Body>

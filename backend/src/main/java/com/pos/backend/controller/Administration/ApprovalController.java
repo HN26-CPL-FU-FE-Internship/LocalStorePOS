@@ -12,6 +12,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.pos.backend.constant.enums.ApprovalRequestType;
 import com.pos.backend.constant.enums.ApprovalStatus;
+import com.pos.backend.config.PermissionEvaluator;
 import com.pos.backend.dto.request.Administration.ApprovalActionRequest;
 import com.pos.backend.dto.request.Administration.CreateApprovalRequestPayload;
 import com.pos.backend.dto.response.ApiResponse;
@@ -33,6 +34,7 @@ public class ApprovalController {
 
         private final ApprovalService approvalService;
         private final UserRepository userRepository;
+        private final PermissionEvaluator perm;
 
         /**
          * Get paginated list of approval requests with optional filters.
@@ -79,9 +81,12 @@ public class ApprovalController {
                         Authentication authentication) {
 
                 User approver = getCurrentUser(authentication);
+                ApprovalRequestResponse response = approvalService.approveRequest(id, actionRequest, approver);
                 return ApiResponse.<ApprovalRequestResponse>builder()
-                                .result(approvalService.approveRequest(id, actionRequest, approver))
-                                .message("Approval request approved successfully")
+                                .result(response)
+                                .message(response.getStatus() == ApprovalStatus.FAILED
+                                                ? "Approval request approved but execution failed"
+                                                : "Approval request approved successfully")
                                 .build();
         }
 
@@ -115,14 +120,23 @@ public class ApprovalController {
 
         /**
          * Create a new approval request (utility endpoint for other services).
+         * Only users who could perform the underlying action directly may
+         * request it through the approval workflow.
          */
         @PostMapping
         @PreAuthorize("isAuthenticated()")
         public ApiResponse<ApprovalRequestResponse> createApprovalRequest(
-                        @RequestBody CreateApprovalRequestPayload payload,
+                        @Valid @RequestBody CreateApprovalRequestPayload payload,
                         Authentication authentication) {
 
                 User requester = getCurrentUser(authentication);
+
+                PermissionRequirement requirement = requiredPermission(payload.getRequestType(),
+                                payload.getTargetType());
+                if (!perm.hasPermission(authentication, requirement.module(), requirement.action())) {
+                        throw new AppException(ErrorCode.UNAUTHORIZED);
+                }
+
                 return ApiResponse.<ApprovalRequestResponse>builder()
                                 .result(approvalService.createRequest(
                                                 payload.getRequestType(),
@@ -139,12 +153,51 @@ public class ApprovalController {
         }
 
         // ──────────────────────────────────────────────────────────────
-        // Helper
+        // Helpers
         // ──────────────────────────────────────────────────────────────
 
         private User getCurrentUser(Authentication authentication) {
                 String email = authentication.getName();
                 return userRepository.findByEmail(email)
                                 .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
+        }
+
+        private record PermissionRequirement(String module, String action) {
+        }
+
+        /**
+         * Map an approval request type to the permission a user must already
+         * hold to be allowed to submit that request (the same permission the
+         * underlying action itself would require). DELETE_IMPORTANT_DATA
+         * depends on the target entity type.
+         */
+        private PermissionRequirement requiredPermission(ApprovalRequestType type, String targetType) {
+                return switch (type) {
+                        case CANCEL_INVOICE, DISCOUNT_EXCEEDS_THRESHOLD, REOPEN_PAID_INVOICE,
+                                        COMPLIMENTARY, CANCEL_ITEM_AFTER_KITCHEN ->
+                                new PermissionRequirement("Orders", "edit");
+                        case CANCEL_KITCHEN_TICKET ->
+                                new PermissionRequirement("Kitchen (KDS)", "edit");
+                        case REFUND_RETURN ->
+                                new PermissionRequirement("Payments", "edit");
+                        case PRICE_CHANGE ->
+                                new PermissionRequirement("Products", "edit");
+                        case PERMISSION_CHANGE, USER_CREATE_DELETE ->
+                                new PermissionRequirement("Manage Staffs", "edit");
+                        case DELETE_IMPORTANT_DATA -> switch (targetType == null ? "" : targetType.toUpperCase()) {
+                                case "ITEM" -> new PermissionRequirement("Products", "delete");
+                                case "ADDON" -> new PermissionRequirement("Addons", "delete");
+                                case "CATEGORY" -> new PermissionRequirement("Categories", "delete");
+                                case "CUSTOMER" -> new PermissionRequirement("Customers", "delete");
+                                case "COUPON" -> new PermissionRequirement("Coupons", "delete");
+                                case "INVOICE" -> new PermissionRequirement("Invoices", "delete");
+                                case "TAX" -> new PermissionRequirement("Settings", "delete");
+                                case "TABLE", "TABLE_AREA" -> new PermissionRequirement("Tables", "delete");
+                                case "RESERVATION" -> new PermissionRequirement("Reservation", "delete");
+                                case "ROLE" -> new PermissionRequirement("Manage Staffs", "delete");
+                                // Fail closed: unknown/omitted target types are rejected.
+                                default -> throw new AppException(ErrorCode.UNAUTHORIZED);
+                        };
+                };
         }
 }

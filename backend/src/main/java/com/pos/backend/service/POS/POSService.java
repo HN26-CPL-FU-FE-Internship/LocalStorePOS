@@ -1,8 +1,8 @@
 package com.pos.backend.service.POS;
 
+import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -225,7 +225,8 @@ public class POSService {
     public List<TableResponse> getAvailableTables() {
         return restaurantTableRepository.findAll().stream()
                 .filter(table -> table
-                        .getStatus() == com.pos.backend.constant.enums.TableStatus.available)
+                        .getStatus() == com.pos.backend.constant.enums.TableStatus.available
+                        || table.getStatus() == com.pos.backend.constant.enums.TableStatus.booked)
                 .map(table -> TableResponse.builder()
                         .id(table.getId())
                         .name(table.getTableNumber())
@@ -362,51 +363,167 @@ public class POSService {
      * <ul>
      * <li>lines that still exist (same item + variation + addons) are updated
      * in place — preserving their id and kitchen status;</li>
+     * <li>if a matched line is already started ({@code preparing}) or finished
+     * ({@code ready}/{@code served}) and the customer orders more of it, the
+     * extra quantity is split off into a brand-new {@code pending} line, so the
+     * kitchen cooks only the new amount while the old amount keeps its
+     * in-progress status;</li>
      * <li>brand-new lines are created;</li>
      * <li>removed lines are marked {@code cancelled} so the kitchen &amp; order
      * history keep a record of what was ordered.</li>
      * </ul>
      */
-    private void syncOrderItems(Order order, List<CreateOrderItemRequest> itemRequests, OrderReferenceMaps maps,
+    void syncOrderItems(Order order, List<CreateOrderItemRequest> itemRequests, OrderReferenceMaps maps,
             List<OrderItem> existingItems, Map<Long, List<OrderItemAddon>> existingAddonsByItemId) {
 
-        Map<String, OrderItem> existingByKey = new HashMap<>();
+        Map<String, List<OrderItem>> existingByKey = groupExistingByKey(existingItems, existingAddonsByItemId);
+
+        Map<String, List<CreateOrderItemRequest>> requestsByKey = new HashMap<>();
+        for (CreateOrderItemRequest itemReq : itemRequests) {
+            requestsByKey.computeIfAbsent(buildRequestItemKey(itemReq), key -> new ArrayList<>()).add(itemReq);
+        }
+
+        for (Map.Entry<String, List<CreateOrderItemRequest>> entry : requestsByKey.entrySet()) {
+            String key = entry.getKey();
+            List<CreateOrderItemRequest> reqs = entry.getValue();
+            List<OrderItem> existing = existingByKey.getOrDefault(key, List.of());
+
+            List<OrderItem> started = new ArrayList<>();
+            List<OrderItem> fresh = new ArrayList<>();
+            for (OrderItem item : existing) {
+                if (item.getStatus() == OrderItemStatus.preparing
+                        || item.getStatus() == OrderItemStatus.ready
+                        || item.getStatus() == OrderItemStatus.served) {
+                    started.add(item);
+                } else {
+                    fresh.add(item);
+                }
+            }
+
+            int requestTotal = reqs.stream()
+                    .mapToInt(req -> req.getQuantity() != null ? req.getQuantity() : 1)
+                    .sum();
+            // First request line is the template for price/note when the cart sends
+            // several lines for the same key (frontend merges same-priced lines, so
+            // per-line price drift is not expected here). No kept-ids bookkeeping:
+            // every existing line of a requested key is either kept or cancelled
+            // below, and keys absent from the request are cancelled in the final
+            // cleanup loop.
+            CreateOrderItemRequest template = reqs.get(0);
+
+            // 1. The requested quantity is first satisfied by the lines the
+            // kitchen has already started or finished — they keep their id & status
+            // (they may shrink if the customer ordered fewer).
+            int startedQty = started.stream().mapToInt(OrderItem::getQuantity).sum();
+            int toKeepStarted = Math.min(requestTotal, startedQty);
+            for (OrderItem line : started) {
+                int keep = Math.min(line.getQuantity(), toKeepStarted);
+                toKeepStarted -= keep;
+                if (keep == 0) {
+                    cancelItem(line);
+                    continue;
+                }
+                keepItem(line, template, keep);
+            }
+
+            // 2. The rest still needs cooking: merge into the fresh lines
+            // (pending — reviving cancelled ones) and, when the extra amount
+            // exceeds them, spill into a brand-new pending line. This is what
+            // separates the already-started amount from the newly-added amount.
+            int remaining = requestTotal - Math.min(requestTotal, startedQty);
+            int freshQty = fresh.stream().mapToInt(OrderItem::getQuantity).sum();
+
+            if (remaining == 0) {
+                for (OrderItem line : fresh) {
+                    cancelItem(line);
+                }
+            } else if (remaining < freshQty) {
+                // Shrink the fresh lines down to `remaining`
+                int left = remaining;
+                for (OrderItem line : fresh) {
+                    int take = Math.min(line.getQuantity(), left);
+                    left -= take;
+                    if (take == 0) {
+                        cancelItem(line);
+                        continue;
+                    }
+                    keepItem(line, template, take);
+                }
+            } else {
+                // Keep every fresh line and put the overflow on the first one
+                int overflow = remaining - freshQty;
+                boolean applied = false;
+                for (OrderItem line : fresh) {
+                    keepItem(line, template, line.getQuantity() + (applied ? 0 : overflow));
+                    applied = true;
+                }
+                if (!applied) {
+                    createOrderItem(order, splitRequest(template, remaining), maps);
+                }
+            }
+        }
+
+        // Lines whose key is no longer part of the order are cancelled
+        // (kept in DB for history)
+        for (Map.Entry<String, List<OrderItem>> entry : existingByKey.entrySet()) {
+            if (requestsByKey.containsKey(entry.getKey())) {
+                continue;
+            }
+            for (OrderItem item : entry.getValue()) {
+                cancelItem(item);
+            }
+        }
+    }
+
+    private Map<String, List<OrderItem>> groupExistingByKey(List<OrderItem> existingItems,
+            Map<Long, List<OrderItemAddon>> existingAddonsByItemId) {
+        Map<String, List<OrderItem>> grouped = new HashMap<>();
         for (OrderItem item : existingItems) {
             String key = buildExistingItemKey(item, existingAddonsByItemId.getOrDefault(item.getId(), List.of()));
-            existingByKey.put(key, item);
+            grouped.computeIfAbsent(key, k -> new ArrayList<>()).add(item);
         }
+        return grouped;
+    }
 
-        Set<Long> keptItemIds = new HashSet<>();
+    private void applyRequest(OrderItem line, CreateOrderItemRequest req, int quantity) {
+        line.setUnitPrice(req.getUnitPrice() != null ? req.getUnitPrice() : BigDecimal.ZERO);
+        line.setQuantity(quantity);
+        line.setLineTotal(line.getUnitPrice().multiply(BigDecimal.valueOf(quantity)));
+        line.setKitchenNote(req.getKitchenNote());
+    }
 
-        for (CreateOrderItemRequest itemReq : itemRequests) {
-            String key = buildRequestItemKey(itemReq);
-            OrderItem existing = existingByKey.remove(key);
+    private void keepItem(OrderItem line, CreateOrderItemRequest req, int quantity) {
+        applyRequest(line, req, quantity);
+        reviveIfCancelled(line);
+        orderItemRepository.save(line);
+    }
 
-            if (existing != null) {
-                // Update the existing line in place — id & kitchen status survive
-                existing.setUnitPrice(itemReq.getUnitPrice() != null ? itemReq.getUnitPrice() : BigDecimal.ZERO);
-                existing.setQuantity(itemReq.getQuantity() != null ? itemReq.getQuantity() : 1);
-                existing.setLineTotal(itemReq.getLineTotal() != null ? itemReq.getLineTotal() : BigDecimal.ZERO);
-                existing.setKitchenNote(itemReq.getKitchenNote());
-                // If it was cancelled in a previous edit and is re-added, revive it
-                if (existing.getStatus() == OrderItemStatus.cancelled) {
-                    existing.setStatus(OrderItemStatus.pending);
-                }
-                orderItemRepository.save(existing);
-                keptItemIds.add(existing.getId());
-            } else {
-                OrderItem created = createOrderItem(order, itemReq, maps);
-                keptItemIds.add(created.getId());
-            }
+    private void reviveIfCancelled(OrderItem line) {
+        if (line.getStatus() == OrderItemStatus.cancelled) {
+            line.setStatus(OrderItemStatus.pending);
         }
+    }
 
-        // Lines removed from the order are cancelled (kept in DB for history)
-        for (OrderItem item : existingItems) {
-            if (!keptItemIds.contains(item.getId()) && item.getStatus() != OrderItemStatus.cancelled) {
-                item.setStatus(OrderItemStatus.cancelled);
-                orderItemRepository.save(item);
-            }
+    private void cancelItem(OrderItem item) {
+        if (item.getStatus() != OrderItemStatus.cancelled) {
+            item.setStatus(OrderItemStatus.cancelled);
+            orderItemRepository.save(item);
         }
+    }
+
+    private CreateOrderItemRequest splitRequest(CreateOrderItemRequest req, int quantity) {
+        return CreateOrderItemRequest.builder()
+                .itemId(req.getItemId())
+                .variationId(req.getVariationId())
+                .itemName(req.getItemName())
+                .unitPrice(req.getUnitPrice())
+                .quantity(quantity)
+                .lineTotal(req.getUnitPrice() != null
+                        ? req.getUnitPrice().multiply(BigDecimal.valueOf(quantity))
+                        : BigDecimal.ZERO)
+                .kitchenNote(req.getKitchenNote())
+                .addons(req.getAddons())
+                .build();
     }
 
     private String buildRequestItemKey(CreateOrderItemRequest itemReq) {
@@ -502,7 +619,7 @@ public class POSService {
         orderRepository.save(order);
 
         // 5. Merge order items: update existing lines, create new ones,
-        //    and mark removed lines as cancelled (keeps kitchen state & history)
+        // and mark removed lines as cancelled (keeps kitchen state & history)
         syncOrderItems(order, request.getItems(), maps, existingItems, existingAddonsByItemId);
 
         // 6. Return response
@@ -514,7 +631,7 @@ public class POSService {
     }
 
     /* ------------------------------------------------------------------ */
-    /*  Shared helpers                                                     */
+    /* Shared helpers */
     /* ------------------------------------------------------------------ */
 
     private OrderReferenceMaps loadReferenceMaps(CreateOrderRequest request) {
@@ -656,7 +773,7 @@ public class POSService {
         restaurantTableRepository.save(table);
     }
 
-    private record OrderReferenceMaps(
+    record OrderReferenceMaps(
             Map<Long, Item> items,
             Map<Long, ItemVariation> variations,
             Map<Long, Addon> addons) {

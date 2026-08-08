@@ -1,6 +1,7 @@
 import Icon from '@/components/common/Icon';
+import ItemStatusBadge from '@/components/common/ItemStatusBadge';
 import type { OrderSummary } from '@/types';
-import { formatDateTimeOrder, formatHourAndMinute, toTitleCase } from '@/utils';
+import { computeKitchenSplitItems, formatDateTimeOrder, formatHourAndMinute, toTitleCase } from '@/utils';
 import { memo } from 'react';
 import { Button } from 'react-bootstrap';
 import Offcanvas from 'react-bootstrap/Offcanvas';
@@ -14,6 +15,11 @@ function OrderModal({
     onHide: () => void;
     orderContent: OrderSummary | null;
 }) {
+    // Same split detection as the kitchen card: when the same menu item was
+    // ordered again after the first batch was prepared, tag the fresh lines as
+    // "Extra" and their started siblings with their status.
+    const { extraIds, splitStartedIds } = computeKitchenSplitItems(orderContent?.items ?? []);
+
     return (
         <Offcanvas show={show} onHide={onHide} placement="end">
             <Offcanvas.Header className="d-block border-bottom">
@@ -103,6 +109,10 @@ function OrderModal({
                         <div key={item.id} className="mb-3">
                             <div className="fw-semibold">
                                 {item.itemName} <span>x{item.quantity}</span>
+                                <ItemStatusBadge
+                                    status={splitStartedIds.has(item.id) ? item.status : null}
+                                    extra={extraIds.has(item.id)}
+                                />
                             </div>
 
                             {item.kitchenNote && (

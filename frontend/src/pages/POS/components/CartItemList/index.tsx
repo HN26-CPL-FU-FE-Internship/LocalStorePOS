@@ -1,7 +1,14 @@
 import { getItemImageUrl } from '@/api/item.api';
 import Icon from '@/components/common/Icon';
+import ItemStatusBadge from '@/components/common/ItemStatusBadge';
 import usePOSCreateOrder from '@/stores/pos.store';
-import { calcPriceWithTax, calculateLineTotalPrice, formatAddonNote, getItemImage } from '@/utils';
+import {
+    calcPriceWithTax,
+    calculateLineTotalPrice,
+    formatAddonNote,
+    getItemImage,
+    isItemStarted,
+} from '@/utils';
 import { memo } from 'react';
 import { Button, Image } from 'react-bootstrap';
 import { useShallow } from 'zustand/react/shallow';
@@ -29,7 +36,9 @@ const CartItemList = () => {
                     <p className="text-muted mb-0">No items added yet</p>
                 </div>
             ) : (
-                cartItems.map((cartItem) => (
+                cartItems.map((cartItem) => {
+                    const isStarted = isItemStarted(cartItem.status);
+                    return (
                     <div key={cartItem.id} className="menu-item active p-2 rounded border shadow mb-3">
                         <div className="d-flex align-items-center justify-content-between flex-wrap flex-xl-nowrap gap-2">
                             <Button
@@ -47,6 +56,7 @@ const CartItemList = () => {
                                 <div className="overflow-hidden text-start">
                                     <h6 className="text-start mb-1 fs-13 fw-semibold text-truncate mb-2">
                                         {cartItem.item.name}
+                                        <ItemStatusBadge status={cartItem.status} />
                                     </h6>
                                     {cartItem.variationName && (
                                         <p className="badge badge-sm bg-light text-dark mb-0 me-1">
@@ -77,7 +87,16 @@ const CartItemList = () => {
                                         value={cartItem.quantity}
                                         readOnly
                                     />
-                                    <button className="add-btn" onClick={() => updateCartQuantity(cartItem.id, 1)}>
+                                    <button
+                                        className="add-btn"
+                                        onClick={() => updateCartQuantity(cartItem.id, 1)}
+                                        disabled={isStarted}
+                                        title={
+                                            isStarted
+                                                ? 'Already started in the kitchen — add more from the menu so the extra amount stays a new pending line'
+                                                : undefined
+                                        }
+                                    >
                                         <Icon name="plus" />
                                     </button>
                                 </div>
@@ -137,7 +156,8 @@ const CartItemList = () => {
                             </div>
                         </div>
                     </div>
-                ))
+                    );
+                })
             )}
         </>
     );

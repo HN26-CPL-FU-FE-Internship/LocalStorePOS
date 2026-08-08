@@ -16,8 +16,6 @@ import java.util.List;
 @Repository
 public interface ApprovalRequestRepository extends JpaRepository<ApprovalRequest, Long> {
 
-    Page<ApprovalRequest> findByStatusOrderByCreatedAtDesc(ApprovalStatus status, Pageable pageable);
-
     Page<ApprovalRequest> findAllByOrderByCreatedAtDesc(Pageable pageable);
 
     @Query("SELECT a FROM ApprovalRequest a WHERE " +
@@ -30,8 +28,6 @@ public interface ApprovalRequestRepository extends JpaRepository<ApprovalRequest
             Pageable pageable);
 
     long countByStatus(ApprovalStatus status);
-
-    long countByRequestTypeAndStatus(ApprovalRequestType requestType, ApprovalStatus status);
 
     List<ApprovalRequest> findByRequestTypeAndStatus(ApprovalRequestType requestType, ApprovalStatus status);
 }

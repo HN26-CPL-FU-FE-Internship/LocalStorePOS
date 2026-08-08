@@ -7,7 +7,13 @@ import { Button, Col, Row } from 'react-bootstrap';
 import { useNavigate } from 'react-router-dom';
 import { useShallow } from 'zustand/react/shallow';
 
-const PlaceOrder = ({ onShow }: { onShow: () => void }) => {
+const PlaceOrder = ({
+    onShow,
+    disabled = false,
+}: {
+    onShow: () => void;
+    disabled?: boolean;
+}) => {
     const { cartItems, resetCart, setCustomer, setTable, placingOrder, editingOrderNumber } = usePOSCreateOrder(
         useShallow((s) => ({
             cartItems: s.cartItems,
@@ -36,7 +42,7 @@ const PlaceOrder = ({ onShow }: { onShow: () => void }) => {
         <>
             <Button
                 className="btn btn-primary w-100 mb-4"
-                disabled={cartItems.length === 0 || placingOrder}
+                disabled={cartItems.length === 0 || placingOrder || disabled}
                 onClick={onShow}
             >
                 {placingOrder
