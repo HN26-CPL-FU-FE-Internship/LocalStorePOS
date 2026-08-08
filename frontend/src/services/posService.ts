@@ -4,6 +4,8 @@ import type { CategoryEntry } from '@/api/category.api';
 import type { OrderSummary } from '@/types';
 import type { PageContent, PlaceOrder, POSItem, RecentOrder } from '@/types/pos';
 
+import type { TableShape } from '@/api/table.api';
+
 export interface OptionItem {
     id: number;
     name: string;
@@ -12,6 +14,7 @@ export interface OptionItem {
 export interface TablePOS extends OptionItem {
     seats: number;
     areaName: string;
+    shape: TableShape;
 }
 
 const posService = {

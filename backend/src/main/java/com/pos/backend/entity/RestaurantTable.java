@@ -42,4 +42,17 @@ public class RestaurantTable extends BaseEntity {
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private TableStatus status = TableStatus.available;
+
+    /** X coordinate of the table centre on the floor map (grid 0-1000). */
+    @Column(name = "x_position")
+    private Integer xPosition;
+
+    /** Y coordinate of the table centre on the floor map (grid 0-640). */
+    @Column(name = "y_position")
+    private Integer yPosition;
+
+    /** Table shape rendered on the floor map: ROUND | RECTANGLE. */
+    @Builder.Default
+    @Column(name = "shape", length = 20)
+    private String shape = "ROUND";
 }

@@ -1,9 +1,9 @@
-import tableImages from '@/assets/img/tables';
 import Icon from '@/components/common/Icon';
+import TableVisual from '@/components/common/TableVisual';
 import { useTables } from '@/hooks';
 import usePOSCreateOrder from '@/stores/pos.store';
 import { memo } from 'react';
-import { Button, Image } from 'react-bootstrap';
+import { Button } from 'react-bootstrap';
 import { Swiper, SwiperSlide } from 'swiper/react';
 import { useShallow } from 'zustand/react/shallow';
 
@@ -50,22 +50,26 @@ const AvailableTable = () => {
                                                 border: '1px solid var(--border-color)',
                                             }}
                                         >
+                                            {/* Realistic table SVG thumbnail */}
                                             <div
                                                 style={{
-                                                    width: '50px',
-                                                    height: '50px',
+                                                    width: table.shape === 'RECTANGLE' ? 58 : 50,
+                                                    height: 50,
+                                                    position: 'relative',
+                                                    flexShrink: 0,
                                                 }}
                                             >
-                                                <Image
-                                                    src={tableImages['tables-01']}
-                                                    alt="table"
-                                                    fluid
-                                                    className="object-fit-cover h-100"
+                                                <TableVisual
+                                                    shape={table.shape}
+                                                    seats={table.seats}
+                                                    status="available"
                                                 />
                                             </div>
                                             <div className="d-flex flex-column align-items-start">
                                                 <p className="fw-semibold fs-12 mb-0">{table.name}</p>
-                                                <p className="mb-0">Area : {table.areaName}</p>
+                                                <p className="mb-0 text-muted" style={{ fontSize: 11 }}>
+                                                    {table.seats} seats · {table.areaName}
+                                                </p>
                                             </div>
                                         </Button>
                                     </SwiperSlide>
@@ -81,3 +85,4 @@ const AvailableTable = () => {
 };
 
 export default memo(AvailableTable);
+

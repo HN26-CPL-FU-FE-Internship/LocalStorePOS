@@ -77,6 +77,7 @@ public enum ErrorCode {
     PAYMENT_EXPIRED(1054, HttpStatus.BAD_REQUEST, "Payment QR code has expired"),
     INVALID_PAYMENT_AMOUNT(1052, HttpStatus.BAD_REQUEST, "Invalid payment amount"),
     ORDER_NOT_ELIGIBLE_FOR_QR(1053, HttpStatus.BAD_REQUEST, "Order is not eligible for QR payment"),
+    INVALID_TABLE_CAPACITY(1055, HttpStatus.BAD_REQUEST, "Invalid capacity for the selected table shape. Round table (6, 8, 10 seats), rectangular table (4, 6, 8 seats)"),
     ;
 
     private final int code;
