@@ -32,18 +32,21 @@ const filterTabs: { key: FilterTab; label: string }[] = [
     { key: 'PENDING', label: 'Pending' },
     { key: 'APPROVED', label: 'Approved' },
     { key: 'REJECTED', label: 'Rejected' },
+    { key: 'FAILED', label: 'Failed' },
 ];
 
 const statusBadgeMap: Record<ApprovalStatus, string> = {
     PENDING: 'badge-soft-warning',
     APPROVED: 'badge-soft-success',
     REJECTED: 'badge-soft-danger',
+    FAILED: 'badge-soft-danger',
 };
 
 const statusLabelMap: Record<ApprovalStatus, string> = {
     PENDING: 'Pending',
     APPROVED: 'Approved',
     REJECTED: 'Rejected',
+    FAILED: 'Failed',
 };
 
 /* ------------------------------------------------------------------ */
@@ -432,7 +435,7 @@ const ApprovalRequestsPage = () => {
                                 <div className="col-md-6">
                                     <div className="p-3 bg-light rounded">
                                         <small className="text-muted d-block mb-1">
-                                            {detailRequest.status === 'APPROVED' ? 'Approved By' : 'Rejected By'}
+                                            {detailRequest.status === 'REJECTED' ? 'Rejected By' : 'Approved By'}
                                         </small>
                                         <strong>{detailRequest.approvedByName}</strong>
                                         <div className="fs-13 text-muted">{detailRequest.approvedByEmail}</div>
@@ -489,11 +492,15 @@ const ApprovalRequestsPage = () => {
                             </div>
                         </div>
 
-                        {/* Resolution reason (for both approved and rejected) */}
+                        {/* Resolution reason (for approved, rejected and failed) */}
                         {detailRequest.rejectionReason && (
                             <div className="mb-3">
                                 <small className="text-muted d-block mb-1">
-                                    {detailRequest.status === 'APPROVED' ? 'Approval Reason' : 'Rejection Reason'}
+                                    {detailRequest.status === 'REJECTED'
+                                        ? 'Rejection Reason'
+                                        : detailRequest.status === 'FAILED'
+                                          ? 'Approval Reason (Execution Failed)'
+                                          : 'Approval Reason'}
                                 </small>
                                 <div
                                     className={`p-3 rounded ${detailRequest.status === 'APPROVED' ? 'bg-success bg-opacity-10' : 'bg-danger bg-opacity-10'}`}
