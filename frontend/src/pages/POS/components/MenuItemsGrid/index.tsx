@@ -1,4 +1,4 @@
-import { getCategoryImageUrl } from '@/api/category.api';
+import { getAssetUrl } from '@/lib';
 import Icon from '@/components/common/Icon';
 import ImageWithSkeleton from '@/components/common/ImageWithSkeleton';
 import usePOSCreateOrder from '@/stores/pos.store';
@@ -72,7 +72,7 @@ const MenuItemsGrid = ({
                                             <ImageWithSkeleton
                                                 fluid
                                                 rounded
-                                                src={getCategoryImageUrl(item.imagePath) ?? getItemImage(item.id)}
+                                                src={getAssetUrl(item.imagePath) ?? getItemImage(item.id)}
                                                 alt={item.name}
                                                 className="w-100"
                                             />

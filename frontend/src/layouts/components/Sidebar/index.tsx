@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import Button from 'react-bootstrap/Button';
 import Icon from '@/components/common/Icon';
 import IconRail from './IconRail';
@@ -6,8 +6,10 @@ import SidebarMenu from './SidebarMenu';
 import NotificationsDropdown from './NotificationsDropdown';
 import ProfileDropdown from './ProfileDropdown';
 import StoreSwitcherDropdown from './StoreSwitcherDropdown';
-import { sidebarTabs, storeOptions, profileMenuItems, logoutHref } from '@/data/navigationData';
+import { sidebarTabs, storeOptions, profileMenuItems } from '@/data/navigationData';
 import { useNotifications } from '@/hooks';
+import useAuth from '@/hooks/useAuth';
+import { filterSidebarTabs } from '@/utils/navigation';
 import { Link, useLocation } from 'react-router-dom';
 import configs from '@/configs';
 
@@ -23,12 +25,22 @@ export interface SidebarProps {
  */
 const Sidebar = ({ onClose }: SidebarProps) => {
     const [activeStoreId, setActiveStoreId] = useState(storeOptions[0].id);
+    const { canView } = useAuth();
 
     const { pathname } = useLocation();
 
-    const [activeTab, setActiveTab] = useState(
-        () => sidebarTabs.find((tab) => tab.endpoints.includes(pathname)) ?? sidebarTabs[0],
-    );
+    // Tabs the current role can actually use (at least one viewable item).
+    const visibleTabs = useMemo(() => filterSidebarTabs(sidebarTabs, canView), [canView]);
+
+    // If the tab for the current route is not visible to this role, fall back
+    // to the first visible tab so the icon rail never highlights a hidden tab.
+    const [activeTab, setActiveTab] = useState(() => {
+        const current = sidebarTabs.find((tab) => tab.endpoints.includes(pathname));
+        if (current && visibleTabs.some((tab) => tab.id === current.id)) {
+            return current;
+        }
+        return visibleTabs[0] ?? sidebarTabs[0];
+    });
 
     const { groups: allGroups, unreadGroups, unreadCount, markAsRead, markAsUnread, markAllAsRead, acceptAction, declineAction, isLoading, isError } = useNotifications();
 
@@ -41,7 +53,7 @@ const Sidebar = ({ onClose }: SidebarProps) => {
                     </Link>
 
                     <div className="sidebar-left">
-                        <IconRail tabs={sidebarTabs} activeTabId={activeTab.id} onSelectTab={setActiveTab} />
+                        <IconRail tabs={visibleTabs} activeTabId={activeTab.id} onSelectTab={setActiveTab} />
 
                         <div className="sidebar-profile ">
                             <NotificationsDropdown
@@ -56,7 +68,7 @@ const Sidebar = ({ onClose }: SidebarProps) => {
                                 isLoading={isLoading}
                                 isError={isError}
                             />
-                            <ProfileDropdown menuItems={profileMenuItems} logoutHref={logoutHref} />
+                            <ProfileDropdown menuItems={profileMenuItems} />
                         </div>
                     </div>
                 </div>

@@ -2,10 +2,13 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { Card, Button, Modal, Form, Offcanvas, Alert } from 'react-bootstrap';
 import Icon from '@/components/common/Icon';
 import ApprovalRequestModal from '@/components/common/ApprovalRequestModal';
+import ConfirmModal from '@/components/common/ConfirmModal';
+import useAuth from '@/hooks/useAuth';
+import { getAssetUrl } from '@/lib';
 import {
     createCategory,
+    deleteCategory,
     getCategories,
-    getCategoryImageUrl,
     updateCategory,
     updateCategoryStatus,
     type CategoryEntry,
@@ -45,6 +48,8 @@ const CategoriesPage = () => {
     const [showAdd, setShowAdd] = useState(false);
     const [showEdit, setShowEdit] = useState(false);
     const [showDeleteApproval, setShowDeleteApproval] = useState(false);
+    const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+    const [deleting, setDeleting] = useState(false);
     const [showFilter, setShowFilter] = useState(false);
     const [currentCategory, setCurrentCategory] = useState<CategoryEntry | null>(null);
     const [saving, setSaving] = useState(false);
@@ -192,9 +197,32 @@ const CategoriesPage = () => {
         }
     };
 
+    const { isAdmin } = useAuth();
+
     const openDelete = (category: CategoryEntry) => {
         setCurrentCategory(category);
-        setShowDeleteApproval(true);
+        if (isAdmin) {
+            setShowDeleteConfirm(true);
+        } else {
+            setShowDeleteApproval(true);
+        }
+    };
+
+    const handleDeleteConfirm = async () => {
+        if (!currentCategory) return;
+        setDeleting(true);
+        setError(null);
+        try {
+            await deleteCategory(currentCategory.id);
+            setShowDeleteConfirm(false);
+            setCurrentCategory(null);
+            setNotice('Category deleted successfully.');
+            await loadCategories();
+        } catch (err) {
+            setError(extractErrorMessage(err, 'Failed to delete category.'));
+        } finally {
+            setDeleting(false);
+        }
     };
 
 
@@ -397,9 +425,9 @@ const CategoriesPage = () => {
                             <div className="avatar avatar-3xl avatar-rounded border bg-light d-flex align-items-center justify-content-center overflow-hidden">
                                 {imagePreview ? (
                                     <img src={imagePreview} alt="preview" className="img-fluid" />
-                                ) : currentCategory && getCategoryImageUrl(currentCategory.imagePath) ? (
+                                ) : currentCategory && getAssetUrl(currentCategory.imagePath) ? (
                                     <img
-                                        src={getCategoryImageUrl(currentCategory.imagePath)}
+                                        src={getAssetUrl(currentCategory.imagePath)}
                                         alt={currentCategory.name}
                                         className="img-fluid"
                                     />
@@ -472,6 +500,16 @@ const CategoriesPage = () => {
                 </Form>
             </Modal>
 
+
+            {/* ---- Delete Confirmation (admins delete directly) ---- */}
+            <ConfirmModal
+                show={showDeleteConfirm}
+                handleClose={() => setShowDeleteConfirm(false)}
+                type="delete"
+                action={handleDeleteConfirm}
+                data={currentCategory?.name ?? ''}
+                actionDisabled={deleting}
+            />
 
             {/* ---- Delete Request Modal (requires approval) ---- */}
             <ApprovalRequestModal

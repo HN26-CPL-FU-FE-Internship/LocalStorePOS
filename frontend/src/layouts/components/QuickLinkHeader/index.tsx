@@ -1,13 +1,19 @@
+import { useMemo } from 'react';
 import Icon from '@/components/common/Icon';
 import { headerQuickLinks } from '@/data/navigationData';
+import useAuth from '@/hooks/useAuth';
+import { filterQuickLinks } from '@/utils/navigation';
 import { Link, useLocation } from 'react-router-dom';
 
 const QuickLinkHeader = () => {
     const { pathname } = useLocation();
+    const { canView } = useAuth();
+
+    const visibleLinks = useMemo(() => filterQuickLinks(headerQuickLinks, canView), [canView]);
 
     return (
         <>
-            {headerQuickLinks.map((link) => (
+            {visibleLinks.map((link) => (
                 <Link
                     key={link.id}
                     to={link.href}

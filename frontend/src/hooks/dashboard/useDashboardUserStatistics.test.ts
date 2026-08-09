@@ -84,7 +84,9 @@ describe('useDashboardUserStatistics', () => {
         await waitFor(() => expect(result.current.isLoading).toBe(false));
 
         expect(result.current.data.topUser.avatarUrl).toBe('');
-        expect(result.current.data.newUserAvatars[0].imageUrl).toBe('');
+        // Missing avatar path is mapped to undefined (not ''), so AvatarStack
+        // never renders an <img src=""> (which React warns about).
+        expect(result.current.data.newUserAvatars[0].imageUrl).toBeUndefined();
     });
 
     it('handles empty newUserAvatars array', async () => {

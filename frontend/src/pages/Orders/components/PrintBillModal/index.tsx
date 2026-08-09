@@ -1,6 +1,7 @@
 import Icon from '@/components/common/Icon';
 import { getPrintSetting, type PrintSetting } from '@/api/print-setting.api';
-import { getStoreSetting, getStoreImageUrl, type StoreSetting } from '@/api/store.api';
+import { getAssetUrl } from '@/lib';
+import { getStoreSetting, type StoreSetting } from '@/api/store.api';
 import { calculateDiscount, computeKitchenSplitItems, formatDateTimeOrder, toTitleCase } from '@/utils';
 import type { DiscountType, OrderItemType, OrderSummary } from '@/types';
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
@@ -209,7 +210,7 @@ function BillContent({ order, store, setting }: { order: OrderSummary; store: St
                 {setting.showStoreDetails && store && (
                     <>
                         {store.imagePath && (
-                            <img className="pb-store-logo" src={getStoreImageUrl(store.imagePath)} alt={store.name} />
+                            <img className="pb-store-logo" src={getAssetUrl(store.imagePath)} alt={store.name} />
                         )}
                         <p className="pb-store-name">{store.name}</p>
                         {storeAddress && <p className="pb-store-address">{storeAddress}</p>}

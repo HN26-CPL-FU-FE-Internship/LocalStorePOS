@@ -83,10 +83,3 @@ export const updateStoreSetting = async (payload: StoreSettingFormData): Promise
     });
     return data.result;
 };
-
-export const getStoreImageUrl = (imagePath: string | null): string | undefined => {
-    if (!imagePath) return undefined;
-    if (imagePath.startsWith('http')) return imagePath;
-    const base = api.defaults.baseURL?.replace(/\/api\/?$/, '') ?? '';
-    return `${base}${imagePath}`;
-};

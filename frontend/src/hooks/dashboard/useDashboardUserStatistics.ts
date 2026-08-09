@@ -1,5 +1,6 @@
 import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import { getUserStatistics, type DashboardFilterRequest } from '@/api/dashboard.api';
+import { getAssetUrl } from '@/lib';
 import { DASHBOARD_QUERY_KEYS } from '@/constants/dashboard';
 import type { AvatarStackItem } from '@/types';
 
@@ -34,7 +35,7 @@ const useDashboardUserStatistics = (filter: DashboardFilterRequest = {}) => {
         },
         newUserAvatars: (data?.newUserAvatars ?? []).map((avatar) => ({
             id: String(avatar.id),
-            imageUrl: avatar.imageUrl ?? '',
+            imageUrl: getAssetUrl(avatar.imageUrl),
             alt: avatar.alt,
         })),
         newUsersChart:

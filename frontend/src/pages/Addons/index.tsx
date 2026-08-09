@@ -3,9 +3,12 @@ import { Table, Card, Badge, Button, Dropdown, Modal, Form, Offcanvas, Alert, Sp
 import { isAxiosError } from 'axios';
 import Icon from '@/components/common/Icon';
 import ApprovalRequestModal from '@/components/common/ApprovalRequestModal';
+import ConfirmModal from '@/components/common/ConfirmModal';
+import useAuth from '@/hooks/useAuth';
+import { getAssetUrl } from '@/lib';
 import {
     createAddon,
-    getAddonImageUrl,
+    deleteAddon,
     getAddons,
     getItemOptions,
     updateAddon,
@@ -71,6 +74,8 @@ const AddonsPage = () => {
     const [showAdd, setShowAdd] = useState(false);
     const [showEdit, setShowEdit] = useState(false);
     const [showDeleteApproval, setShowDeleteApproval] = useState(false);
+    const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+    const [deleting, setDeleting] = useState(false);
     const [showFilter, setShowFilter] = useState(false);
     const [currentAddon, setCurrentAddon] = useState<AddonEntry | null>(null);
     const [saving, setSaving] = useState(false);
@@ -249,9 +254,32 @@ const AddonsPage = () => {
         }
     };
 
+    const { isAdmin } = useAuth();
+
     const openDelete = (addon: AddonEntry) => {
         setCurrentAddon(addon);
-        setShowDeleteApproval(true);
+        if (isAdmin) {
+            setShowDeleteConfirm(true);
+        } else {
+            setShowDeleteApproval(true);
+        }
+    };
+
+    const handleDeleteConfirm = async () => {
+        if (!currentAddon) return;
+        setDeleting(true);
+        setError(null);
+        try {
+            await deleteAddon(currentAddon.id);
+            setShowDeleteConfirm(false);
+            setCurrentAddon(null);
+            setNotice('Addon deleted successfully.');
+            await loadAddons();
+        } catch (err) {
+            setError(extractErrorMessage(err, 'Failed to delete addon.'));
+        } finally {
+            setDeleting(false);
+        }
     };
 
 
@@ -450,7 +478,7 @@ const AddonsPage = () => {
 
                                 {!loading &&
                                     addons.map((addon) => {
-                                        const imageUrl = getAddonImageUrl(addon.imagePath);
+                                        const imageUrl = getAssetUrl(addon.imagePath);
                                         return (
                                             <tr key={addon.id}>
                                                 {isColumnVisible('item') && <td>{addon.itemName}</td>}
@@ -568,9 +596,9 @@ const AddonsPage = () => {
                                 <div className="avatar avatar-3xl border bg-light d-flex align-items-center justify-content-center overflow-hidden">
                                     {imagePreview ? (
                                         <img src={imagePreview} alt="preview" className="img-fluid" />
-                                    ) : isEdit && currentAddon && getAddonImageUrl(currentAddon.imagePath) ? (
+                                    ) : isEdit && currentAddon && getAssetUrl(currentAddon.imagePath) ? (
                                         <img
-                                            src={getAddonImageUrl(currentAddon.imagePath)}
+                                            src={getAssetUrl(currentAddon.imagePath)}
                                             alt={currentAddon.name}
                                             className="img-fluid"
                                         />
@@ -692,6 +720,16 @@ const AddonsPage = () => {
                 </Modal>
             ))}
 
+
+            {/* ---- Delete Confirmation (admins delete directly) ---- */}
+            <ConfirmModal
+                show={showDeleteConfirm}
+                handleClose={() => setShowDeleteConfirm(false)}
+                type="delete"
+                action={handleDeleteConfirm}
+                data={currentAddon?.name ?? ''}
+                actionDisabled={deleting}
+            />
 
             {/* ---- Delete Request Modal (requires approval) ---- */}
             <ApprovalRequestModal

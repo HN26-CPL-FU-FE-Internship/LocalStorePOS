@@ -1,4 +1,4 @@
-import { getCategoryImageUrl } from '@/api/category.api';
+import { getAssetUrl } from '@/lib';
 import { usePOSCategories } from '@/hooks';
 import usePOSCreateOrder from '@/stores/pos.store';
 import { getFoodImage } from '@/utils';
@@ -37,7 +37,7 @@ const CategorySwiper = ({ categoriesSwiperRef }: { categoriesSwiperRef: React.Re
                                 src={
                                     'isAll' in cat && cat.isAll
                                         ? getFoodImage(0)
-                                        : (getCategoryImageUrl(cat.imagePath) ?? getFoodImage(cat.id % 6))
+                                        : (getAssetUrl(cat.imagePath) ?? getFoodImage(cat.id % 6))
                                 }
                             />
                         </div>

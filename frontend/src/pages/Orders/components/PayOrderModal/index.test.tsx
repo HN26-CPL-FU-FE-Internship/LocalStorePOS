@@ -6,6 +6,22 @@ import type { PaymentRequest } from '@/services/orderService';
 
 // Mock dependencies
 
+const { mockAuth } = vi.hoisted(() => ({
+    mockAuth: { isAdmin: true },
+}));
+
+vi.mock('@/hooks/useAuth', () => ({
+    default: () => ({
+        user: { role: mockAuth.isAdmin ? 'Admin / Owner' : 'Waiter' },
+        isAuthenticated: true,
+        isLoading: false,
+        logout: vi.fn(),
+        hasPermission: () => true,
+        canView: () => true,
+        isAdmin: mockAuth.isAdmin,
+    }),
+}));
+
 vi.mock('@/hooks/useContextData', () => ({
     default: () => ({ showToast: vi.fn() }),
 }));
@@ -25,6 +41,10 @@ vi.mock('@/utils', () => ({
 
 vi.mock('@/components/common/Icon', () => ({
     default: ({ name }: { name: string }) => <span data-testid={`icon-${name}`}>{name}</span>,
+}));
+
+vi.mock('@/components/common/ApprovalRequestModal', () => ({
+    default: ({ show }: { show: boolean }) => (show ? <div data-testid="approval-modal" /> : null),
 }));
 
 vi.mock('@/components/common/ConfirmModal', () => ({
@@ -62,12 +82,14 @@ vi.mock('../Payment', () => ({
             readOnly,
             givenAmount,
             onGivenAmountChange,
+            onDiscountChange,
         }: {
             note: string | null;
             onNoteChange: (n: string) => void;
             readOnly?: boolean;
             givenAmount?: string;
             onGivenAmountChange?: (e: React.ChangeEvent<HTMLInputElement>) => void;
+            onDiscountChange?: (amount: number, type: 'percentage' | 'fixed_amount') => void;
         }) => (
             <div data-testid="cash-tab">
                 <textarea
@@ -81,6 +103,12 @@ vi.mock('../Payment', () => ({
                     value={givenAmount ?? ''}
                     onChange={onGivenAmountChange}
                 />
+                <button
+                    data-testid="set-discount-30"
+                    onClick={() => onDiscountChange?.(30, 'percentage')}
+                >
+                    Set 30% discount
+                </button>
             </div>
         ),
     ),
@@ -209,9 +237,44 @@ function confirmPayment() {
     fireEvent.click(screen.getByTestId('confirm-action'));
 }
 
+describe('PayOrderModal - discount approval flow', () => {
+    beforeEach(() => {
+        vi.clearAllMocks();
+        mockAuth.isAdmin = true;
+    });
+
+    it('admins apply a >=20% discount directly without an approval request', () => {
+        const onPaymentComplete = vi.fn();
+        render(<PayOrderModal {...defaultProps} onPaymentComplete={onPaymentComplete} />);
+
+        fireEvent.click(screen.getByTestId('set-discount-30'));
+        setGivenAmount('100');
+        clickPayButton();
+        confirmPayment();
+
+        expect(onPaymentComplete).toHaveBeenCalledTimes(1);
+        expect(screen.queryByTestId('approval-modal')).not.toBeInTheDocument();
+    });
+
+    it('non-admins get routed to the approval request modal for a >=20% discount', () => {
+        mockAuth.isAdmin = false;
+        const onPaymentComplete = vi.fn();
+        render(<PayOrderModal {...defaultProps} onPaymentComplete={onPaymentComplete} />);
+
+        fireEvent.click(screen.getByTestId('set-discount-30'));
+        setGivenAmount('100');
+        clickPayButton();
+        confirmPayment();
+
+        expect(onPaymentComplete).not.toHaveBeenCalled();
+        expect(screen.getByTestId('approval-modal')).toBeInTheDocument();
+    });
+});
+
 describe('PayOrderModal - note flow', () => {
     beforeEach(() => {
         vi.clearAllMocks();
+        mockAuth.isAdmin = true;
     });
 
     // Rendering

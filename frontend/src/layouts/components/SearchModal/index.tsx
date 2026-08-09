@@ -1,6 +1,8 @@
 import { Modal, InputGroup, Form, Tabs, Tab, Badge } from 'react-bootstrap';
 import Icon from '@/components/common/Icon';
 import { customerSearchResults, orderSearchResults, kitchenSearchResults } from '@/data/dashboardData';
+import useAuth from '@/hooks/useAuth';
+import { canViewRoute } from '@/utils/navigation';
 import { Link } from 'react-router-dom';
 
 export interface SearchModalProps {
@@ -9,6 +11,12 @@ export interface SearchModalProps {
 }
 
 const SearchModal = ({ show, onHide }: SearchModalProps) => {
+    const { canView } = useAuth();
+    const canViewCustomers = canViewRoute('/customers', canView);
+    const canViewOrders = canViewRoute('/orders', canView);
+    const canViewKitchen = canViewRoute('/kitchen', canView);
+    const hasAnyTab = canViewCustomers || canViewOrders || canViewKitchen;
+
     return (
         <Modal show={show} onHide={onHide} size="lg" centered>
             <Modal.Header closeButton>
@@ -24,7 +32,9 @@ const SearchModal = ({ show, onHide }: SearchModalProps) => {
                     </InputGroup.Text>
                 </InputGroup>
 
-                <Tabs defaultActiveKey="customer" className="nav-bordered nav-bordered-primary mb-4">
+                {hasAnyTab ? (
+                <Tabs defaultActiveKey={canViewCustomers ? 'customer' : canViewOrders ? 'orders' : 'kitchen'} className="nav-bordered nav-bordered-primary mb-4">
+                    {canViewCustomers && (
                     <Tab
                         eventKey="customer"
                         title={
@@ -64,6 +74,8 @@ const SearchModal = ({ show, onHide }: SearchModalProps) => {
                             View All <Icon name="arrow-right" className="ms-1" />
                         </Link>
                     </Tab>
+                    )}
+                    {canViewOrders && (
                     <Tab
                         eventKey="orders"
                         title={
@@ -105,7 +117,8 @@ const SearchModal = ({ show, onHide }: SearchModalProps) => {
                             View All <Icon name="arrow-right" className="ms-1" />
                         </Link>
                     </Tab>
-
+                    )}
+                    {canViewKitchen && (
                     <Tab
                         eventKey="kitchen"
                         title={
@@ -139,7 +152,11 @@ const SearchModal = ({ show, onHide }: SearchModalProps) => {
                             View All <Icon name="arrow-right" className="ms-1" />
                         </Link>
                     </Tab>
+                    )}
                 </Tabs>
+                ) : (
+                    <p className="fs-14 text-muted text-center mb-0">You don't have permission to view search results.</p>
+                )}
             </Modal.Body>
         </Modal>
     );

@@ -1,30 +1,27 @@
 import Dropdown from 'react-bootstrap/Dropdown';
 import Button from 'react-bootstrap/Button';
 import Icon from '@/components/common/Icon';
+import { getAssetUrl } from '@/lib';
 import type { ProfileMenuItem } from '@/types';
 import useAuth from '@/hooks/useAuth';
-import { ROUTE_PERMISSION_MAP } from '@/types/permission';
+import { filterProfileMenuItems } from '@/utils/navigation';
 import { Link } from 'react-router-dom';
 
 export interface ProfileDropdownProps {
     menuItems: ProfileMenuItem[];
-    logoutHref: string;
 }
 
 const ProfileDropdown = ({ menuItems }: ProfileDropdownProps) => {
     const { user, logout, canView } = useAuth();
 
     // Filter menu items based on permissions
-    const visibleMenuItems = menuItems.filter((item) => {
-        const module = ROUTE_PERMISSION_MAP[item.href];
-        return !module || canView(module);
-    });
+    const visibleMenuItems = filterProfileMenuItems(menuItems, canView);
 
     return (
         <Dropdown drop="end" className="dropdown">
             <Dropdown.Toggle as="a" href="#" bsPrefix="avatar avatar-sm profile-toggle">
                 {user?.avatarPath ? (
-                    <img src={user.avatarPath} alt="user" className="img-fluid rounded-circle" />
+                    <img src={getAssetUrl(user.avatarPath)} alt="user" className="img-fluid rounded-circle" />
                 ) : (
                     <div className="avatar-letter rounded-circle d-flex align-items-center justify-content-center bg-primary text-white w-100 h-100">
                         {user?.firstName?.charAt(0)?.toUpperCase()}
@@ -37,7 +34,7 @@ const ProfileDropdown = ({ menuItems }: ProfileDropdownProps) => {
                         <div className="d-flex align-items-center">
                             <div className="avatar avatar-lg avatar-rounded border border-success">
                                 {user?.avatarPath ? (
-                                    <img src={user.avatarPath} className="rounded-circle" alt="user" />
+                                    <img src={getAssetUrl(user.avatarPath)} className="rounded-circle" alt="user" />
                                 ) : (
                                     <div className="avatar-letter rounded-circle d-flex align-items-center justify-content-center bg-primary text-white fs-5 w-100">
                                         {user?.firstName?.charAt(0)?.toUpperCase()}

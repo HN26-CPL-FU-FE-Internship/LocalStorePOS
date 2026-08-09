@@ -3,12 +3,10 @@ import { Table, Card, Badge, Button, Dropdown, Form, Alert, Spinner } from 'reac
 import { useNavigate } from 'react-router-dom';
 import Icon from '@/components/common/Icon';
 import ApprovalRequestModal from '@/components/common/ApprovalRequestModal';
-import {
-    getInvoiceCustomerAvatarUrl,
-    getInvoices,
-    type InvoiceEntry,
-    type InvoiceStatus,
-} from '@/api/invoice.api';
+import ConfirmModal from '@/components/common/ConfirmModal';
+import useAuth from '@/hooks/useAuth';
+import { getAssetUrl } from '@/lib';
+import { deleteInvoice, getInvoices, type InvoiceEntry, type InvoiceStatus } from '@/api/invoice.api';
 import configs from '@/configs';
 
 const statusBadgeClass: Record<InvoiceStatus, string> = {
@@ -53,6 +51,8 @@ const InvoicesPage = () => {
     const [totalElements, setTotalElements] = useState(0);
 
     const [showDeleteApproval, setShowDeleteApproval] = useState(false);
+    const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+    const [deleting, setDeleting] = useState(false);
     const [currentInvoice, setCurrentInvoice] = useState<InvoiceEntry | null>(null);
 
     const sortParams = useMemo(
@@ -105,9 +105,32 @@ const InvoicesPage = () => {
         return () => clearTimeout(handle);
     }, [notice]);
 
+    const { isAdmin } = useAuth();
+
     const openDelete = (invoice: InvoiceEntry) => {
         setCurrentInvoice(invoice);
-        setShowDeleteApproval(true);
+        if (isAdmin) {
+            setShowDeleteConfirm(true);
+        } else {
+            setShowDeleteApproval(true);
+        }
+    };
+
+    const handleDeleteConfirm = async () => {
+        if (!currentInvoice) return;
+        setDeleting(true);
+        setError(null);
+        try {
+            await deleteInvoice(currentInvoice.id);
+            setShowDeleteConfirm(false);
+            setCurrentInvoice(null);
+            setNotice('Invoice deleted successfully.');
+            await loadInvoices();
+        } catch {
+            setError('Failed to delete invoice.');
+        } finally {
+            setDeleting(false);
+        }
     };
 
 
@@ -236,7 +259,7 @@ const InvoicesPage = () => {
 
                                 {!loading &&
                                     invoices.map((invoice) => {
-                                        const avatarUrl = getInvoiceCustomerAvatarUrl(invoice.customerAvatarPath);
+                                        const avatarUrl = getAssetUrl(invoice.customerAvatarPath);
                                         return (
                                             <tr key={invoice.id}>
                                                 <td>
@@ -326,6 +349,16 @@ const InvoicesPage = () => {
                     </div>
                 </Card.Body>
             </Card>
+
+            {/* ---- Delete Confirmation (admins delete directly) ---- */}
+            <ConfirmModal
+                show={showDeleteConfirm}
+                handleClose={() => setShowDeleteConfirm(false)}
+                type="delete"
+                action={handleDeleteConfirm}
+                data={currentInvoice?.invoiceNumber ?? ''}
+                actionDisabled={deleting}
+            />
 
             {/* ---- Delete Request Modal (requires approval) ---- */}
             <ApprovalRequestModal

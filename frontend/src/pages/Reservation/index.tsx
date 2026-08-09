@@ -8,7 +8,6 @@ import ReservationCard from './components/ReservationCard';
 
 const Reservation = () => {
     const { data: reservations, isLoading, isFetching, isError } = useGetReservation();
-    console.log(reservations);
 
     if (isLoading) return <Loading />;
     if (isError) return <div>Error</div>;
@@ -19,7 +18,7 @@ const Reservation = () => {
 
                 <Row>
                     {reservations?.map((reservation) => (
-                        <ReservationCard reservation={reservation} />
+                        <ReservationCard key={reservation.id} reservation={reservation} />
                     ))}
                 </Row>
 

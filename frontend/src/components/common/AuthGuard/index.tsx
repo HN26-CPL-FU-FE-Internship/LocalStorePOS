@@ -1,7 +1,7 @@
 import { type PropsWithChildren } from 'react';
 import { Navigate, useLocation, useNavigate } from 'react-router-dom';
 import useAuth from '@/hooks/useAuth';
-import { ROUTE_PERMISSION_MAP } from '@/types/permission';
+import { getRoutePermissionModule } from '@/types/permission';
 
 export interface AuthGuardProps extends PropsWithChildren {
     /** If true, the route does NOT require authentication (public) */
@@ -40,8 +40,9 @@ const AuthGuard = ({ children, publicRoute = false }: AuthGuardProps) => {
         return <Navigate to="/login" state={{ from: location }} replace />;
     }
 
-    // Check view permission for the current route
-    const requiredModule = ROUTE_PERMISSION_MAP[location.pathname];
+    // Check view permission for the current route (dynamic routes like
+    // /invoices/:id resolve to their module via pattern matching).
+    const requiredModule = getRoutePermissionModule(location.pathname);
     if (requiredModule && !canView(requiredModule)) {
         // 403 - Forbidden: user doesn't have view permission for this module
         return <ForbiddenPage />;

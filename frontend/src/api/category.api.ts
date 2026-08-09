@@ -107,16 +107,3 @@ export const deleteCategory = async(id: number):Promise<void> => {
     await api.delete(`/categories/${id}`)
 }
 
-/* ------------------------------------------------------------------ */
-/*  Helpers                                                           */
-/* ------------------------------------------------------------------ */
-// The API returns image paths relative to the backend context path
-// (e.g. "/uploads/categories/xxx.png"); build the full URL for <img src>.
-
-export const getCategoryImageUrl = (imagePath: string | null): string | undefined => {
-    if(!imagePath) return undefined
-    if(imagePath.startsWith('http')) return imagePath
-
-    const base = api.defaults.baseURL?.replace(/\/api\/?$/, '') ?? '';
-    return `${base}${imagePath}`
-} 

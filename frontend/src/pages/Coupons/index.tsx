@@ -3,8 +3,11 @@ import { Table, Card, Badge, Button, Dropdown, Modal, Form, Offcanvas, Alert, Sp
 import { isAxiosError } from 'axios';
 import Icon from '@/components/common/Icon';
 import ApprovalRequestModal from '@/components/common/ApprovalRequestModal';
+import ConfirmModal from '@/components/common/ConfirmModal';
+import useAuth from '@/hooks/useAuth';
 import {
     createCoupon,
+    deleteCoupon,
     getCoupons,
     updateCoupon,
     updateCouponStatus,
@@ -79,6 +82,8 @@ const CouponsPage = () => {
     const [showAdd, setShowAdd] = useState(false);
     const [showEdit, setShowEdit] = useState(false);
     const [showDeleteApproval, setShowDeleteApproval] = useState(false);
+    const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+    const [deleting, setDeleting] = useState(false);
     const [showShow, setShowShow] = useState(false);
     const [showFilter, setShowFilter] = useState(false);
     const [currentCoupon, setCurrentCoupon] = useState<CouponEntry | null>(null);
@@ -252,9 +257,32 @@ const CouponsPage = () => {
         }
     };
 
+    const { isAdmin } = useAuth();
+
     const openDelete = (coupon: CouponEntry) => {
         setCurrentCoupon(coupon);
-        setShowDeleteApproval(true);
+        if (isAdmin) {
+            setShowDeleteConfirm(true);
+        } else {
+            setShowDeleteApproval(true);
+        }
+    };
+
+    const handleDeleteConfirm = async () => {
+        if (!currentCoupon) return;
+        setDeleting(true);
+        setError(null);
+        try {
+            await deleteCoupon(currentCoupon.id);
+            setShowDeleteConfirm(false);
+            setCurrentCoupon(null);
+            setNotice('Coupon deleted successfully.');
+            await loadCoupons();
+        } catch (err) {
+            setError(extractErrorMessage(err, 'Failed to delete coupon.'));
+        } finally {
+            setDeleting(false);
+        }
     };
 
 
@@ -699,6 +727,16 @@ const CouponsPage = () => {
                 </Modal.Body>
             </Modal>
 
+
+            {/* ---- Delete Confirmation (admins delete directly) ---- */}
+            <ConfirmModal
+                show={showDeleteConfirm}
+                handleClose={() => setShowDeleteConfirm(false)}
+                type="delete"
+                action={handleDeleteConfirm}
+                data={currentCoupon?.code ?? ''}
+                actionDisabled={deleting}
+            />
 
             {/* ---- Delete Request Modal (requires approval) ---- */}
             <ApprovalRequestModal

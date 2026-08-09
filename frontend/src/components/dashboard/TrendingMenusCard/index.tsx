@@ -5,7 +5,9 @@ import Icon from '../../common/Icon';
 import Skeleton from '@/components/common/Skeleton';
 import { DashboardCardShell } from '../common';
 import type { TrendingMenu } from '../../../types';
-import { getCategoryImageUrl } from '@/api/category.api';
+import { getAssetUrl } from '@/lib';
+import useAuth from '@/hooks/useAuth';
+import { canViewRoute } from '@/utils/navigation';
 import { Link } from 'react-router-dom';
 
 export interface TrendingMenusCardProps {
@@ -36,6 +38,8 @@ const loadingSkeleton = (
 );
 
 const TrendingMenusCard = memo(({ menus, isLoading, errorMessage }: TrendingMenusCardProps) => {
+    const { canView } = useAuth();
+    const canViewItems = canViewRoute('/items', canView);
     const isEmpty = !isLoading && !errorMessage && menus.length === 0;
 
     return (
@@ -55,19 +59,27 @@ const TrendingMenusCard = memo(({ menus, isLoading, errorMessage }: TrendingMenu
                     <Col md={4} sm={6} key={menu.id}>
                         <div className="trending-menu-item">
                             <div className="trending-menu-img-wrap">
-                                <Link to="/items">
-                                    <img
-                                        src={getCategoryImageUrl(menu.imageUrl)}
-                                        alt={menu.name}
-                                        className="trending-menu-img"
-                                    />
-                                </Link>
+                                {canViewItems ? (
+                                    <Link to="/items">
+                                        <img
+                                            src={getAssetUrl(menu.imageUrl)}
+                                            alt={menu.name}
+                                            className="trending-menu-img"
+                                        />
+                                    </Link>
+                                ) : (
+                                    <img src={getAssetUrl(menu.imageUrl)} alt={menu.name} className="trending-menu-img" />
+                                )}
                             </div>
                             <div>
                                 <h6 className="fs-14 fw-semibold text-truncate mb-2">
-                                    <a href="/items" className="text-decoration-none text-dark">
-                                        {menu.name}
-                                    </a>
+                                    {canViewItems ? (
+                                        <a href="/items" className="text-decoration-none text-dark">
+                                            {menu.name}
+                                        </a>
+                                    ) : (
+                                        <span className="text-dark">{menu.name}</span>
+                                    )}
                                 </h6>
                                 <div className="d-flex align-items-center justify-content-between">
                                     <span className="fs-12 text-muted fw-medium">Orders : {menu.orders}</span>

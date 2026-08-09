@@ -2,7 +2,8 @@ import { Badge, Button } from 'react-bootstrap';
 
 import Icon from '@/components/common/Icon';
 
-import { getCategoryImageUrl, type CategoryEntry } from '@/api/category.api';
+import { getAssetUrl } from '@/lib';
+import type { CategoryEntry } from '@/api/category.api';
 
 import { formatDate } from '../utils/category.utils';
 
@@ -33,7 +34,7 @@ const CategoryRow = ({
     openEdit,
     openDelete,
 }: CategoryRowProps) => {
-    const imageUrl = getCategoryImageUrl(category.imagePath);
+    const imageUrl = getAssetUrl(category.imagePath);
 
     return (
         <tr>

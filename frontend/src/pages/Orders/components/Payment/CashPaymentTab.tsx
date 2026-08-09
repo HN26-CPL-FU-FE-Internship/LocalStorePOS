@@ -122,7 +122,7 @@ export default function CashPaymentTab({
 
             {/* Discount popup */}
             <AmountPopup
-                key={String(showDiscount)}
+                key={`discount-${showDiscount}`}
                 show={showDiscount}
                 onHide={() => setShowDiscount(false)}
                 onConfirm={(amount, type) => {
@@ -136,7 +136,7 @@ export default function CashPaymentTab({
 
             {/* Tips popup */}
             <AmountPopup
-                key={String(showTip)}
+                key={`tip-${showTip}`}
                 show={showTip}
                 onHide={() => setShowTip(false)}
                 onConfirm={(amount) => onTipChange(amount)}

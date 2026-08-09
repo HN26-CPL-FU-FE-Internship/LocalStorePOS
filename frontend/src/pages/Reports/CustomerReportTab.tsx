@@ -1,6 +1,7 @@
 import { useCallback, useMemo, useState } from 'react';
 import { Form, Button, Card } from 'react-bootstrap';
 import Icon from '@/components/common/Icon';
+import { getAssetUrl } from '@/lib';
 import Loading from '@/components/common/Loading';
 import TopProgressBar from '@/components/common/TopProgressBar';
 import Pagination from '@/components/common/Pagination';
@@ -100,7 +101,7 @@ const CustomerReportTab = () => {
                                             <div className="d-flex align-items-center">
                                                 <div className="avatar avatar-sm avatar-rounded flex-shrink-0 me-2 bg-light border d-flex align-items-center justify-content-center">
                                                     {item.avatarPath ? (
-                                                        <img src={item.avatarPath} alt={item.customerName} className="img-fluid" />
+                                                        <img src={getAssetUrl(item.avatarPath)} alt={item.customerName} className="img-fluid" />
                                                     ) : (
                                                         <Icon name="user" className="fs-16 text-dark" />
                                                     )}

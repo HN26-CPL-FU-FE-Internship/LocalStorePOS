@@ -3,9 +3,12 @@ import { Row, Col, Card, Button, Dropdown, Modal, Form, Offcanvas, Alert, Spinne
 import { isAxiosError } from 'axios';
 import Icon from '@/components/common/Icon';
 import ApprovalRequestModal from '@/components/common/ApprovalRequestModal';
+import ConfirmModal from '@/components/common/ConfirmModal';
+import useAuth from '@/hooks/useAuth';
+import { getAssetUrl } from '@/lib';
 import {
     createCustomer,
-    getCustomerAvatarUrl,
+    deleteCustomer,
     getCustomers,
     updateCustomer,
     type CustomerEntry,
@@ -63,6 +66,8 @@ const CustomersPage = () => {
     const [showAdd, setShowAdd] = useState(false);
     const [showEdit, setShowEdit] = useState(false);
     const [showDeleteApproval, setShowDeleteApproval] = useState(false);
+    const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+    const [deleting, setDeleting] = useState(false);
     const [showFilter, setShowFilter] = useState(false);
     const [currentCustomer, setCurrentCustomer] = useState<CustomerEntry | null>(null);
     const [saving, setSaving] = useState(false);
@@ -221,9 +226,32 @@ const CustomersPage = () => {
         }
     };
 
+    const { isAdmin } = useAuth();
+
     const openDelete = (customer: CustomerEntry) => {
         setCurrentCustomer(customer);
-        setShowDeleteApproval(true);
+        if (isAdmin) {
+            setShowDeleteConfirm(true);
+        } else {
+            setShowDeleteApproval(true);
+        }
+    };
+
+    const handleDeleteConfirm = async () => {
+        if (!currentCustomer) return;
+        setDeleting(true);
+        setError(null);
+        try {
+            await deleteCustomer(currentCustomer.id);
+            setShowDeleteConfirm(false);
+            setCurrentCustomer(null);
+            setNotice('Customer deleted successfully.');
+            await loadCustomers();
+        } catch (err) {
+            setError(extractErrorMessage(err, 'Failed to delete customer.'));
+        } finally {
+            setDeleting(false);
+        }
     };
 
 
@@ -335,7 +363,7 @@ const CustomersPage = () => {
             {!loading && customers.length > 0 && (
                 <Row>
                     {customers.map((customer) => {
-                        const avatarUrl = getCustomerAvatarUrl(customer.avatarPath);
+                        const avatarUrl = getAssetUrl(customer.avatarPath);
                         return (
                             <Col xxl={4} xl={4} md={6} sm={6} key={customer.id}>
                                 <Card>
@@ -468,9 +496,9 @@ const CustomersPage = () => {
                                 <div className="avatar avatar-3xl border bg-light d-flex align-items-center justify-content-center overflow-hidden">
                                     {imagePreview ? (
                                         <img src={imagePreview} alt="preview" className="img-fluid" />
-                                    ) : isEdit && currentCustomer && getCustomerAvatarUrl(currentCustomer.avatarPath) ? (
+                                    ) : isEdit && currentCustomer && getAssetUrl(currentCustomer.avatarPath) ? (
                                         <img
-                                            src={getCustomerAvatarUrl(currentCustomer.avatarPath)}
+                                            src={getAssetUrl(currentCustomer.avatarPath)}
                                             alt={currentCustomer.name}
                                             className="img-fluid"
                                         />
@@ -595,6 +623,16 @@ const CustomersPage = () => {
                 </Modal>
             ))}
 
+
+            {/* ---- Delete Confirmation (admins delete directly) ---- */}
+            <ConfirmModal
+                show={showDeleteConfirm}
+                handleClose={() => setShowDeleteConfirm(false)}
+                type="delete"
+                action={handleDeleteConfirm}
+                data={currentCustomer?.name ?? ''}
+                actionDisabled={deleting}
+            />
 
             {/* ---- Delete Request Modal (requires approval) ---- */}
             <ApprovalRequestModal

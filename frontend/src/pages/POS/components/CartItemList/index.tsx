@@ -1,4 +1,4 @@
-import { getItemImageUrl } from '@/api/item.api';
+import { getAssetUrl } from '@/lib';
 import Icon from '@/components/common/Icon';
 import ItemStatusBadge from '@/components/common/ItemStatusBadge';
 import usePOSCreateOrder from '@/stores/pos.store';
@@ -48,7 +48,7 @@ const CartItemList = () => {
                             >
                                 <div className="avatar avatar-lg flex-shrink-0 me-2">
                                     <Image
-                                        src={getItemImageUrl(cartItem.item.imagePath) ?? getItemImage(cartItem.item.id)}
+                                        src={getAssetUrl(cartItem.item.imagePath) ?? getItemImage(cartItem.item.id)}
                                         fluid
                                         rounded
                                     />

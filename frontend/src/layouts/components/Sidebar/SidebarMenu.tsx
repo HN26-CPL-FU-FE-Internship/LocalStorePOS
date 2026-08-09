@@ -3,7 +3,7 @@ import Icon from '@/components/common/Icon';
 import type { SidebarMenuSection } from '@/types';
 import { Link, useLocation } from 'react-router-dom';
 import useAuth from '@/hooks/useAuth';
-import { ROUTE_PERMISSION_MAP } from '@/types/permission';
+import { canViewRoute } from '@/utils/navigation';
 
 export interface SidebarMenuProps {
     sections: SidebarMenuSection[];
@@ -21,11 +21,7 @@ const SidebarMenu = ({ sections }: SidebarMenuProps) => {
         <>
             {sections.map((section) => {
                 // Filter items based on view permission
-                const visibleItems = section.items.filter((item) => {
-                    const module = ROUTE_PERMISSION_MAP[item.href];
-                    // If no permission mapping exists, allow the item
-                    return !module || canView(module);
-                });
+                const visibleItems = section.items.filter((item) => canViewRoute(item.href, canView));
 
                 // Hide empty sections
                 if (visibleItems.length === 0) return null;

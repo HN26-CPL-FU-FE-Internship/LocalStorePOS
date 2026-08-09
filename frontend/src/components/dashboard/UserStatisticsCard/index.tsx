@@ -6,7 +6,7 @@ import Icon from '../../common/Icon';
 import { DashboardCardShell } from '../common';
 import { type TimePeriod } from '@/utils/dashboardFilter';
 import type { AvatarStackItem } from '../../../types';
-import { getCategoryImageUrl } from '@/api/category.api';
+import { getAssetUrl } from '@/lib';
 
 export interface UserStatisticsCardProps {
     topUser: {
@@ -52,7 +52,7 @@ const UserStatisticsCard = memo(({
             <div className="d-flex align-items-center gap-3">
                 <div className="flex-shrink-0 position-relative">
                     <img
-                        src={getCategoryImageUrl(topUser.avatarUrl)}
+                        src={getAssetUrl(topUser.avatarUrl)}
                         alt="user"
                         className="user-stat-avatar"
                         onError={(e) => {

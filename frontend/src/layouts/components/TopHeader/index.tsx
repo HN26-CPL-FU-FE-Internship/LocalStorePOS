@@ -10,6 +10,8 @@ import QuickLinkHeader from '../QuickLinkHeader';
 import type { ThemeContextType } from '@/provider/ThemeProvider/ThemeContext';
 import ThemeContext from '@/provider/ThemeProvider/ThemeContext';
 import useContextData from '@/hooks/useContextData';
+import useAuth from '@/hooks/useAuth';
+import { canViewRoute } from '@/utils/navigation';
 import { useState } from 'react';
 import handleChangeTheme from '@/utils/handleChangeTheme';
 import type { ThemeType } from '@/types';
@@ -30,6 +32,7 @@ export interface TopHeaderProps {
 
 const TopHeader = ({ logoHref = '#', onOpenMobileSidebar }: TopHeaderProps) => {
     const { routes } = configs;
+    const { canView } = useAuth();
     const { toggleTheme } = useContextData<ThemeContextType>(ThemeContext);
     const [iconName, setIconName] = useState<ThemeType>('moon');
 
@@ -97,12 +100,14 @@ const TopHeader = ({ logoHref = '#', onOpenMobileSidebar }: TopHeaderProps) => {
                     </div> */}
 
                     {/* Report */}
-                    <div className="header-item d-none d-sm-flex">
-                        <Link to={routes.reports} className="topbar-link btn btn-icon" aria-label="report" title="Report">
-                            <Icon name="chart-column-stacked" className="fs-16" />
-                            <span className="position-absolute report-badge bg-success" />
-                        </Link>
-                    </div>
+                    {canViewRoute(routes.reports, canView) && (
+                        <div className="header-item d-none d-sm-flex">
+                            <Link to={routes.reports} className="topbar-link btn btn-icon" aria-label="report" title="Report">
+                                <Icon name="chart-column-stacked" className="fs-16" />
+                                <span className="position-absolute report-badge bg-success" />
+                            </Link>
+                        </div>
+                    )}
 
                     {/* Light/Dark mode */}
                     <div className="header-item d-flex">

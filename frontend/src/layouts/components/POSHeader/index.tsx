@@ -10,8 +10,10 @@ import { Button, Container } from 'react-bootstrap';
 import QuickLinkHeader from '../QuickLinkHeader';
 import NotificationsDropdown from '../Sidebar/NotificationsDropdown';
 import { useNotifications } from '@/hooks';
+import useAuth from '@/hooks/useAuth';
+import { canViewRoute } from '@/utils/navigation';
 import ProfileDropdown from '../Sidebar/ProfileDropdown';
-import { logoutHref, profileMenuItems } from '@/data/navigationData';
+import { profileMenuItems } from '@/data/navigationData';
 import useContextData from '@/hooks/useContextData';
 import type { ThemeContextType } from '@/provider/ThemeProvider/ThemeContext';
 import ThemeContext from '@/provider/ThemeProvider/ThemeContext';
@@ -23,6 +25,7 @@ const cx = bindCx(styles);
 
 const POSHeader = () => {
     const { routes } = configs;
+    const { canView } = useAuth();
     const [iconName, setIconName] = useState<ThemeType>('moon');
     const { toggleTheme } = useContextData<ThemeContextType>(ThemeContext);
     const { groups: allGroups, unreadGroups, unreadCount, markAsRead, markAsUnread, markAllAsRead, acceptAction, declineAction, isLoading, isError } = useNotifications();
@@ -48,11 +51,13 @@ const POSHeader = () => {
                             <QuickLinkHeader />
                         </div>
                         <ul className="header-notification">
-                            <li className="d-none d-sm-flex">
-                                <Link to={routes.reports} className="btn btn-icon">
-                                    <Icon name="chart-column-stacked" />
-                                </Link>
-                            </li>
+                            {canViewRoute(routes.reports, canView) && (
+                                <li className="d-none d-sm-flex">
+                                    <Link to={routes.reports} className="btn btn-icon">
+                                        <Icon name="chart-column-stacked" />
+                                    </Link>
+                                </li>
+                            )}
                             <li className="header-item d-flex">
                                 <div className="header-item d-flex">
                                     <Button
@@ -82,17 +87,16 @@ const POSHeader = () => {
                                 isError={isError}
                             />
                             </li>
-                            <li>
-                                <Link to={routes['tax-settings']} className="btn-icon">
-                                    <Icon name="cog" />
-                                </Link>
-                            </li>
+                            {canViewRoute(routes['tax-settings'], canView) && (
+                                <li>
+                                    <Link to={routes['tax-settings']} className="btn-icon">
+                                        <Icon name="cog" />
+                                    </Link>
+                                </li>
+                            )}
                             <li>
                                 <div>
-                                    <ProfileDropdown
-                                        menuItems={profileMenuItems}
-                                        logoutHref={logoutHref}
-                                    />
+                                    <ProfileDropdown menuItems={profileMenuItems} />
                                 </div>
                             </li>
                         </ul>

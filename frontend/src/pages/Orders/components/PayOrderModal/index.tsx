@@ -10,6 +10,7 @@ import useContextData from '@/hooks/useContextData';
 import { ToastContext } from '@/provider/ToastProvider/ToastContext';
 import ConfirmModal from '@/components/common/ConfirmModal';
 import ApprovalRequestModal from '@/components/common/ApprovalRequestModal';
+import useAuth from '@/hooks/useAuth';
 import type { PaymentRequest } from '@/services/orderService';
 import OrderInfoSection from './OrderInfoSection';
 import OrderedMenusSection from './OrderedMenusSection';
@@ -29,6 +30,7 @@ const PayOrderModal = ({
     isPaymentProcessing?: boolean;
 }) => {
     const { showToast } = useContextData(ToastContext);
+    const { isAdmin } = useAuth();
     const [activePaymentType, setActivePaymentType] = useState('cash');
 
     // Payment modifier state (lifted from payment tabs)
@@ -137,7 +139,9 @@ const PayOrderModal = ({
         // before the payment is processed on the system.
         const effectiveDiscountPercent =
             discountType === 'percentage' ? discountAmount : subtotal > 0 ? (discountValue / subtotal) * 100 : 0;
-        if (effectiveDiscountPercent >= DISCOUNT_APPROVAL_THRESHOLD_PERCENT) {
+        // Discounts at or above the threshold require manager approval for
+        // non-admin roles. Admins apply the discount directly without approval.
+        if (effectiveDiscountPercent >= DISCOUNT_APPROVAL_THRESHOLD_PERCENT && !isAdmin) {
             // Close the confirm modal so the approval modal is the only one on screen
             setShowConfirmPay(false);
             setShowDiscountApproval(true);
@@ -160,6 +164,7 @@ const PayOrderModal = ({
         showToast,
         subtotal,
         discountValue,
+        isAdmin,
     ]);
 
     const handleRequestPay = useCallback(() => {

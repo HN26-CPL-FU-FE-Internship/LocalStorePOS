@@ -163,13 +163,3 @@ export const deleteItem = async (id: number): Promise<void> => {
     await api.delete(`/items/${id}`);
 };
 
-/* ------------------------------------------------------------------ */
-/*  Helpers                                                            */
-/* ------------------------------------------------------------------ */
-export const getItemImageUrl = (imagePath: string | null): string | undefined => {
-    if (!imagePath) return undefined;
-    if (imagePath.startsWith('http')) return imagePath;
-
-    const base = api.defaults.baseURL?.replace(/\/api\/?$/, '') ?? '';
-    return `${base}${imagePath}`;
-};

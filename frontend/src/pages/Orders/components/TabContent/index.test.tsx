@@ -6,8 +6,16 @@ import type { OrderItemType, OrderSummary } from '@/types';
 
 // Mock dependencies
 
+const { mockAuth } = vi.hoisted(() => ({
+    mockAuth: { isAdmin: true },
+}));
+
 vi.mock('@/hooks/useAuth', () => ({
-    default: () => ({ hasPermission: () => true, user: { role: 'admin / owner' } }),
+    default: () => ({
+        hasPermission: () => true,
+        user: { role: mockAuth.isAdmin ? 'Admin / Owner' : 'Waiter' },
+        isAdmin: mockAuth.isAdmin,
+    }),
 }));
 
 vi.mock('@/hooks/useContextData', () => ({
@@ -27,12 +35,13 @@ vi.mock('@/components/common/Icon', () => ({
     default: ({ name }: { name: string }) => <span data-testid={`icon-${name}`}>{name}</span>,
 }));
 
+// Track which confirmation flow is triggered (admins bypass approval)
 vi.mock('@/components/common/ConfirmModal', () => ({
-    default: () => null,
+    default: ({ show }: { show: boolean }) => (show ? <div data-testid="confirm-modal" /> : null),
 }));
 
 vi.mock('@/components/common/ApprovalRequestModal', () => ({
-    default: () => null,
+    default: ({ show }: { show: boolean }) => (show ? <div data-testid="approval-modal" /> : null),
 }));
 
 vi.mock('../OrderModal', () => ({
@@ -148,9 +157,41 @@ describe('TabContent - split tags wiring', () => {
     });
 });
 
+describe('TabContent - cancel invoice approval flow', () => {
+    beforeEach(() => {
+        vi.clearAllMocks();
+        mockAuth.isAdmin = true;
+    });
+
+    it('admins cancel directly via the confirmation modal (no approval request)', async () => {
+        mockAuth.isAdmin = true;
+        const { container } = renderTabContent();
+
+        const actionToggle = container.querySelector('.dropstart .dropdown-toggle') as HTMLElement;
+        fireEvent.click(actionToggle);
+        fireEvent.click(screen.getByText('Cancel'));
+
+        await waitFor(() => expect(screen.getByTestId('confirm-modal')).toBeInTheDocument());
+        expect(screen.queryByTestId('approval-modal')).not.toBeInTheDocument();
+    });
+
+    it('non-admin cancels via the approval request modal (not a direct confirmation)', async () => {
+        mockAuth.isAdmin = false;
+        const { container } = renderTabContent();
+
+        const actionToggle = container.querySelector('.dropstart .dropdown-toggle') as HTMLElement;
+        fireEvent.click(actionToggle);
+        fireEvent.click(screen.getByText('Cancel'));
+
+        await waitFor(() => expect(screen.getByTestId('approval-modal')).toBeInTheDocument());
+        expect(screen.queryByTestId('confirm-modal')).not.toBeInTheDocument();
+    });
+});
+
 describe('TabContent - Print Bill wiring', () => {
     beforeEach(() => {
         vi.clearAllMocks();
+        mockAuth.isAdmin = true;
     });
 
     it('opens the PrintBillModal for the order when Print Receipt is clicked', async () => {

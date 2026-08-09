@@ -6,7 +6,7 @@ import { useCallback, useMemo, useState } from 'react';
 import styles from './TabContent.module.scss';
 import { bindCx, computeKitchenSplitItems, formatHourAndMinute, formatString, orderUtils, toTitleCase } from '@/utils';
 import {
-    ROUTE_PERMISSION_MAP,
+    getRoutePermissionModule,
     type ConfirmType,
     type ModalActionProps,
     type OrderStatus,
@@ -36,6 +36,7 @@ export type TabContentProps = ModalActionProps;
 
 const TabContent = ({ order }: { order: OrderSummary }) => {
     const { showToast } = useContextData(ToastContext);
+    const { hasPermission, isAdmin } = useAuth();
 
     const [showItems, setShowItems] = useState(false);
     const [showConfirmModal, setShowConfirmModal] = useState(false);
@@ -81,14 +82,15 @@ const TabContent = ({ order }: { order: OrderSummary }) => {
             setConfirmType(status === 'cancelled' ? 'cancel' : status === 'completed' ? 'complete' : 'update');
 
             // Cancelling an invoice requires manager approval before it takes
-            // effect on the system.
-            if (status === 'cancelled') {
+            // effect on the system — but admins cancel directly via the normal
+            // confirmation modal.
+            if (status === 'cancelled' && !isAdmin) {
                 setShowApprovalModal(true);
             } else {
                 setShowConfirmModal(true);
             }
         },
-        [order.id, order.orderNumber, order.status, showToast],
+        [order.id, order.orderNumber, order.status, showToast, isAdmin],
     );
 
     const handleCloseOrderPay = useCallback(() => setShowOrderPay(false), []);
@@ -124,7 +126,6 @@ const TabContent = ({ order }: { order: OrderSummary }) => {
     );
 
     const { pathname } = useLocation();
-    const { hasPermission } = useAuth();
 
     return (
         <>
@@ -149,7 +150,7 @@ const TabContent = ({ order }: { order: OrderSummary }) => {
                                     </p>
                                 </div>
                             </div>
-                            {hasPermission(ROUTE_PERMISSION_MAP[pathname], 'view') && (
+                            {hasPermission(getRoutePermissionModule(pathname) ?? '', 'view') && (
                                 <OrderActionDropdown
                                     actions={{
                                         cx,
@@ -221,7 +222,7 @@ const TabContent = ({ order }: { order: OrderSummary }) => {
                         </div>
                         <div className="d-flex align-items-center justify-content-between flex-wrap gap-3">
                             <p className="badge badge-soft-success mb-0">{formatString(order.paymentStatus)}</p>
-                            {hasPermission(ROUTE_PERMISSION_MAP[pathname], 'edit') ? (
+                            {hasPermission(getRoutePermissionModule(pathname) ?? '', 'edit') ? (
                                 <Dropdown>
                                     <Dropdown.Toggle
                                         variant=""

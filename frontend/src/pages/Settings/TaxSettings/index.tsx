@@ -2,9 +2,12 @@ import { useCallback, useEffect, useState, type Dispatch, type SetStateAction } 
 import { Card, Button, Modal, Form, Alert } from 'react-bootstrap';
 import Icon from '@/components/common/Icon';
 import ApprovalRequestModal from '@/components/common/ApprovalRequestModal';
+import ConfirmModal from '@/components/common/ConfirmModal';
+import useAuth from '@/hooks/useAuth';
 import {
     getTaxes,
     createTax,
+    deleteTax,
     updateTax,
     updateTaxStatus,
     type TaxEntry,
@@ -54,6 +57,8 @@ const TaxSettingsPage = () => {
     const [showAdd, setShowAdd] = useState(false);
     const [showEdit, setShowEdit] = useState(false);
     const [showDeleteApproval, setShowDeleteApproval] = useState(false);
+    const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+    const [deleting, setDeleting] = useState(false);
     const [currentTax, setCurrentTax] = useState<TaxEntry | null>(null);
     const [form, setForm] = useState<TaxFormData>(emptyForm);
     const [saving, setSaving] = useState(false);
@@ -134,9 +139,32 @@ const TaxSettingsPage = () => {
         }
     };
 
+    const { isAdmin } = useAuth();
+
     const openDelete = (tax: TaxEntry) => {
         setCurrentTax(tax);
-        setShowDeleteApproval(true);
+        if (isAdmin) {
+            setShowDeleteConfirm(true);
+        } else {
+            setShowDeleteApproval(true);
+        }
+    };
+
+    const handleDeleteConfirm = async () => {
+        if (!currentTax) return;
+        setDeleting(true);
+        setError(null);
+        try {
+            await deleteTax(currentTax.id);
+            setShowDeleteConfirm(false);
+            setCurrentTax(null);
+            setSuccess('Tax deleted successfully.');
+            await loadTaxes();
+        } catch (err: unknown) {
+            setError(err instanceof Error ? err.message : 'Failed to delete tax.');
+        } finally {
+            setDeleting(false);
+        }
     };
 
 
@@ -265,6 +293,16 @@ const TaxSettingsPage = () => {
                     </Modal.Body>
                 </Form>
             </Modal>
+
+            {/* ---- Delete Confirmation (admins delete directly) ---- */}
+            <ConfirmModal
+                show={showDeleteConfirm}
+                handleClose={() => setShowDeleteConfirm(false)}
+                type="delete"
+                action={handleDeleteConfirm}
+                data={currentTax?.title ?? ''}
+                actionDisabled={deleting}
+            />
 
             {/* ---- Delete Request Modal (requires approval) ---- */}
             <ApprovalRequestModal

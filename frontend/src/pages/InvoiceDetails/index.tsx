@@ -2,7 +2,8 @@ import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { Card, Table, Button, Spinner, Alert, Badge, Row, Col } from 'react-bootstrap';
 import Icon from '@/components/common/Icon';
-import { getInvoice, getInvoiceCustomerAvatarUrl, type InvoiceDetail, type InvoiceStatus } from '@/api/invoice.api';
+import { getAssetUrl } from '@/lib';
+import { getInvoice, type InvoiceDetail, type InvoiceStatus } from '@/api/invoice.api';
 
 const statusBadgeClass: Record<InvoiceStatus, string> = {
     paid: 'badge-soft-success',
@@ -52,7 +53,7 @@ const InvoiceDetailsPage = () => {
         return <Alert variant="danger">{error ?? 'Invoice not found.'}</Alert>;
     }
 
-    const avatarUrl = getInvoiceCustomerAvatarUrl(invoice.customerAvatarPath);
+    const avatarUrl = getAssetUrl(invoice.customerAvatarPath);
 
     return (
         <>

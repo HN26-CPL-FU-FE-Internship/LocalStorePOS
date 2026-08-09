@@ -13,7 +13,11 @@ import {
 } from 'react-bootstrap';
 import Icon from '@/components/common/Icon';
 import ApprovalRequestModal from '@/components/common/ApprovalRequestModal';
+import ConfirmModal from '@/components/common/ConfirmModal';
+import useAuth from '@/hooks/useAuth';
 import {
+    createUser,
+    deleteUser,
     getUsers,
     updateUser,
     getUserPermissions,
@@ -28,6 +32,7 @@ import PageHeader from '@/components/common/PageHeader';
 import HeaderUsers from '@/components/headers/HeaderUsers';
 import userImages from '@/assets/img/users';
 import { api } from '@/lib/axios';
+import { getAssetUrl } from '@/lib';
 import type { AxiosError } from 'axios';
 import type { ApiResponse } from '@/types/auth';
 import Pagination from '@/components/common/Pagination';
@@ -109,12 +114,15 @@ const UsersPage = () => {
     const [roles, setRoles] = useState<RoleOption[]>([]);
     const [columns, setColumns] = useState<ColumnOption[]>(defaultColumns);
     const [loading, setLoading] = useState(false);
+    const [saving, setSaving] = useState(false);
 
     // Modals
     const [showAdd, setShowAdd] = useState(false);
     const [showAddApproval, setShowAddApproval] = useState(false);
     const [showEdit, setShowEdit] = useState(false);
     const [showDeleteApproval, setShowDeleteApproval] = useState(false);
+    const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+    const [deleting, setDeleting] = useState(false);
     const [showDetail, setShowDetail] = useState(false);
     const [showPermission, setShowPermission] = useState(false);
     const [showFilter, setShowFilter] = useState(false);
@@ -228,13 +236,43 @@ const UsersPage = () => {
         setAvatarPreview(undefined);
     };
 
+    const { isAdmin } = useAuth();
+
     /* ---------- add user ---------- */
     const handleAdd = async () => {
         if (addForm.password !== addForm.confirmPassword) {
             alert('Passwords do not match');
             return;
         }
-        // Creating a user requires approval before it takes effect.
+        // Creating a user requires approval before it takes effect — admins
+        // create users directly.
+        if (isAdmin) {
+            setSaving(true);
+            try {
+                await createUser(
+                    {
+                        firstName: addForm.firstName,
+                        lastName: addForm.lastName,
+                        email: addForm.email,
+                        phoneNumber: addForm.phoneNumber,
+                        password: addForm.password,
+                        role: addForm.roleId,
+                    },
+                    avatarFile,
+                );
+                setShowAdd(false);
+                setAddForm(addEmptyForm);
+                clearAvatar();
+                await loadUsers();
+            } catch (err: unknown) {
+                const msg =
+                    (err as AxiosError<{ message?: string }>)?.response?.data?.message || 'Failed to create user';
+                alert(msg);
+            } finally {
+                setSaving(false);
+            }
+            return;
+        }
         setShowAdd(false);
         setShowAddApproval(true);
     };
@@ -292,7 +330,28 @@ const UsersPage = () => {
     /* ---------- delete user ---------- */
     const openDelete = (user: UserEntry) => {
         setCurrentUser(user);
-        setShowDeleteApproval(true);
+        if (isAdmin) {
+            setShowDeleteConfirm(true);
+        } else {
+            setShowDeleteApproval(true);
+        }
+    };
+
+    const handleDeleteConfirm = async () => {
+        if (!currentUser) return;
+        setDeleting(true);
+        try {
+            await deleteUser(currentUser.id);
+            setShowDeleteConfirm(false);
+            setCurrentUser(null);
+            await loadUsers();
+        } catch (err: unknown) {
+            const msg =
+                (err as AxiosError<{ message?: string }>)?.response?.data?.message || 'Failed to delete user';
+            alert(msg);
+        } finally {
+            setDeleting(false);
+        }
     };
 
     /* ---------- detail ---------- */
@@ -514,7 +573,7 @@ const UsersPage = () => {
                                     </tr>
                                 )}
                                 {users.map((user) => {
-                                    const isAdmin = user.role === 'Admin / Owner';
+                                    const isAdminUser = user.role === 'Admin / Owner';
 
                                     return (
                                         <tr key={user.id}>
@@ -526,7 +585,7 @@ const UsersPage = () => {
                                                             className="avatar avatar-sm avatar-rounded flex-shrink-0 me-2"
                                                         >
                                                             <img
-                                                                src={user.avatarPath ? `http://localhost:8080/restaurant-pos${user.avatarPath}` : localImages[users.findIndex((u) => u.id === user.id) % localImages.length]}
+                                                                src={getAssetUrl(user.avatarPath) ?? localImages[users.findIndex((u) => u.id === user.id) % localImages.length]}
                                                                 alt={user.fullName}
                                                                 className="img-fluid"
                                                                 onError={(e) => {
@@ -578,7 +637,7 @@ const UsersPage = () => {
                                                         variant="white"
                                                         size="sm"
                                                         className="btn-icon rounded-circle me-2"
-                                                        disabled={isAdmin}
+                                                        disabled={isAdminUser}
                                                         onClick={() => openPermission(user)}
                                                         title="Permissions"
                                                     >
@@ -588,7 +647,7 @@ const UsersPage = () => {
                                                         variant="white"
                                                         size="sm"
                                                         className="btn-icon rounded-circle me-2"
-                                                        disabled={isAdmin}
+                                                        disabled={isAdminUser}
                                                         onClick={() => openEdit(user)}
                                                         title="Edit"
                                                     >
@@ -598,7 +657,7 @@ const UsersPage = () => {
                                                         variant="white"
                                                         size="sm"
                                                         className="btn-icon rounded-circle"
-                                                        disabled={isAdmin}
+                                                        disabled={isAdminUser}
                                                         onClick={() => openDelete(user)}
                                                         title="Delete"
                                                     >
@@ -757,31 +816,29 @@ const UsersPage = () => {
                                 required
                                 minLength={8}
                             />
-                        </Form.Group>
-
-                        <Form.Group className="mb-3">
-                            <Form.Label>
-                                Confirm Password<span className="text-danger"> *</span>
-                            </Form.Label>
-                            <Form.Control
-                                type="password"
-                                value={addForm.confirmPassword}
-                                onChange={(e) => setAddForm((p) => ({ ...p, confirmPassword: e.target.value }))}
-                                required
-                                minLength={8}
-                                isInvalid={addForm.confirmPassword !== '' && addForm.password !== addForm.confirmPassword}
-                            />
-                            <Form.Control.Feedback type="invalid">
-                                Passwords do not match
-                            </Form.Control.Feedback>
-                        </Form.Group>
+                        </Form.Group>                                <Form.Group className="mb-3">
+                                    <Form.Label>
+                                        Confirm Password<span className="text-danger"> *</span>
+                                    </Form.Label>
+                                    <Form.Control
+                                        type="password"
+                                        value={addForm.confirmPassword}
+                                        onChange={(e) => setAddForm((p) => ({ ...p, confirmPassword: e.target.value }))}
+                                        required
+                                        minLength={8}
+                                        isInvalid={addForm.confirmPassword !== '' && addForm.password !== addForm.confirmPassword}
+                                    />
+                                    <Form.Control.Feedback type="invalid">
+                                        Passwords do not match
+                                    </Form.Control.Feedback>
+                                </Form.Group>
 
                         <div className="d-flex align-items-center justify-content-end gap-2 pt-1">
                             <Button variant="light" onClick={() => setShowAdd(false)}>
                                 Cancel
                             </Button>
-                            <Button variant="primary" type="submit">
-                                Save
+                            <Button variant="primary" type="submit" disabled={saving}>
+                                {saving ? 'Saving...' : 'Save'}
                             </Button>
                         </div>
                     </Modal.Body>
@@ -807,7 +864,7 @@ const UsersPage = () => {
                                     <img src={avatarPreview} alt="Preview" className="img-fluid w-100 h-100 object-fit-cover" />
                                 ) : currentUser?.avatarPath ? (
                                     <img
-                                        src={`http://localhost:8080/restaurant-pos${currentUser.avatarPath}`}
+                                        src={getAssetUrl(currentUser.avatarPath)}
                                         alt={currentUser.fullName}
                                         className="img-fluid w-100 h-100 object-fit-cover"
                                     />
@@ -984,7 +1041,7 @@ const UsersPage = () => {
                             <div className="avatar avatar-4xl border bg-light d-flex align-items-center justify-content-center overflow-hidden rounded-circle">
                                 {currentUser.avatarPath ? (
                                     <img
-                                        src={`http://localhost:8080/restaurant-pos${currentUser.avatarPath}`}
+                                        src={getAssetUrl(currentUser.avatarPath)}
                                         alt={currentUser.fullName}
                                         className="img-fluid w-100 h-100 object-fit-cover"
                                     />
@@ -1190,6 +1247,16 @@ const UsersPage = () => {
                     setAddForm(addEmptyForm);
                     clearAvatar();
                 }}
+            />
+
+            {/* ---- Delete User Confirmation (admins delete directly) ---- */}
+            <ConfirmModal
+                show={showDeleteConfirm}
+                handleClose={() => setShowDeleteConfirm(false)}
+                type="delete"
+                action={handleDeleteConfirm}
+                data={currentUser?.fullName ?? ''}
+                actionDisabled={deleting}
             />
 
             {/* ---- Delete User Request Modal (requires approval) ---- */}

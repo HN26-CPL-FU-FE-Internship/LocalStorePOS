@@ -13,7 +13,6 @@ vi.mock('@/api/print-setting.api', () => ({
 
 vi.mock('@/api/store.api', () => ({
     getStoreSetting: vi.fn<() => Promise<StoreSetting | null>>(),
-    getStoreImageUrl: vi.fn(() => '/assets/store-logo.png'),
 }));
 
 vi.mock('@/components/common/Icon', () => ({

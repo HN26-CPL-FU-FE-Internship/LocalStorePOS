@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Card, Button, Form, Alert } from 'react-bootstrap';
 import Icon from '@/components/common/Icon';
-import { getStoreSetting, updateStoreSetting, getStoreImageUrl, type StoreSetting, type StoreSettingFormData } from '@/api/store.api';
+import { getAssetUrl } from '@/lib';
+import { getStoreSetting, updateStoreSetting, type StoreSetting, type StoreSettingFormData } from '@/api/store.api';
 
 const CURRENCIES = [
     { value: 'USD', label: 'USD - US Dollar' },
@@ -148,8 +149,8 @@ const StoreSettingsPage = () => {
                                     <div className="avatar avatar-3xl border bg-light d-flex align-items-center justify-content-center overflow-hidden">
                                         {imagePreview ? (
                                             <img src={imagePreview} alt="preview" className="img-fluid" style={{ objectFit: 'cover', width: '100%', height: '100%' }} />
-                                        ) : setting && getStoreImageUrl(setting.imagePath) ? (
-                                            <img src={getStoreImageUrl(setting.imagePath)} alt={setting.name} className="img-fluid" style={{ objectFit: 'cover', width: '100%', height: '100%' }} />
+                                        ) : setting && getAssetUrl(setting.imagePath) ? (
+                                            <img src={getAssetUrl(setting.imagePath)} alt={setting.name} className="img-fluid" style={{ objectFit: 'cover', width: '100%', height: '100%' }} />
                                         ) : (
                                             <Icon name="images" className="fs-28 text-dark" />
                                         )}

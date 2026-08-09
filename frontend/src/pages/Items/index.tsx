@@ -3,11 +3,14 @@ import { Row, Col, Card, Button, Dropdown, Modal, Form, Offcanvas, Alert, Spinne
 import { isAxiosError } from 'axios';
 import Icon from '@/components/common/Icon';
 import ApprovalRequestModal from '@/components/common/ApprovalRequestModal';
+import ConfirmModal from '@/components/common/ConfirmModal';
+import useAuth from '@/hooks/useAuth';
+import { getAssetUrl } from '@/lib';
 import {
     createItem,
+    deleteItem,
     getCategoryOptions,
     getItem,
-    getItemImageUrl,
     getItems,
     getTaxOptions,
     updateItem,
@@ -93,6 +96,8 @@ const ItemsPage = () => {
     const [showEdit, setShowEdit] = useState(false);
     const [showHide, setShowHide] = useState(false);
     const [showDeleteApproval, setShowDeleteApproval] = useState(false);
+    const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+    const [deleting, setDeleting] = useState(false);
     const [showPriceApproval, setShowPriceApproval] = useState(false);
     const [showDetails, setShowDetails] = useState(false);
     const [showFilter, setShowFilter] = useState(false);
@@ -296,11 +301,14 @@ const ItemsPage = () => {
         }
     };
 
+    const { isAdmin } = useAuth();
+
     const handleEdit = async () => {
         if (!currentItem) return;
 
-        // Price changes require approval before they take effect.
-        if (Number(form.price) !== Number(currentItem.price)) {
+        // Price changes require approval before they take effect — but admins
+        // change prices directly.
+        if (Number(form.price) !== Number(currentItem.price) && !isAdmin) {
             setShowEdit(false);
             setShowPriceApproval(true);
             return;
@@ -338,10 +346,32 @@ const ItemsPage = () => {
         }
     };
 
-    // Delete requires approval before it is applied on the system.
+    // Delete requires approval before it is applied on the system — admins
+    // delete directly after a confirmation.
     const openDeleteApproval = (item: ItemEntry) => {
         setCurrentItem(item);
-        setShowDeleteApproval(true);
+        if (isAdmin) {
+            setShowDeleteConfirm(true);
+        } else {
+            setShowDeleteApproval(true);
+        }
+    };
+
+    const handleDeleteConfirm = async () => {
+        if (!currentItem) return;
+        setDeleting(true);
+        setError(null);
+        try {
+            await deleteItem(currentItem.id);
+            setShowDeleteConfirm(false);
+            setCurrentItem(null);
+            setNotice('Item deleted successfully.');
+            await loadItems();
+        } catch (err) {
+            setError(extractErrorMessage(err, 'Failed to delete item.'));
+        } finally {
+            setDeleting(false);
+        }
     };
 
     const openHide = (item: ItemEntry) => {
@@ -497,7 +527,7 @@ const ItemsPage = () => {
             {!loading && items.length > 0 && (
                 <Row>
                     {items.map((item) => {
-                        const imageUrl = getItemImageUrl(item.imagePath);
+                        const imageUrl = getAssetUrl(item.imagePath);
                         return (
                             <Col lg={3} md={4} sm={6} key={item.id}>
                                 <Card>
@@ -631,9 +661,9 @@ const ItemsPage = () => {
                                         >
                                             {imagePreview ? (
                                                 <img src={imagePreview} alt="preview" className="img-fluid" />
-                                            ) : isEdit && currentItem && getItemImageUrl(currentItem.imagePath) ? (
+                                            ) : isEdit && currentItem && getAssetUrl(currentItem.imagePath) ? (
                                                 <img
-                                                    src={getItemImageUrl(currentItem.imagePath)}
+                                                    src={getAssetUrl(currentItem.imagePath)}
                                                     alt={currentItem.name}
                                                     className="img-fluid"
                                                 />
@@ -928,9 +958,9 @@ const ItemsPage = () => {
                         <Row className="row-gap-3">
                             <Col lg={6} sm={12}>
                                 <div className="bg-light p-3 rounded d-flex align-items-center justify-content-center" style={{ minHeight: 220 }}>
-                                    {getItemImageUrl(detail.imagePath) ? (
+                                    {getAssetUrl(detail.imagePath) ? (
                                         <img
-                                            src={getItemImageUrl(detail.imagePath)}
+                                            src={getAssetUrl(detail.imagePath)}
                                             alt={detail.name}
                                             className="img-fluid w-100"
                                         />
@@ -988,6 +1018,16 @@ const ItemsPage = () => {
                     )}
                 </Modal.Body>
             </Modal>
+
+            {/* ---- Delete Confirmation (admins delete directly) ---- */}
+            <ConfirmModal
+                show={showDeleteConfirm}
+                handleClose={() => setShowDeleteConfirm(false)}
+                type="delete"
+                action={handleDeleteConfirm}
+                data={currentItem?.name ?? ''}
+                actionDisabled={deleting}
+            />
 
             {/* ---- Delete Request Modal (requires approval) ---- */}
             <ApprovalRequestModal

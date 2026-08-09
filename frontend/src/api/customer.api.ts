@@ -90,13 +90,3 @@ export const deleteCustomer = async (id: number): Promise<void> => {
     await api.delete(`/customers/${id}`);
 };
 
-/* ------------------------------------------------------------------ */
-/*  Helpers                                                            */
-/* ------------------------------------------------------------------ */
-export const getCustomerAvatarUrl = (avatarPath: string | null): string | undefined => {
-    if (!avatarPath) return undefined;
-    if (avatarPath.startsWith('http')) return avatarPath;
-
-    const base = api.defaults.baseURL?.replace(/\/api\/?$/, '') ?? '';
-    return `${base}${avatarPath}`;
-};

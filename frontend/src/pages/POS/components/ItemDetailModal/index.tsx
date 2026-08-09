@@ -4,7 +4,7 @@ import { Swiper, SwiperSlide } from 'swiper/react';
 
 import Icon from '@/components/common/Icon';
 import type { ItemAddon, POSItem } from '@/types';
-import { getItemImageUrl } from '@/api/item.api';
+import { getAssetUrl } from '@/lib';
 import foodImages from '@/assets/img/food';
 import usePOSCreateOrder, { type CartPayLoad } from '@/stores/pos.store';
 
@@ -138,7 +138,7 @@ const ItemDetailModal = ({ show, item, onHide }: ItemDetailModalProps) => {
                                 fluid
                                 className="img-1"
                                 alt={item.name}
-                                src={getItemImageUrl(item.imagePath) ?? getFoodImage(Number(item.id))}
+                                src={getAssetUrl(item.imagePath) ?? getFoodImage(Number(item.id))}
                             />
                         </div>
                     </Col>

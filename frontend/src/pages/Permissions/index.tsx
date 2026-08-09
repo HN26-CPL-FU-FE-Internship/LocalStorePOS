@@ -3,6 +3,8 @@ import { Table, Card, Button, Modal, Form, Nav, Spinner, Alert } from 'react-boo
 import PageHeader from '@/components/common/PageHeader';
 import Icon from '@/components/common/Icon';
 import ApprovalRequestModal from '@/components/common/ApprovalRequestModal';
+import ConfirmModal from '@/components/common/ConfirmModal';
+import useAuth from '@/hooks/useAuth';
 import { api } from '@/lib/axios';
 import type { ApiResponse } from '@/types/auth';
 import type { PermissionModule } from '@/types';
@@ -40,6 +42,8 @@ const actionLabels: Record<PermissionAction, string> = {
 /*  Component                                                         */
 /* ------------------------------------------------------------------ */
 const PermissionsPage = () => {
+    const { isAdmin } = useAuth();
+
     /* ---------- state ---------- */
     const [roles, setRoles] = useState<RoleEntry[]>([]);
     const [activeRoleId, setActiveRoleId] = useState<number | null>(null);
@@ -75,10 +79,10 @@ const PermissionsPage = () => {
     // const prevActiveRoleRef = useRef<number | null>(null);
 
     /* ---------- helpers ---------- */
-    const showFeedback = (type: 'success' | 'danger', message: string) => {
+    const showFeedback = useCallback((type: 'success' | 'danger', message: string) => {
         setFeedback({ type, message });
         setTimeout(() => setFeedback(null), 4000);
-    };
+    }, []);
 
     /* ---------- fetch roles ---------- */
     const loadRoles = useCallback(async () => {
@@ -108,7 +112,7 @@ const PermissionsPage = () => {
         } finally {
             setLoadingRoles(false);
         }
-    }, [activeRoleId]);
+    }, [activeRoleId, showFeedback]);
 
     useEffect(() => {
         // eslint-disable-next-line react-hooks/set-state-in-effect
@@ -117,6 +121,30 @@ const PermissionsPage = () => {
     }, []);
 
     /* ---------- fetch permissions when active role changes ---------- */
+    const fetchPermissions = useCallback(
+        async (roleId: number) => {
+            setLoadingPerms(true);
+            try {
+                const { data } = await api.get<ApiResponse<RolePermissionsResponse>>(
+                    `/roles/${roleId}/permissions`,
+                );
+                const perms = data.result.permissions;
+                const permsClone = perms.map((m: PermissionModule) => ({ ...m }));
+                setPermissionsMap((prev) => ({ ...prev, [roleId]: permsClone }));
+                setBaselineMap((prev) => ({
+                    ...prev,
+                    [roleId]: permsClone,
+                }));
+                loadedRolesRef.current.add(roleId);
+            } catch {
+                showFeedback('danger', 'Failed to load permissions');
+            } finally {
+                setLoadingPerms(false);
+            }
+        },
+        [showFeedback],
+    );
+
     useEffect(() => {
         if (activeRoleId == null) return;
 
@@ -125,29 +153,8 @@ const PermissionsPage = () => {
             return;
         }
 
-        const fetchPermissions = async () => {
-            setLoadingPerms(true);
-            try {
-                const { data } = await api.get<ApiResponse<RolePermissionsResponse>>(
-                    `/roles/${activeRoleId}/permissions`,
-                );
-                const perms = data.result.permissions;
-                const permsClone = perms.map((m: PermissionModule) => ({ ...m }));
-                setPermissionsMap((prev) => ({ ...prev, [activeRoleId]: permsClone }));
-                setBaselineMap((prev) => ({
-                    ...prev,
-                    [activeRoleId]: permsClone,
-                }));
-                loadedRolesRef.current.add(activeRoleId);
-            } catch {
-                showFeedback('danger', 'Failed to load permissions');
-            } finally {
-                setLoadingPerms(false);
-            }
-        };
-
-        fetchPermissions();
-    }, [activeRoleId]);
+        fetchPermissions(activeRoleId);
+    }, [activeRoleId, fetchPermissions]);
 
     /* ---------- active role ---------- */
     const activeRole = useMemo(() => roles.find((r) => r.id === activeRoleId) ?? null, [roles, activeRoleId]);
@@ -182,9 +189,27 @@ const PermissionsPage = () => {
         }));
     };
 
-    // Reset to default requires approval before it is applied.
+    // Reset to default requires approval before it is applied — admins reset
+    // directly.
     const openResetApproval = () => {
-        setShowResetApproval(true);
+        if (isAdmin) {
+            handleResetDirect();
+        } else {
+            setShowResetApproval(true);
+        }
+    };
+
+    const handleResetDirect = async () => {
+        if (activeRoleId == null) return;
+        try {
+            await api.post(`/roles/${activeRoleId}/permissions/reset`);
+            // Reload the role permissions so the UI reflects the defaults
+            loadedRolesRef.current.delete(activeRoleId);
+            await fetchPermissions(activeRoleId);
+            showFeedback('success', 'Permissions reset to default.');
+        } catch {
+            showFeedback('danger', 'Failed to reset permissions');
+        }
     };
 
     const handleSendResetApproval = () => {
@@ -192,8 +217,26 @@ const PermissionsPage = () => {
         showFeedback('success', 'Permission reset request sent. Please wait for approval.');
     };
 
-    // Save changes requires approval before they take effect.
+    // Save changes requires approval before they take effect — admins save
+    // directly.
     const [showSaveApproval, setShowSaveApproval] = useState(false);
+
+    const handleSaveDirect = async () => {
+        if (activeRoleId == null) return;
+        try {
+            await api.put(`/roles/${activeRoleId}/permissions`, {
+                permissions: activePermissions,
+            });
+            // Refresh the baseline so the dirty-state indicator clears
+            setBaselineMap((prev) => ({
+                ...prev,
+                [activeRoleId]: activePermissions.map((m) => ({ ...m })),
+            }));
+            showFeedback('success', 'Permissions updated successfully.');
+        } catch {
+            showFeedback('danger', 'Failed to update permissions');
+        }
+    };
 
     const handleSendSaveApproval = () => {
         setShowSaveApproval(false);
@@ -222,11 +265,35 @@ const PermissionsPage = () => {
         }
     };
 
-    // Delete role requires approval before it is applied.
+    // Delete role requires approval before it is applied — admins delete
+    // directly after a confirmation.
     const [showDeleteRoleApproval, setShowDeleteRoleApproval] = useState(false);
+    const [showDeleteRoleConfirm, setShowDeleteRoleConfirm] = useState(false);
+    const [deletingRole, setDeletingRole] = useState(false);
 
     const openDeleteRoleApproval = () => {
-        setShowDeleteRoleApproval(true);
+        if (isAdmin) {
+            setShowDeleteRoleConfirm(true);
+        } else {
+            setShowDeleteRoleApproval(true);
+        }
+    };
+
+    const handleDeleteRoleConfirm = async () => {
+        if (activeRoleId == null) return;
+        setDeletingRole(true);
+        try {
+            await api.delete(`/roles/${activeRoleId}`);
+            setShowDeleteRoleConfirm(false);
+            const nextRoles = roles.filter((r) => r.id !== activeRoleId);
+            setRoles(nextRoles);
+            setActiveRoleId(nextRoles.length > 0 ? nextRoles[0].id : null);
+            showFeedback('success', 'Role deleted successfully.');
+        } catch {
+            showFeedback('danger', 'Failed to delete role');
+        } finally {
+            setDeletingRole(false);
+        }
     };
 
     const handleSendDeleteRoleApproval = () => {
@@ -412,7 +479,7 @@ const PermissionsPage = () => {
                                                 >
                                                     Revert All
                                                 </Button>
-                                                <Button variant="primary" onClick={() => setShowSaveApproval(true)}>
+                                                <Button variant="primary" onClick={() => (isAdmin ? handleSaveDirect() : setShowSaveApproval(true))}>
                                                     Save Changes
                                                 </Button>
                                             </div>
@@ -533,6 +600,16 @@ const PermissionsPage = () => {
                         : null
                 }
                 onSent={handleSendDeleteRoleApproval}
+            />
+
+            {/* ---- Delete Role Confirmation (admins delete directly) ---- */}
+            <ConfirmModal
+                show={showDeleteRoleConfirm}
+                handleClose={() => setShowDeleteRoleConfirm(false)}
+                type="delete"
+                action={handleDeleteRoleConfirm}
+                data={activeRoleName}
+                actionDisabled={deletingRole}
             />
 
         </>

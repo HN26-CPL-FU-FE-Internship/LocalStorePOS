@@ -77,10 +77,3 @@ export const getInvoice = async (id: number): Promise<InvoiceDetail> => {
 export const deleteInvoice = async (id: number): Promise<void> => {
     await api.delete(`/invoices/${id}`);
 };
-
-export const getInvoiceCustomerAvatarUrl = (avatarPath: string | null): string | undefined => {
-    if (!avatarPath) return undefined;
-    if (avatarPath.startsWith('http')) return avatarPath;
-    const base = api.defaults.baseURL?.replace(/\/api\/?$/, '') ?? '';
-    return `${base}${avatarPath}`;
-};

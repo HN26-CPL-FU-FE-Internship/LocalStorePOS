@@ -9,7 +9,9 @@ const AvatarStack = ({ items, size = "md" }: AvatarStackProps) => (
   <div className={`avatar-list-stacked avatar-group-${size}`}>
     {items.map((item) => (
       <span className="avatar avatar-rounded" key={item.id}>
-        <img className="border border-white" src={item.imageUrl} alt={item.alt} />
+        {item.imageUrl && (
+          <img className="border border-white" src={item.imageUrl} alt={item.alt} />
+        )}
       </span>
     ))}
   </div>

@@ -99,13 +99,3 @@ export const deleteAddon = async (id: number): Promise<void> => {
     await api.delete(`/addons/${id}`);
 };
 
-/* ------------------------------------------------------------------ */
-/*  Helpers                                                            */
-/* ------------------------------------------------------------------ */
-export const getAddonImageUrl = (imagePath: string | null): string | undefined => {
-    if (!imagePath) return undefined;
-    if (imagePath.startsWith('http')) return imagePath;
-
-    const base = api.defaults.baseURL?.replace(/\/api\/?$/, '') ?? '';
-    return `${base}${imagePath}`;
-};
