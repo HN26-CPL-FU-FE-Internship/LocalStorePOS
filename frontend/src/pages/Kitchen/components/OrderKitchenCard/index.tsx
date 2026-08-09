@@ -161,7 +161,7 @@ const OrderKitchenCard = ({ order }: { order: OrderSummary }) => {
                 </Card.Header>
                 <Card.Body className="border-bottom " style={{ flex: 0 }}>
                     <div className="d-flex align-items-center justify-content-between gap-2 flex-wrap">
-                        <h6 className="mb-0 fw-normal fs-14">
+                        <h6 className="mb-0 fw-normal fs-12">
                             Token No : <span className="fw-semibold">{order.tokenNo ? order.tokenNo : ' - '}</span>
                         </h6>
                         <p className="mb-0 fw-normal text-dark">{formatDateTimeKitchen(order.orderedAt)}</p>

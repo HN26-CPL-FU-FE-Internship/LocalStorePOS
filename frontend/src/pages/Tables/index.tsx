@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Row, Col, Card, Button, Modal, Form, Alert, Spinner, Badge } from 'react-bootstrap';
+import { Row, Col, Button, Modal, Form, Alert, Spinner, Badge, Offcanvas } from 'react-bootstrap';
 import { isAxiosError } from 'axios';
 import Icon from '@/components/common/Icon';
 import ConfirmModal from '@/components/common/ConfirmModal';
@@ -84,12 +84,6 @@ const TablesPage = () => {
     const [tableForm, setTableForm] = useState(emptyTableForm);
     const [reservationForm, setReservationForm] = useState(emptyReservationForm);
 
-    const sidebarReservations = sidebarTable
-        ? allReservations.filter(
-              (r) => r.tableId === sidebarTable.id && (r.status === 'booked' || r.status === 'seated'),
-          )
-        : [];
-
     // Live ghost marker on the map while typing coordinates in Add/Edit modal.
     const previewCoords =
         showAddTable || showEditTable
@@ -101,17 +95,11 @@ const TablesPage = () => {
               }
             : null;
 
-    const openSpecificReservationInfo = (table: TableEntry, reservation: ReservationEntry) => {
+    const openReservationInfo = (table: TableEntry) => {
+        const booking = activeTableBookings(table)[0] ?? null;
         setCurrentTable(table);
-        setCurrentReservation(reservation);
-        setShowBookingsSidebar(false);
+        setCurrentReservation(booking);
         setShowReservationInfo(true);
-    };
-
-    const openBookingsSidebar = (e: React.MouseEvent | null, table: TableEntry) => {
-        if (e) e.stopPropagation();
-        setSidebarTable(table);
-        setShowBookingsSidebar(true);
     };
 
     const [showTableAction, setShowTableAction] = useState(false);
@@ -572,7 +560,7 @@ const TablesPage = () => {
                     areas={areas}
                     preview={previewCoords}
                     onTableClick={openTableAction}
-                    onViewBookings={(table) => openBookingsSidebar(null, table)}
+                    onViewBookings={openReservationInfo}
                     onDragEnd={handleDragTable}
                 />
             )}
@@ -804,52 +792,54 @@ const TablesPage = () => {
                             </Button>
                         </div>
                     ) : (
-                        <Button
-                            variant="outline-primary"
-                            onClick={() => {
-                                setShowTableAction(false);
-                                if (currentTable) {
-                                    openEditTable(currentTable);
-                                }
-                            }}
-                        >
-                            <Icon name="pencil-line" className="me-2" />
-                            Edit Table (Position / Shape)
-                        </Button>
+                        <div className="d-grid gap-3">
+                            <Button
+                                variant="outline-primary"
+                                onClick={() => {
+                                    setShowTableAction(false);
+                                    if (currentTable) {
+                                        openEditTable(currentTable);
+                                    }
+                                }}
+                            >
+                                <Icon name="pencil-line" className="me-2" />
+                                Edit Table (Position / Shape)
+                            </Button>
 
-                        <Button
-                            variant="primary"
-                            onClick={() => {
-                                setShowTableAction(false);
-                                if (currentTable) {
-                                    openReservationInfo(currentTable);
-                                }
-                            }}
-                        >
-                            View Reservation
-                        </Button>
+                            <Button
+                                variant="primary"
+                                onClick={() => {
+                                    setShowTableAction(false);
+                                    if (currentTable) {
+                                        openReservationInfo(currentTable);
+                                    }
+                                }}
+                            >
+                                View Reservation
+                            </Button>
 
-                        <hr className="my-1" />
+                            <hr className="my-1" />
 
-                        {currentTable && activeTableBookings(currentTable).length > 0 && (
-                            <p className="text-muted small mb-0">
-                                <Icon name="info" size={13} className="me-1" />
-                                Table has active bookings — delete is disabled.
-                            </p>
-                        )}
-                        <Button
-                            variant="outline-danger"
-                            disabled={currentTable ? activeTableBookings(currentTable).length > 0 : false}
-                            onClick={() => {
-                                if (currentTable) {
-                                    openDeleteTable(currentTable);
-                                }
-                            }}
-                        >
-                            <Icon name="trash-2" className="me-2" />
-                            Delete Table
-                        </Button>
-                     </div>
+                            {currentTable && activeTableBookings(currentTable).length > 0 && (
+                                <p className="text-muted small mb-0">
+                                    <Icon name="info" size={13} className="me-1" />
+                                    Table has active bookings — delete is disabled.
+                                </p>
+                            )}
+                            <Button
+                                variant="outline-danger"
+                                disabled={currentTable ? activeTableBookings(currentTable).length > 0 : false}
+                                onClick={() => {
+                                    if (currentTable) {
+                                        openDeleteTable(currentTable);
+                                    }
+                                }}
+                            >
+                                <Icon name="trash-2" className="me-2" />
+                                Delete Table
+                            </Button>
+                        </div>
+                    )}
                 </Modal.Body>
             </Modal>
 

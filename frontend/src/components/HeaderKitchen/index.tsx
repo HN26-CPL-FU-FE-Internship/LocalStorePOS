@@ -10,7 +10,10 @@ const HeaderKitchen = ({ data }: { data: KitchenOrderStat | undefined }) => {
         <>
             <div className="d-flex align-items-center justify-content-center gap-3 flex-wrap">
                 {statsEntries.map(([status, value]) => (
-                    <div className="d-inline-flex align-items-center justify-content-between rounded-pill bg-white ps-2 pe-3 py-2 gap-3 border">
+                    <div
+                        key={status}
+                        className="d-inline-flex align-items-center justify-content-between rounded-pill bg-white ps-2 pe-3 py-2 gap-3 border"
+                    >
                         <div className="d-flex align-items-center gap-2">
                             <div className={`avatar avatar-sm rounded-circle ${KITCHEN_STATUSES[status].background}`}>
                                 <Icon name={`${KITCHEN_STATUSES[status].icon}`} className="fs-14" />
