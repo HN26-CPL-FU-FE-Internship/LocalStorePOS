@@ -75,7 +75,7 @@ public enum ErrorCode {
     APPROVAL_REQUEST_ALREADY_RESOLVED(1048, HttpStatus.BAD_REQUEST, "Approval request has already been resolved"),
     APPROVAL_REQUEST_ALREADY_EXISTS(1050, HttpStatus.BAD_REQUEST,
             "A pending approval request already exists for this action"),
-    CANNOT_RESOLVE_OWN_REQUEST(1055, HttpStatus.BAD_REQUEST,
+    CANNOT_RESOLVE_OWN_REQUEST(1064, HttpStatus.BAD_REQUEST,
             "You cannot approve or reject your own request"),
     APPROVAL_DATA_INVALID(1056, HttpStatus.BAD_REQUEST,
             "Approval request data is missing or invalid"),
@@ -87,6 +87,11 @@ public enum ErrorCode {
     INVALID_PAYMENT_AMOUNT(1052, HttpStatus.BAD_REQUEST, "Invalid payment amount"),
     ORDER_NOT_ELIGIBLE_FOR_QR(1053, HttpStatus.BAD_REQUEST, "Order is not eligible for QR payment"),
     INVALID_TABLE_CAPACITY(1055, HttpStatus.BAD_REQUEST, "Invalid capacity for the selected table shape. Round table (6, 8, 10 seats), rectangular table (4, 6, 8 seats)"),
+    TABLE_HAS_ORDERS(1062, HttpStatus.BAD_REQUEST, "Cannot delete table that still has orders"),
+    TABLE_HAS_RESERVATIONS(1063, HttpStatus.BAD_REQUEST, "Cannot delete table that still has reservations"),
+    RESOURCE_NOT_FOUND(1065, HttpStatus.NOT_FOUND, "Resource not found"),
+    ADMIN_NO_APPROVAL_NEEDED(1066, HttpStatus.BAD_REQUEST,
+            "Admins can apply changes directly and do not require approval"),
     ;
 
     int code;

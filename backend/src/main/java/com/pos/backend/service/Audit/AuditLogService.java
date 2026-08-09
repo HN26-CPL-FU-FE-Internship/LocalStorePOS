@@ -49,7 +49,7 @@ public class AuditLogService {
 
         AuditLog auditLog = AuditLog.builder()
                 .user(user)
-                .action(action)
+                .action(action != null ? action.name() : null)
                 .module(module)
                 .entityType(entityType)
                 .entityId(entityId)
@@ -78,7 +78,7 @@ public class AuditLogService {
     public AuditLog logSystemError(String description, String ipAddress) {
         AuditLog auditLog = AuditLog.builder()
                 .user(null)
-                .action(AuditAction.SYSTEM_ERROR)
+                .action(AuditAction.SYSTEM_ERROR.name())
                 .module("SYSTEM")
                 .description(description)
                 .actionStatus("FAILED")
@@ -196,7 +196,7 @@ public class AuditLogService {
                         ? auditLog.getUser().getFirstName() + " " + auditLog.getUser().getLastName()
                         : "System")
                 .userEmail(auditLog.getUser() != null ? auditLog.getUser().getEmail() : null)
-                .action(auditLog.getAction() != null ? auditLog.getAction().name() : null)
+                .action(auditLog.getAction())
                 .module(auditLog.getModule())
                 .entityType(auditLog.getEntityType())
                 .entityId(auditLog.getEntityId())
