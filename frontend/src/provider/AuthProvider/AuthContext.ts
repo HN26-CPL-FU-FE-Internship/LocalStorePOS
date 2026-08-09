@@ -11,6 +11,8 @@ export interface AuthContextType {
     hasPermission: (module: string, action: 'view' | 'add' | 'edit' | 'delete' | 'export' | 'approvedVoid') => boolean;
     /** Check if user has view permission for a module (used for sidebar/routing) */
     canView: (module: string) => boolean;
+    /** True when the current user holds the Admin / Owner role (bypasses approval workflows) */
+    isAdmin: boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);

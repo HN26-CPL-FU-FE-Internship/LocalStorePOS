@@ -80,6 +80,10 @@ const AuthProvider = ({ children }: AuthProviderProps) => {
         [hasPermission],
     );
 
+    // Admin / Owner bypasses every approval workflow (approval requests are
+    // only needed for non-admin roles).
+    const isAdmin = user?.role === 'Admin / Owner';
+
     const value = useMemo(
         () => ({
             user,
@@ -89,8 +93,9 @@ const AuthProvider = ({ children }: AuthProviderProps) => {
             logout,
             hasPermission,
             canView,
+            isAdmin,
         }),
-        [user, isLoading, logout, hasPermission, canView],
+        [user, isLoading, logout, hasPermission, canView, isAdmin],
     );
 
     return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
