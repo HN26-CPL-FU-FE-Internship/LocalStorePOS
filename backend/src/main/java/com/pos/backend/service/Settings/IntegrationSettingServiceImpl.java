@@ -17,8 +17,10 @@ public class IntegrationSettingServiceImpl {
 
     private final IntegrationRepository integrationRepository;
 
-    @Transactional(readOnly = true)
+    @Transactional
     public List<IntegrationSettingResponse> getAllIntegrations() {
+        // Seeds default integration rows on first load, so this getter must
+        // run in a read-write transaction.
         List<Integration> integrations = integrationRepository.findAll();
         if (integrations.isEmpty()) {
             // Seed default integrations

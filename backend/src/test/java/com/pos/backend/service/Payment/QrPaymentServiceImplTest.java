@@ -25,7 +25,6 @@ import com.pos.backend.dto.response.Payment.QrPaymentResponse;
 import com.pos.backend.entity.Order;
 import com.pos.backend.entity.Payment;
 import com.pos.backend.entity.PaymentMethod;
-import com.pos.backend.exception.AppException;
 import com.pos.backend.mapper.OrderMapper;
 import com.pos.backend.repository.CouponRepository;
 import com.pos.backend.repository.OrderRepository;
@@ -38,16 +37,25 @@ import com.pos.backend.service.WebSocket.WebSocketService;
 @ExtendWith(MockitoExtension.class)
 class QrPaymentServiceImplTest {
 
-    @Mock private PaymentRepository paymentRepository;
-    @Mock private OrderRepository orderRepository;
-    @Mock private PaymentMethodRepository paymentMethodRepository;
-    @Mock private CouponRepository couponRepository;
-    @Mock private RestaurantTableRepository restaurantTableRepository;
-    @Mock private OrderMapper orderMapper;
-    @Mock private WebSocketService webSocketService;
-    @Mock private NotificationService notificationService;
+    @Mock
+    private PaymentRepository paymentRepository;
+    @Mock
+    private OrderRepository orderRepository;
+    @Mock
+    private PaymentMethodRepository paymentMethodRepository;
+    @Mock
+    private CouponRepository couponRepository;
+    @Mock
+    private RestaurantTableRepository restaurantTableRepository;
+    @Mock
+    private OrderMapper orderMapper;
+    @Mock
+    private WebSocketService webSocketService;
+    @Mock
+    private NotificationService notificationService;
 
-    @InjectMocks private QrPaymentServiceImpl service;
+    @InjectMocks
+    private QrPaymentServiceImpl service;
 
     @Test
     void createQrPaymentInvalidatesOlderPendingQrForSameOrder() {

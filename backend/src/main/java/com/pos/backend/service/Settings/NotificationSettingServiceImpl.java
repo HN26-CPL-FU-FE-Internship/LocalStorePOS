@@ -24,8 +24,10 @@ public class NotificationSettingServiceImpl {
                         NotificationConfig.builder().build()));
     }
 
-    @Transactional(readOnly = true)
+    @Transactional
     public NotificationSettingResponse getNotificationSetting() {
+        // getOrCreate() may persist a default config row when none exists yet,
+        // so this getter must run in a read-write transaction.
         return toResponse(getOrCreate());
     }
 

@@ -12,6 +12,8 @@ import com.pos.backend.dto.response.Table.RestaurantTableResponse;
 import com.pos.backend.entity.RestaurantTable;
 import com.pos.backend.entity.TableArea;
 import com.pos.backend.exception.AppException;
+import com.pos.backend.repository.OrderRepository;
+import com.pos.backend.repository.ReservationRepository;
 import com.pos.backend.repository.RestaurantTableRepository;
 import com.pos.backend.repository.TableAreaRepository;
 
@@ -23,6 +25,8 @@ public class RestaurantTableServiceImpl implements RestaurantTableService {
 
     private final RestaurantTableRepository restaurantTableRepository;
     private final TableAreaRepository tableAreaRepository;
+    private final ReservationRepository reservationRepository;
+    private final OrderRepository orderRepository;
 
     @Override
     @Transactional(readOnly = true)
@@ -103,6 +107,18 @@ public class RestaurantTableServiceImpl implements RestaurantTableService {
     @Transactional
     public void deleteTable(Long id) {
         RestaurantTable table = findTableOrThrow(id);
+
+        // Never allow deleting a table that still has history: orders and
+        // reservations hold a hard FK (NO ACTION), so deleting would throw a
+        // raw DataIntegrityViolation → 500. Fail early with a clear message
+        // instead (the frontend already disables delete for active bookings).
+        if (reservationRepository.existsByTableId(id)) {
+            throw new AppException(ErrorCode.TABLE_HAS_RESERVATIONS);
+        }
+        if (orderRepository.existsByTableId(id)) {
+            throw new AppException(ErrorCode.TABLE_HAS_ORDERS);
+        }
+
         restaurantTableRepository.delete(table);
     }
 

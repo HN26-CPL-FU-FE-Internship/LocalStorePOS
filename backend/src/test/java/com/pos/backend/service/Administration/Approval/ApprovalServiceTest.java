@@ -27,10 +27,12 @@ import com.pos.backend.constant.ErrorCode;
 import com.pos.backend.constant.enums.ApprovalRequestType;
 import com.pos.backend.constant.enums.ApprovalStatus;
 import com.pos.backend.constant.enums.AuditAction;
+import com.pos.backend.constant.enums.CommonRole;
 import com.pos.backend.dto.request.Administration.ApprovalActionRequest;
 import com.pos.backend.dto.request.Administration.ApprovalRequestFilter;
 import com.pos.backend.dto.response.Administration.ApprovalRequestResponse;
 import com.pos.backend.entity.ApprovalRequest;
+import com.pos.backend.entity.Role;
 import com.pos.backend.entity.User;
 import com.pos.backend.exception.AppException;
 import com.pos.backend.repository.ApprovalRequestRepository;
@@ -251,6 +253,27 @@ class ApprovalServiceTest {
     /* ------------------------------------------------------------ */
 
     @Test
+    void createRequest_whenAdminRequester_throws() {
+        User admin = user(1L, "Alice", "Smith", CommonRole.ADMIN.getDbName());
+
+        AppException ex = assertThrows(AppException.class, () -> service.createRequest(
+                ApprovalRequestType.PRICE_CHANGE,
+                admin,
+                "Change price",
+                "New price is lower",
+                "ITEM",
+                5L,
+                "Pizza",
+                "15.00",
+                "12.00",
+                "{\"itemId\":5,\"newPrice\":12}"));
+
+        assertEquals(ErrorCode.ADMIN_NO_APPROVAL_NEEDED, ex.getErrorCode());
+        verify(approvalRequestRepository, never()).findByRequestTypeAndStatus(any(), any());
+        verify(approvalRequestRepository, never()).save(any(ApprovalRequest.class));
+    }
+
+    @Test
     void createRequest_whenDuplicatePendingExists_throws() {
         ApprovalRequest existing = pendingRequest(8L);
         existing.setTargetId(5L);
@@ -354,11 +377,16 @@ class ApprovalServiceTest {
     }
 
     private User user(Long id, String firstName, String lastName) {
+        return user(id, firstName, lastName, "Waiter");
+    }
+
+    private User user(Long id, String firstName, String lastName, String roleName) {
         return User.builder()
                 .id(id)
                 .firstName(firstName)
                 .lastName(lastName)
                 .email(firstName.toLowerCase() + "@example.com")
+                .role(Role.builder().name(roleName).build())
                 .build();
     }
 }

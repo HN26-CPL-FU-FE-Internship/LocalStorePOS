@@ -22,6 +22,8 @@ import org.springframework.data.repository.query.Param;
 
 public interface OrderRepository extends JpaRepository<Order, Long>, JpaSpecificationExecutor<Order> {
 
+    boolean existsByTableId(Long tableId);
+
     @Query("""
             SELECT
                 o.status AS status,

@@ -1,5 +1,7 @@
 package com.pos.backend.controller.Item;
 
+import java.util.List;
+
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -18,6 +20,7 @@ import com.pos.backend.constant.enums.FoodType;
 import com.pos.backend.constant.enums.ItemStatus;
 import com.pos.backend.dto.request.Item.ItemRequest;
 import com.pos.backend.dto.response.ApiResponse;
+import com.pos.backend.dto.response.Common.OptionResponse;
 import com.pos.backend.dto.response.Item.ItemDetailResponse;
 import com.pos.backend.dto.response.Item.ItemListItemResponse;
 import com.pos.backend.service.Common.PageResponse;
@@ -32,6 +35,14 @@ import lombok.RequiredArgsConstructor;
 public class ItemController {
 
         private final ItemService itemService;
+
+        @GetMapping("/options")
+        public ApiResponse<List<OptionResponse>> getItemOptions() {
+                return ApiResponse.<List<OptionResponse>>builder()
+                                .message("Success")
+                                .result(itemService.getItemOptions())
+                                .build();
+        }
 
         @GetMapping
         public ApiResponse<PageResponse<ItemListItemResponse>> getItems(

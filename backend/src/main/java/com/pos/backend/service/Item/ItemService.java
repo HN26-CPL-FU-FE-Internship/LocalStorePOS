@@ -1,13 +1,18 @@
 package com.pos.backend.service.Item;
 
+import java.util.List;
+
 import com.pos.backend.constant.enums.FoodType;
 import com.pos.backend.constant.enums.ItemStatus;
 import com.pos.backend.dto.request.Item.ItemRequest;
+import com.pos.backend.dto.response.Common.OptionResponse;
 import com.pos.backend.dto.response.Item.ItemDetailResponse;
 import com.pos.backend.dto.response.Item.ItemListItemResponse;
 import com.pos.backend.service.Common.PageResponse;
 
 public interface ItemService {
+
+    List<OptionResponse> getItemOptions();
 
     PageResponse<ItemListItemResponse> getItems(
             int page,

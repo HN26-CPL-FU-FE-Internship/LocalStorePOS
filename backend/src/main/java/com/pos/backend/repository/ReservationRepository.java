@@ -13,6 +13,8 @@ import com.pos.backend.entity.Reservation;
 
 public interface ReservationRepository extends JpaRepository<Reservation, Long> {
 
+    boolean existsByTableId(Long tableId);
+
     @Query("""
             SELECT r FROM Reservation r
             LEFT JOIN FETCH r.customer

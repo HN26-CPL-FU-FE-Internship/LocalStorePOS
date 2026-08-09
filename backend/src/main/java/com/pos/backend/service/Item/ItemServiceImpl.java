@@ -18,6 +18,7 @@ import com.pos.backend.constant.enums.ItemStatus;
 import com.pos.backend.dto.request.Item.ItemAddonRequest;
 import com.pos.backend.dto.request.Item.ItemRequest;
 import com.pos.backend.dto.request.Item.ItemVariationRequest;
+import com.pos.backend.dto.response.Common.OptionResponse;
 import com.pos.backend.dto.response.Item.ItemAddonResponse;
 import com.pos.backend.dto.response.Item.ItemDetailResponse;
 import com.pos.backend.dto.response.Item.ItemListItemResponse;
@@ -54,6 +55,17 @@ public class ItemServiceImpl implements ItemService {
     private final AddonRepository addonRepository;
     private final FileStorageUtil fileStorageUtil;
     private final ObjectMapper objectMapper;
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<OptionResponse> getItemOptions() {
+        return itemRepository.findAll().stream()
+                .map(item -> OptionResponse.builder()
+                        .id(item.getId())
+                        .name(item.getName())
+                        .build())
+                .toList();
+    }
 
     @Override
     @Transactional(readOnly = true)
