@@ -623,6 +623,21 @@ public class POSService {
         // and mark removed lines as cancelled (keeps kitchen state & history)
         syncOrderItems(order, request.getItems(), maps, existingItems, existingAddonsByItemId);
 
+        // 5b. Wake the kitchen back up when new items need cooking. If the
+        // kitchen had already finished this order and the waiter re-orders
+        // something (creating fresh pending lines), keep kitchenStatus=completed
+        // would leave the order stuck as "Completed" on the kitchen screen with
+        // no Play/Mark Done buttons — the extras would never be cooked. Reset to
+        // new_order so the card becomes active again, and clear the stale cooking
+        // session so the timer restarts at 00:00 when Play is pressed.
+        if (order.getKitchenStatus() == KitchenStatus.completed
+                && orderItemRepository.existsByOrder_IdAndStatus(order.getId(), OrderItemStatus.pending)) {
+            order.setKitchenStatus(KitchenStatus.new_order);
+            order.setCookingStartedAt(null);
+            order.setEstimatedMinutes(null);
+            orderRepository.save(order);
+        }
+
         // 6. Return response
         OrderResponse response = buildOrderResponse(order);
         publishOrderEvent(EventType.ORDER_UPDATED, response, "Order Updated",

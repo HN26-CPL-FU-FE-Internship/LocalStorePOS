@@ -574,8 +574,56 @@ class OrderFullFlowIntegrationTest {
         assertEquals(item120.getId(), pendingLine.itemId());
         assertEquals(item120.getName(), pendingLine.itemName());
 
+        // New items to cook wake the kitchen back up: kitchenStatus resets to
+        // new_order (not stuck at "Completed") and the stale cooking session is
+        // cleared so the timer restarts when Play is pressed again.
+        assertEquals("new_order", updated.getKitchenStatus(),
+                "kitchenStatus must reset when a completed order gets new pending items");
+        assertEquals("preparing", detail.getStatus());
+        assertNull(detail.getCookingStartedAt(), "stale cooking session must be cleared");
+
         System.out.println("✅ TEST 8: ready ×2 + pending ×1 after re-ordering 3 of "
                 + item120.getName() + " ($" + updated.getGrandTotal() + " total)");
+    }
+
+    // ═══════════════════════════════════════════════════════════════════
+    // TEST 13 — Re-ordering the SAME amount of a ready item (nothing new to
+    // cook) must NOT wake the kitchen: kitchenStatus stays completed.
+    // ═══════════════════════════════════════════════════════════════════
+
+    @Test
+    void test13_updateOrder_noNewCooking_keepsKitchenCompleted() {
+        CreateOrderRequest req = CreateOrderRequest.builder()
+                .orderType(OrderType.dine_in.name())
+                .waiterId(waiter.getId()).tableId(table.getId())
+                .subtotal(item120.getPrice().multiply(bd("2")))
+                .taxAmount(bd("24.00"))
+                .serviceCharge(bd("12.00"))
+                .deliveryCharge(BigDecimal.ZERO)
+                .grandTotal(BigDecimal.ZERO)
+                .items(List.of(CreateOrderItemRequest.builder()
+                        .itemId(item120.getId()).itemName(item120.getName())
+                        .unitPrice(item120.getPrice()).quantity(2)
+                        .lineTotal(item120.getPrice().multiply(bd("2"))).build()))
+                .build();
+
+        OrderResponse order = posService.createOrder(req);
+        Long id = order.getId();
+
+        kitchenService.markComplete(id);
+        assertEquals("completed", orderService.getOrderDetail(order.getOrderNumber()).getKitchenStatus());
+
+        // Same quantity, nothing new to cook — syncOrderItems shrinks the ready
+        // line in place without creating a pending line, so no kitchen wake-up.
+        OrderResponse updated = posService.updateOrder(order.getOrderNumber(), req);
+
+        assertEquals("completed", updated.getKitchenStatus(),
+                "no new pending items, so the kitchen must not be woken up");
+        OrderResponse detail = orderService.getOrderDetail(order.getOrderNumber());
+        assertEquals(1, detail.getItems().size());
+        assertEquals("ready", detail.getItems().get(0).status());
+
+        System.out.println("✅ TEST 13: same-amount re-order keeps kitchen completed");
     }
 
     // ═══════════════════════════════════════════════════════════════════
@@ -715,5 +763,66 @@ class OrderFullFlowIntegrationTest {
         assertEquals(ErrorCode.ORDER_ALREADY_COMPLETED_OR_CANCELLED, ex.getErrorCode());
 
         System.out.println("✅ TEST 12: duplicate markComplete rejected");
+    }
+
+    // ═══════════════════════════════════════════════════════════════════
+    // TEST 14 — Full re-cook cycle after a re-order wake-up: create → kitchen
+    // complete → waiter re-orders (reset to new_order) → kitchen can start
+    // cooking again and complete the order again (no deadlock with the
+    // duplicate-markComplete guard).
+    // ═══════════════════════════════════════════════════════════════════
+
+    @Test
+    void test14_recookCycle_afterReorder_resetAllowsStartAndCompleteAgain() {
+        CreateOrderRequest req = CreateOrderRequest.builder()
+                .orderType(OrderType.dine_in.name())
+                .waiterId(waiter.getId()).tableId(table.getId())
+                .subtotal(item120.getPrice())
+                .taxAmount(bd("12.00"))
+                .serviceCharge(bd("6.00"))
+                .deliveryCharge(BigDecimal.ZERO)
+                .grandTotal(BigDecimal.ZERO)
+                .items(List.of(CreateOrderItemRequest.builder()
+                        .itemId(item120.getId()).itemName(item120.getName())
+                        .unitPrice(item120.getPrice()).quantity(1)
+                        .lineTotal(item120.getPrice()).build()))
+                .build();
+
+        OrderResponse order = posService.createOrder(req);
+        Long id = order.getId();
+
+        // Round 1: kitchen cooks and completes
+        kitchenService.markComplete(id);
+        assertEquals("completed", orderService.getOrderDetail(order.getOrderNumber()).getKitchenStatus());
+
+        // Waiter adds one more of the same item → new pending line → wake-up
+        CreateOrderRequest updateReq = CreateOrderRequest.builder()
+                .orderType(OrderType.dine_in.name())
+                .waiterId(waiter.getId()).tableId(table.getId())
+                .subtotal(item120.getPrice().multiply(bd("2")))
+                .taxAmount(bd("24.00"))
+                .serviceCharge(bd("12.00"))
+                .deliveryCharge(BigDecimal.ZERO)
+                .grandTotal(BigDecimal.ZERO)
+                .items(List.of(CreateOrderItemRequest.builder()
+                        .itemId(item120.getId()).itemName(item120.getName())
+                        .unitPrice(item120.getPrice()).quantity(2)
+                        .lineTotal(item120.getPrice().multiply(bd("2"))).build()))
+                .build();
+
+        OrderResponse updated = posService.updateOrder(order.getOrderNumber(), updateReq);
+        assertEquals("new_order", updated.getKitchenStatus());
+
+        // Round 2: the kitchen can cook the extras and complete again — the
+        // duplicate-completion guard must NOT block this fresh cycle.
+        var cooking = kitchenService.startCooking(id,
+                new com.pos.backend.dto.request.Kitchen.StartCookingRequest(20));
+        assertEquals("in_kitchen", cooking.getKitchenStatus());
+
+        var completed = kitchenService.markComplete(id);
+        assertEquals("completed", completed.getKitchenStatus());
+        assertEquals("preparing", completed.getStatus());
+
+        System.out.println("✅ TEST 14: re-cook cycle works after re-order wake-up");
     }
 }
