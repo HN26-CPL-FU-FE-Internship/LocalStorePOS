@@ -1,5 +1,6 @@
 package com.pos.backend.service.Administration.UserServices;
 
+import com.pos.backend.config.UploadPathResolver;
 import com.pos.backend.constant.ErrorCode;
 import com.pos.backend.constant.enums.AuditAction;
 import com.pos.backend.constant.enums.CommonStatus;
@@ -33,7 +34,6 @@ import jakarta.persistence.criteria.Predicate;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 import java.util.Objects;
 import java.util.UUID;
@@ -43,13 +43,14 @@ import java.util.UUID;
 @FieldDefaults(level = lombok.AccessLevel.PRIVATE, makeFinal = true)
 public class UserServiceImpl implements UserService {
 
-    static final String UPLOAD_DIR = "uploads/avatars/";
+    static final String AVATAR_SUB_FOLDER = "avatars";
 
     UserRepository userRepository;
     RoleRepository roleRepository;
     UserMapper userMapper;
     PasswordEncoder passwordEncoder;
     AuditLogService auditLogService;
+    UploadPathResolver uploadPathResolver;
 
     @Override
     public PageResponse<UserResponse> getAllUsers(int page, int size, String sortBy, String sortDir,
@@ -283,7 +284,7 @@ public class UserServiceImpl implements UserService {
         String uniqueFilename = UUID.randomUUID().toString() + extension;
 
         try {
-            Path uploadPath = Paths.get(UPLOAD_DIR);
+            Path uploadPath = uploadPathResolver.resolve(AVATAR_SUB_FOLDER);
             if (!Files.exists(uploadPath)) {
                 Files.createDirectories(uploadPath);
             }
@@ -300,7 +301,7 @@ public class UserServiceImpl implements UserService {
     private void deleteAvatarFile(String avatarPath) {
         try {
             String filename = avatarPath.substring(avatarPath.lastIndexOf('/') + 1);
-            Path filePath = Paths.get(UPLOAD_DIR).resolve(filename);
+            Path filePath = uploadPathResolver.resolve(AVATAR_SUB_FOLDER).resolve(filename);
             Files.deleteIfExists(filePath);
         } catch (IOException e) {
             // Log error but don't throw — deleting avatar is not critical
