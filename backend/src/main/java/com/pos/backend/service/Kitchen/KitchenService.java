@@ -98,6 +98,7 @@ public class KitchenService {
 
         List<OrderResponse> orderResponses = orders.stream().map(order -> OrderResponse.builder()
                 .id(order.getId())
+                .status(order.getStatus() != null ? order.getStatus().toString() : null)
                 .kitchenStatus(order.getKitchenStatus().toString())
                 .tokenNo(order.getTokenNo())
                 .items(orderItemsByOrderId.getOrDefault(order.getId(), List.of()))
@@ -143,7 +144,29 @@ public class KitchenService {
         Order order = orderRepository.findById(id)
                 .orElseThrow(() -> new AppException(ErrorCode.ORDER_NOT_FOUND));
 
+        // Terminal orders cannot be flipped back to the kitchen, and an order
+        // the kitchen already finished must not be re-completed (that would
+        // re-send the "Order Ready" notification + WebSocket push). The
+        // frontend hides the button, but the backend must enforce it too so a
+        // stale or malicious request cannot resurrect or duplicate a completion.
+        OrderStatus status = order.getStatus();
+        if (order.getKitchenStatus() == KitchenStatus.completed
+                || status == OrderStatus.cancelled
+                || status == OrderStatus.completed) {
+            throw new AppException(ErrorCode.ORDER_ALREADY_COMPLETED_OR_CANCELLED);
+        }
+
         order.setKitchenStatus(KitchenStatus.completed);
+
+        // Marking an order done before the kitchen ever pressed Play would
+        // leave it stuck in `pending` even though every item is now ready.
+        // Promote it to `preparing` (the stage between pending and served) so
+        // it can continue the normal lifecycle (preparing → served → completed)
+        // instead of lingering as pending.
+        if (order.getStatus() == OrderStatus.pending) {
+            order.setStatus(OrderStatus.preparing);
+        }
+
         order = orderRepository.save(order);
 
         orderItemRepository.updateStatusByOrderId(id, OrderItemStatus.ready);
@@ -205,6 +228,10 @@ public class KitchenService {
     private OrderResponse buildOrderResponse(Order order) {
         return OrderResponse.builder()
                 .id(order.getId())
+                // Include the order status so ORDER_UPDATED pushes over WebSocket
+                // carry the promoted status (e.g. pending → preparing after
+                // markComplete) instead of only kitchenStatus.
+                .status(order.getStatus() != null ? order.getStatus().toString() : null)
                 .kitchenStatus(order.getKitchenStatus().toString())
                 .tokenNo(order.getTokenNo())
                 .items(List.of())

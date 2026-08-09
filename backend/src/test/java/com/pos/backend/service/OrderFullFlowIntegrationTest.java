@@ -1,12 +1,13 @@
 package com.pos.backend.service;
 
+import com.pos.backend.constant.ErrorCode;
 import com.pos.backend.constant.enums.*;
 import com.pos.backend.dto.request.Order.OrderPaymentRequest;
-import com.pos.backend.dto.request.Order.OrderUpdateStatusRequest;
 import com.pos.backend.dto.request.POS.CreateOrderItemRequest;
 import com.pos.backend.dto.request.POS.CreateOrderRequest;
 import com.pos.backend.dto.response.Order.OrderResponse;
 import com.pos.backend.entity.*;
+import com.pos.backend.exception.AppException;
 import com.pos.backend.repository.*;
 import com.pos.backend.service.Kitchen.KitchenService;
 import com.pos.backend.service.Order.OrderService;
@@ -26,7 +27,10 @@ import static org.junit.jupiter.api.Assertions.*;
  * Integration test covering the full POS order lifecycle:
  * POS create → kitchen update → payment → verify all calculations.
  *
- * <p>Backend POS.calculator formula (for each item):</p>
+ * <p>
+ * Backend POS.calculator formula (for each item):
+ * </p>
+ * 
  * <pre>
  *   itemPrice = DB_price          ← ignores unitPrice from request
  *   itemPrice += addon × qty     ← addon price added to item price
@@ -35,38 +39,66 @@ import static org.junit.jupiter.api.Assertions.*;
  *   tax     += itemPrice × taxRate / 100
  * </pre>
  *
- * <p>Each test method is fully self-contained (creates own order).</p>
+ * <p>
+ * Each test method is fully self-contained (creates own order).
+ * </p>
  */
-@SpringBootTest
+/**
+ * Runs against a dedicated test database (restaurant_pos_test_db) so the test
+ * suite can NEVER wipe the shared dev database. The dev DB was previously
+ * destroyed every time these tests ran: the old cleanupDatabase() deleted all
+ * rows from every repository (users, roles, categories, items, tables...),
+ * which removed seed data and the admin account.
+ */
+@SpringBootTest(properties = "spring.datasource.url=jdbc:mysql://localhost:3306/restaurant_pos_test_db?useSSL=false&serverTimezone=Asia/Ho_Chi_Minh&characterEncoding=UTF-8&allowPublicKeyRetrieval=true&createDatabaseIfNotExist=true")
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class OrderFullFlowIntegrationTest {
 
-    @Autowired private POSService posService;
-    @Autowired private OrderService orderService;
-    @Autowired private KitchenService kitchenService;
-    @Autowired private CategoryRepository categoryRepository;
-    @Autowired private TaxRepository taxRepository;
-    @Autowired private ItemRepository itemRepository;
-    @Autowired private AddonRepository addonRepository;
-    @Autowired private UserRepository userRepository;
-    @Autowired private RoleRepository roleRepository;
-    @Autowired private RestaurantTableRepository restaurantTableRepository;
-    @Autowired private CouponRepository couponRepository;
-    @Autowired private OrderRepository orderRepository;
-    @Autowired private PaymentRepository paymentRepository;
-    @Autowired private InvoiceRepository invoiceRepository;
-    @Autowired private ReservationRepository reservationRepository;
-    @Autowired private ApprovalRequestRepository approvalRequestRepository;
-    @Autowired private HeldOrderRepository heldOrderRepository;
-    @Autowired private OrderRefundRepository orderRefundRepository;
-    @Autowired private UserPermissionOverrideRepository userPermissionOverrideRepository;
+    @Autowired
+    private POSService posService;
+    @Autowired
+    private OrderService orderService;
+    @Autowired
+    private KitchenService kitchenService;
+    @Autowired
+    private CategoryRepository categoryRepository;
+    @Autowired
+    private TaxRepository taxRepository;
+    @Autowired
+    private ItemRepository itemRepository;
+    @Autowired
+    private AddonRepository addonRepository;
+    @Autowired
+    private UserRepository userRepository;
+    @Autowired
+    private RoleRepository roleRepository;
+    @Autowired
+    private RestaurantTableRepository restaurantTableRepository;
+    @Autowired
+    private CouponRepository couponRepository;
+    @Autowired
+    private OrderRepository orderRepository;
+    @Autowired
+    private PaymentRepository paymentRepository;
+    @Autowired
+    private InvoiceRepository invoiceRepository;
+    @Autowired
+    private ReservationRepository reservationRepository;
+    @Autowired
+    private ApprovalRequestRepository approvalRequestRepository;
+    @Autowired
+    private HeldOrderRepository heldOrderRepository;
+    @Autowired
+    private OrderRefundRepository orderRefundRepository;
+    @Autowired
+    private UserPermissionOverrideRepository userPermissionOverrideRepository;
 
     // ── Shared test data ──────────────────────────────────────────────
 
     private Category cat;
     private Tax pct10;
-    private Item item120;  // $120, 10% tax
-    private Item item50;   // $50,  10% tax
+    private Item item120; // $120, 10% tax
+    private Item item50; // $50, 10% tax
     private User waiter;
     private RestaurantTable table;
 
@@ -129,10 +161,12 @@ class OrderFullFlowIntegrationTest {
     }
 
     // ═══════════════════════════════════════════════════════════════════
-    //  Helpers
+    // Helpers
     // ═══════════════════════════════════════════════════════════════════
 
-    static BigDecimal bd(String v) { return new BigDecimal(v); }
+    static BigDecimal bd(String v) {
+        return new BigDecimal(v);
+    }
 
     static void assertBdEq(BigDecimal expected, BigDecimal actual, String msg) {
         assertEquals(0, expected.compareTo(actual),
@@ -141,13 +175,16 @@ class OrderFullFlowIntegrationTest {
 
     /** Backend calculateDiscountValue (matches frontend calculateDiscount). */
     static BigDecimal calcDisc(BigDecimal sub, BigDecimal amt, String type) {
-        if (amt == null || amt.compareTo(BigDecimal.ZERO) <= 0) return BigDecimal.ZERO;
+        if (amt == null || amt.compareTo(BigDecimal.ZERO) <= 0)
+            return BigDecimal.ZERO;
         if ("percentage".equals(type))
             return sub.multiply(amt.min(bd("100"))).divide(bd("100"), 0, RoundingMode.HALF_UP);
         return amt.min(sub).setScale(0, RoundingMode.HALF_UP);
     }
 
-    /** Backend processPayment grand total (matches frontend calculateOrderTotals). */
+    /**
+     * Backend processPayment grand total (matches frontend calculateOrderTotals).
+     */
     static BigDecimal calcGrandTotal(
             BigDecimal sub, BigDecimal dAmt, String dType,
             BigDecimal cAmt, String cType,
@@ -159,12 +196,12 @@ class OrderFullFlowIntegrationTest {
     }
 
     // ═══════════════════════════════════════════════════════════════════
-    //  TEST 1  —  Simple dine_in: 1 item x $120
+    // TEST 1 — Simple dine_in: 1 item x $120
     // ═══════════════════════════════════════════════════════════════════
     //
-    //  Backend: itemPrice=120×1=120, sub=120
-    //           tax=120×10%=12, service=6 (5% of 120)
-    //  grandTotal = 120+12+6 = 138
+    // Backend: itemPrice=120×1=120, sub=120
+    // tax=120×10%=12, service=6 (5% of 120)
+    // grandTotal = 120+12+6 = 138
 
     @Test
     void test01_createOrder_simpleDineIn() {
@@ -197,7 +234,7 @@ class OrderFullFlowIntegrationTest {
     }
 
     // ═══════════════════════════════════════════════════════════════════
-    //  TEST 2  —  Get order detail: verify items metadata
+    // TEST 2 — Get order detail: verify items metadata
     // ═══════════════════════════════════════════════════════════════════
 
     @Test
@@ -230,8 +267,8 @@ class OrderFullFlowIntegrationTest {
     }
 
     // ═══════════════════════════════════════════════════════════════════
-    //  TEST 3  —  Kitchen flow: startCooking() → markComplete()
-    //  Uses actual KitchenService to match real kitchen UI flow
+    // TEST 3 — Kitchen flow: startCooking() → markComplete()
+    // Uses actual KitchenService to match real kitchen UI flow
     // ═══════════════════════════════════════════════════════════════════
 
     @Test
@@ -260,18 +297,22 @@ class OrderFullFlowIntegrationTest {
         // Kitchen marks complete
         var completed = kitchenService.markComplete(id);
         assertEquals("completed", completed.getKitchenStatus());
+        // Normal flow: order stays at preparing (never falls back to pending),
+        // and the response carries it for the realtime WebSocket push.
+        assertEquals("preparing", completed.getStatus());
+        assertEquals("preparing", orderService.getOrderDetail(order.getOrderNumber()).getStatus());
 
         System.out.println("✅ TEST 3: Kitchen flow (startCooking → complete)");
     }
 
     // ═══════════════════════════════════════════════════════════════════
-    //  TEST 4  —  Cash payment: 10% discount + $5 tip
+    // TEST 4 — Cash payment: 10% discount + $5 tip
     // ═══════════════════════════════════════════════════════════════════
     //
-    //  1 item $120, tax=$12, no service (take_away)
-    //  10% disc → val=12, tip=$5
-    //  grandTotal = 120-12+12+0+0+5 = 125
-    //  Cash $130 → balance $5
+    // 1 item $120, tax=$12, no service (take_away)
+    // 10% disc → val=12, tip=$5
+    // grandTotal = 120-12+12+0+0+5 = 125
+    // Cash $130 → balance $5
 
     @Test
     void test04_cashPayment_discountAndTip() {
@@ -317,12 +358,12 @@ class OrderFullFlowIntegrationTest {
     }
 
     // ═══════════════════════════════════════════════════════════════════
-    //  TEST 5  —  Card + fixed coupon ($20) + $3 tip
+    // TEST 5 — Card + fixed coupon ($20) + $3 tip
     // ═══════════════════════════════════════════════════════════════════
     //
-    //  1 item $50, tax=$5 (take_away)
-    //  coupon $20 fixed → val=Min(20,50)=20
-    //  grandTotal = 50-0-20+5+0+0+3 = 38
+    // 1 item $50, tax=$5 (take_away)
+    // coupon $20 fixed → val=Min(20,50)=20
+    // grandTotal = 50-0-20+5+0+0+3 = 38
 
     @Test
     void test05_cardPayment_fixedCouponAndTip() {
@@ -370,12 +411,12 @@ class OrderFullFlowIntegrationTest {
     }
 
     // ═══════════════════════════════════════════════════════════════════
-    //  TEST 6  —  Delivery cash: 10% discount + 15% coupon
+    // TEST 6 — Delivery cash: 10% discount + 15% coupon
     // ═══════════════════════════════════════════════════════════════════
     //
-    //  1 item $120, tax=$12, delivery=$8
-    //  10% disc → val=12, 15% coupon → val=18
-    //  grandTotal = 120-12-18+12+0+8+0 = 110
+    // 1 item $120, tax=$12, delivery=$8
+    // 10% disc → val=12, 15% coupon → val=18
+    // grandTotal = 120-12-18+12+0+8+0 = 110
 
     @Test
     void test06_deliveryCash_percentCouponAndDiscount() {
@@ -423,16 +464,17 @@ class OrderFullFlowIntegrationTest {
     }
 
     // ═══════════════════════════════════════════════════════════════════
-    //  TEST 7  —  Formula: backend = frontend (5 scenarios)
+    // TEST 7 — Formula: backend = frontend (5 scenarios)
     // ═══════════════════════════════════════════════════════════════════
 
     @Test
     void test07_formulaMatchesFrontend() {
         record Case(String name,
-                    BigDecimal sub, BigDecimal dAmt, String dType,
-                    BigDecimal cAmt, String cType,
-                    BigDecimal tax, BigDecimal svc, BigDecimal del, BigDecimal tip,
-                    BigDecimal expected) {}
+                BigDecimal sub, BigDecimal dAmt, String dType,
+                BigDecimal cAmt, String cType,
+                BigDecimal tax, BigDecimal svc, BigDecimal del, BigDecimal tip,
+                BigDecimal expected) {
+        }
 
         List<Case> cases = List.of(
                 new Case("1. Dine-in no modifiers",
@@ -449,8 +491,7 @@ class OrderFullFlowIntegrationTest {
                         bd("8"), bd("0"), bd("0"), bd("0"), bd("73.00")),
                 new Case("5. 10% + 10% coupon + tip delivery",
                         bd("150"), bd("10"), "percentage", bd("10"), "percentage",
-                        bd("12"), bd("0"), bd("7"), bd("5"), bd("144.00"))
-        );
+                        bd("12"), bd("0"), bd("7"), bd("5"), bd("144.00")));
 
         for (Case c : cases) {
             BigDecimal actual = calcGrandTotal(
@@ -463,15 +504,15 @@ class OrderFullFlowIntegrationTest {
     }
 
     // ═══════════════════════════════════════════════════════════════════
-    //  TEST 8  —  Re-order a ready item: updateOrder splits the extra
-    //             amount into a brand-new pending line (kitchen split)
+    // TEST 8 — Re-order a ready item: updateOrder splits the extra
+    // amount into a brand-new pending line (kitchen split)
     // ═══════════════════════════════════════════════════════════════════
     //
-    //  Create 2× $120 → kitchen marks complete (items become ready)
-    //  → waiter adds 1 more via updateOrder.
-    //  The ready line keeps its id & status at ×2, and the extra amount
-    //  spills into a new pending ×1 line — only the extra goes to the
-    //  kitchen. Totals are recomputed from the full new cart (3 × 120).
+    // Create 2× $120 → kitchen marks complete (items become ready)
+    // → waiter adds 1 more via updateOrder.
+    // The ready line keeps its id & status at ×2, and the extra amount
+    // spills into a new pending ×1 line — only the extra goes to the
+    // kitchen. Totals are recomputed from the full new cart (3 × 120).
 
     @Test
     void test08_updateOrder_readyItemReordered() {
@@ -535,5 +576,144 @@ class OrderFullFlowIntegrationTest {
 
         System.out.println("✅ TEST 8: ready ×2 + pending ×1 after re-ordering 3 of "
                 + item120.getName() + " ($" + updated.getGrandTotal() + " total)");
+    }
+
+    // ═══════════════════════════════════════════════════════════════════
+    // TEST 9 — Mark done without pressing Play: the order must not stay
+    // pending. markComplete() on a pending order promotes it to preparing
+    // (kitchenStatus completed, items ready) so the lifecycle can continue.
+    // ═══════════════════════════════════════════════════════════════════
+
+    @Test
+    void test09_markCompleteWithoutStartCooking_promotesPendingToPreparing() {
+        CreateOrderRequest req = CreateOrderRequest.builder()
+                .orderType(OrderType.take_away.name())
+                .subtotal(item120.getPrice()).taxAmount(bd("12.00"))
+                .serviceCharge(BigDecimal.ZERO).deliveryCharge(BigDecimal.ZERO)
+                .grandTotal(BigDecimal.ZERO)
+                .items(List.of(CreateOrderItemRequest.builder()
+                        .itemId(item120.getId()).itemName(item120.getName())
+                        .unitPrice(item120.getPrice()).quantity(1)
+                        .lineTotal(item120.getPrice()).build()))
+                .build();
+
+        OrderResponse order = posService.createOrder(req);
+        assertEquals("pending", order.getStatus());
+
+        // Kitchen marks the order done directly — no startCooking() first.
+        var completed = kitchenService.markComplete(order.getId());
+        assertEquals("completed", completed.getKitchenStatus());
+        assertEquals("preparing", completed.getStatus(),
+                "markComplete response must carry the promoted status for WebSocket push");
+
+        OrderResponse detail = orderService.getOrderDetail(order.getOrderNumber());
+        assertEquals("preparing", detail.getStatus(),
+                "order must leave pending when the kitchen finishes it without starting");
+        assertEquals(1, detail.getItems().size());
+        assertEquals("ready", detail.getItems().get(0).status(),
+                "items must be ready after markComplete");
+
+        System.out.println("✅ TEST 9: markComplete without Play → status="
+                + detail.getStatus() + ", items=ready");
+    }
+
+    // ═══════════════════════════════════════════════════════════════════
+    // TEST 10 — markComplete on a cancelled order must be rejected at the
+    // backend (the frontend hides the button, but a stale/malicious request
+    // must not resurrect a cancelled order).
+    // ═══════════════════════════════════════════════════════════════════
+
+    @Test
+    void test10_markComplete_onCancelledOrder_throws() {
+        CreateOrderRequest req = CreateOrderRequest.builder()
+                .orderType(OrderType.take_away.name())
+                .subtotal(item120.getPrice()).taxAmount(bd("12.00"))
+                .serviceCharge(BigDecimal.ZERO).deliveryCharge(BigDecimal.ZERO)
+                .grandTotal(BigDecimal.ZERO)
+                .items(List.of(CreateOrderItemRequest.builder()
+                        .itemId(item120.getId()).itemName(item120.getName())
+                        .unitPrice(item120.getPrice()).quantity(1)
+                        .lineTotal(item120.getPrice()).build()))
+                .build();
+
+        OrderResponse order = posService.createOrder(req);
+        Long id = order.getId();
+
+        kitchenService.cancel(id);
+        assertEquals("cancelled", orderService.getOrderDetail(order.getOrderNumber()).getStatus());
+
+        AppException ex = assertThrows(AppException.class, () -> kitchenService.markComplete(id));
+        assertEquals(ErrorCode.ORDER_ALREADY_COMPLETED_OR_CANCELLED, ex.getErrorCode());
+
+        System.out.println("✅ TEST 10: markComplete on cancelled order rejected");
+    }
+
+    // ═══════════════════════════════════════════════════════════════════
+    // TEST 11 — markComplete on a completed (paid) order must be rejected.
+    // ═══════════════════════════════════════════════════════════════════
+
+    @Test
+    void test11_markComplete_onCompletedOrder_throws() {
+        CreateOrderRequest req = CreateOrderRequest.builder()
+                .orderType(OrderType.take_away.name())
+                .subtotal(item120.getPrice()).taxAmount(bd("12.00"))
+                .serviceCharge(BigDecimal.ZERO).deliveryCharge(BigDecimal.ZERO)
+                .grandTotal(BigDecimal.ZERO)
+                .items(List.of(CreateOrderItemRequest.builder()
+                        .itemId(item120.getId()).itemName(item120.getName())
+                        .unitPrice(item120.getPrice()).quantity(1)
+                        .lineTotal(item120.getPrice()).build()))
+                .build();
+
+        OrderResponse order = posService.createOrder(req);
+        Long id = order.getId();
+
+        // Pay the full amount → order becomes completed
+        OrderPaymentRequest pay = new OrderPaymentRequest();
+        pay.setDiscountAmount(BigDecimal.ZERO);
+        pay.setDiscountType("percentage");
+        pay.setTipAmount(BigDecimal.ZERO);
+        pay.setPaymentType("cash");
+        pay.setGivenAmount(bd("132.00"));
+        OrderResponse paid = orderService.processPayment(pay, id);
+        assertEquals("completed", paid.getStatus());
+
+        AppException ex = assertThrows(AppException.class, () -> kitchenService.markComplete(id));
+        assertEquals(ErrorCode.ORDER_ALREADY_COMPLETED_OR_CANCELLED, ex.getErrorCode());
+
+        System.out.println("✅ TEST 11: markComplete on completed order rejected");
+    }
+
+    // ═══════════════════════════════════════════════════════════════════
+    // TEST 12 — Duplicate markComplete: the second call (kitchenStatus already
+    // completed) must be rejected so the "Order Ready" notification is not
+    // sent twice.
+    // ═══════════════════════════════════════════════════════════════════
+
+    @Test
+    void test12_markCompleteTwice_secondCallThrows() {
+        CreateOrderRequest req = CreateOrderRequest.builder()
+                .orderType(OrderType.take_away.name())
+                .subtotal(item120.getPrice()).taxAmount(bd("12.00"))
+                .serviceCharge(BigDecimal.ZERO).deliveryCharge(BigDecimal.ZERO)
+                .grandTotal(BigDecimal.ZERO)
+                .items(List.of(CreateOrderItemRequest.builder()
+                        .itemId(item120.getId()).itemName(item120.getName())
+                        .unitPrice(item120.getPrice()).quantity(1)
+                        .lineTotal(item120.getPrice()).build()))
+                .build();
+
+        OrderResponse order = posService.createOrder(req);
+        Long id = order.getId();
+
+        // First call succeeds
+        kitchenService.markComplete(id);
+        assertEquals("preparing", orderService.getOrderDetail(order.getOrderNumber()).getStatus());
+
+        // Second call is rejected — kitchenStatus is already completed
+        AppException ex = assertThrows(AppException.class, () -> kitchenService.markComplete(id));
+        assertEquals(ErrorCode.ORDER_ALREADY_COMPLETED_OR_CANCELLED, ex.getErrorCode());
+
+        System.out.println("✅ TEST 12: duplicate markComplete rejected");
     }
 }
