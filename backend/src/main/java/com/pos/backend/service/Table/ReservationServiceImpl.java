@@ -67,6 +67,7 @@ public class ReservationServiceImpl implements ReservationService {
         RestaurantTable table = findTableOrThrow(request.getTableId());
 
         validateFutureTime(request.getReservationTime());
+        validateCapacity(table, request.getGuests());
         ensureNoConflict(table.getId(), request.getReservationTime(), null);
 
         Reservation reservation = Reservation.builder()
@@ -109,9 +110,10 @@ public class ReservationServiceImpl implements ReservationService {
         boolean resolving = isResolvingStatus(newStatus);
         // Resolving a reservation (completed/cancelled/paid) is legitimate even
         // when the booked time has already passed — only active bookings are
-        // validated for future time and slot conflicts.
+        // validated for future time, guest capacity and slot conflicts.
         if (!resolving) {
             validateFutureTime(request.getReservationTime());
+            validateCapacity(table, request.getGuests());
             ensureNoConflict(table.getId(), request.getReservationTime(), id);
         }
 
@@ -145,6 +147,13 @@ public class ReservationServiceImpl implements ReservationService {
     private void validateFutureTime(LocalDateTime time) {
         if (time == null || time.isBefore(LocalDateTime.now())) {
             throw new AppException(ErrorCode.RESERVATION_TIME_IN_PAST);
+        }
+    }
+
+    /** Reject a booking with more guests than the table can seat. */
+    private void validateCapacity(RestaurantTable table, Integer guests) {
+        if (guests != null && table.getSeats() != null && guests > table.getSeats()) {
+            throw new AppException(ErrorCode.RESERVATION_GUESTS_EXCEED_CAPACITY);
         }
     }
 

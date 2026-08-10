@@ -101,6 +101,8 @@ public enum ErrorCode {
     TABLE_FLOOR_NOT_FOUND(1056, HttpStatus.NOT_FOUND, "Table floor not found"),
     TABLE_FLOOR_NAME_ALREADY_EXISTS(1057, HttpStatus.BAD_REQUEST, "Table floor name already exists"),
     TABLE_FLOOR_HAS_TABLES(1058, HttpStatus.BAD_REQUEST, "Cannot delete floor that still has tables"),
+    RESERVATION_GUESTS_EXCEED_CAPACITY(1070, HttpStatus.BAD_REQUEST,
+            "Number of guests exceeds table capacity"),
     ;
 
     int code;

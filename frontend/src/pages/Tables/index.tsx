@@ -531,6 +531,11 @@ const TablesPage = () => {
             return;
         }
 
+        if (Number(reservationForm.guests) > (currentTable.seats ?? Number.MAX_SAFE_INTEGER)) {
+            showToast('error', 'Number of guests exceeds table capacity');
+            return;
+        }
+
         setSaving(true);
         try {
             // The backend mirrors the reservation state onto the table
@@ -581,6 +586,18 @@ const TablesPage = () => {
         const resolving = ['completed', 'cancelled', 'paid'].includes(reservationForm.status);
         if (!resolving && new Date(reservationForm.reservationTime).getTime() < Date.now()) {
             showToast('error', 'Reservation time must be in the future.');
+            return;
+        }
+
+        const targetTable =
+            tables.find((t) => t.id === Number(reservationForm.tableId)) ??
+            (currentTable && currentTable.id === Number(reservationForm.tableId) ? currentTable : undefined);
+        if (
+            !resolving &&
+            targetTable &&
+            Number(reservationForm.guests) > (targetTable.seats ?? Number.MAX_SAFE_INTEGER)
+        ) {
+            showToast('error', 'Number of guests exceeds table capacity');
             return;
         }
 
@@ -1348,10 +1365,14 @@ const TablesPage = () => {
                             <Form.Control
                                 type="number"
                                 min={1}
+                                max={currentTable?.seats}
                                 value={reservationForm.guests}
                                 onChange={(e) => setReservationForm((p) => ({ ...p, guests: e.target.value }))}
                                 required
                             />
+                            <Form.Text className="text-muted">
+                                Max {currentTable?.seats ?? '—'} guests for this table.
+                            </Form.Text>
                         </Form.Group>
                         <Form.Group className="mb-3">
                             <Form.Label>Notes</Form.Label>
@@ -1481,10 +1502,15 @@ const TablesPage = () => {
                             <Form.Control
                                 type="number"
                                 min={1}
+                                max={tables.find((t) => t.id === Number(reservationForm.tableId))?.seats}
                                 value={reservationForm.guests}
                                 onChange={(e) => setReservationForm((p) => ({ ...p, guests: e.target.value }))}
                                 required
                             />
+                            <Form.Text className="text-muted">
+                                Max {tables.find((t) => t.id === Number(reservationForm.tableId))?.seats ?? '—'}{' '}
+                                guests for this table.
+                            </Form.Text>
                         </Form.Group>
                         <Form.Group className="mb-3">
                             <Form.Label>Status</Form.Label>

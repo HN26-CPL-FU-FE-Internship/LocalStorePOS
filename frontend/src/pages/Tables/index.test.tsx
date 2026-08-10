@@ -507,6 +507,46 @@ describe('Tables page - showToast wiring', () => {
         );
     });
 
+    it('toasts an error when reserving with more guests than the table seats', async () => {
+        mockTableApi.getTables.mockResolvedValue([tableT1]); // 6 seats
+        renderPage();
+
+        await openTableAction();
+        fireEvent.click(await screen.findByRole('button', { name: /reservation/i }));
+
+        const form = openModalForm();
+        fireEvent.change(form.querySelector('input[type="date"]')!, { target: { value: dateStr(1) } });
+        fireEvent.change(form.querySelector('input[type="time"]')!, { target: { value: '12:00' } });
+        fireEvent.change(form.querySelector('select')!, { target: { value: '1' } });
+        fireEvent.change(form.querySelector('input[type="number"]')!, { target: { value: '8' } });
+        fireEvent.submit(form);
+
+        await waitFor(() =>
+            expect(mockShowToast).toHaveBeenCalledWith('error', 'Number of guests exceeds table capacity'),
+        );
+        expect(mockTableApi.createReservation).not.toHaveBeenCalled();
+    });
+
+    it('toasts an error when editing a reservation with more guests than the table seats', async () => {
+        mockTableApi.getTables.mockResolvedValue([{ ...tableT1, status: 'booked' }]); // 6 seats
+        mockTableApi.getReservations.mockResolvedValue([activeReservation]);
+        renderPage();
+
+        await openTableAction();
+        fireEvent.click(await screen.findByRole('button', { name: /view reservation/i }));
+        fireEvent.click(await screen.findByText('John Doe'));
+        fireEvent.click(await screen.findByRole('button', { name: /edit/i }));
+
+        const form = openModalForm();
+        fireEvent.change(form.querySelector('input[type="number"]')!, { target: { value: '8' } });
+        fireEvent.submit(form);
+
+        await waitFor(() =>
+            expect(mockShowToast).toHaveBeenCalledWith('error', 'Number of guests exceeds table capacity'),
+        );
+        expect(mockTableApi.updateReservation).not.toHaveBeenCalled();
+    });
+
     it('clamps a past time to the current time when reserving today', async () => {
         mockTableApi.getTables.mockResolvedValue([tableT1]);
         renderPage();
