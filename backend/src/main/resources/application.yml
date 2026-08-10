@@ -26,6 +26,12 @@ spring:
     validate-on-migrate: true
     clean-disabled: true
 
+legacy-assets:
+  migration:
+    # Network migration is opt-in; keep local files for rollback/verification.
+    enabled: ${LEGACY_ASSETS_MIGRATION_ENABLED:false}
+    dry-run: ${LEGACY_ASSETS_MIGRATION_DRY_RUN:false}
+
 logging:
   level:
     org.flywaydb: INFO

@@ -85,14 +85,46 @@ Start the packaged backend with:
 ```bash
 cd backend
 ./mvnw clean package -DskipTests
+# Run from the project root or keep the resolver's uploads directory available.
 java -jar target/restaurant-pos-0.0.1-SNAPSHOT.jar --spring.profiles.active=prod
 ```
+
+For this direct-JAR deployment, provide the legacy `uploads/` directory at the
+project-root location resolved by `UploadPathResolver`; otherwise old
+`/uploads/**` records will return 404. New uploads are stored in Cloudinary.
 
 Or use the production Docker template after providing the variables above:
 
 ```bash
+# The optional ./uploads directory keeps legacy /uploads/** records readable.
+# New uploads go to Cloudinary. Copy any legacy assets there before deploying.
+mkdir -p uploads
 docker compose -f docker-compose.prod.yml up -d --build
 ```
+
+The production backend mounts `./uploads` as read-only at `/app/uploads` for
+legacy database paths. This directory is intentionally not committed; provide
+it through deployment storage or migrate those records to Cloudinary first.
+
+To migrate legacy database paths to Cloudinary, first run a dry-run with the
+same `uploads/` directory available to the backend:
+
+```bash
+java -jar target/restaurant-pos-0.0.1-SNAPSHOT.jar \
+  --legacy-assets.migration.enabled=true \
+  --legacy-assets.migration.dry-run=true \
+  --spring.profiles.active=prod \
+  --spring.main.web-application-type=none
+```
+
+After reviewing the log summary, run again with `dry-run=false` (or omit the
+flag). The job is disabled by default, uses deterministic Cloudinary public IDs
+under `restaurant-pos/legacy`, updates the URL and identifiers in the database,
+and keeps local files for rollback. It skips records that are already migrated,
+missing, or not under `/uploads/`.
+
+If all legacy `/uploads/**` records have been migrated, the mount can be
+removed from `docker-compose.prod.yml`.
 
 Build the production frontend with a real, uncommitted `.env.production` file:
 

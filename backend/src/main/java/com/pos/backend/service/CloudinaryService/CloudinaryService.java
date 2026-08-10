@@ -11,6 +11,9 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
 import java.net.URI;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.Locale;
 import java.util.Map;
 
 @Service
@@ -27,7 +30,32 @@ public class CloudinaryService {
 
     public Asset uploadImage(MultipartFile file, String folder) {
         validateImage(file);
-        return upload(file, folder, "image");
+        try {
+            return upload(file.getBytes(), folder, "image", null);
+        } catch (IOException exception) {
+            throw new AppException(ErrorCode.FILE_UPLOAD_FAILED);
+        }
+    }
+
+    /** Upload a local image with a deterministic public ID for migrations. */
+    public Asset uploadImage(Path file, String folder, String publicId) {
+        try {
+            if (file == null || !Files.isRegularFile(file) || !Files.isReadable(file)) {
+                throw new AppException(ErrorCode.FILE_UPLOAD_FAILED);
+            }
+            if (Files.size(file) > MAX_FILE_SIZE) {
+                throw new AppException(ErrorCode.IMAGE_TOO_LARGE);
+            }
+            if (!isReadableImage(file)) {
+                throw new AppException(ErrorCode.INVALID_IMAGE_FILE);
+            }
+            return upload(Files.readAllBytes(file), folder, "image", publicId);
+        } catch (IOException | RuntimeException exception) {
+            if (exception instanceof AppException appException) {
+                throw appException;
+            }
+            throw new AppException(ErrorCode.FILE_UPLOAD_FAILED);
+        }
     }
 
     /** Upload images, videos, or raw files through Cloudinary's auto resource type. */
@@ -38,7 +66,11 @@ public class CloudinaryService {
         if (file.getSize() > MAX_FILE_SIZE) {
             throw new AppException(ErrorCode.IMAGE_TOO_LARGE);
         }
-        return upload(file, folder, "auto");
+        try {
+            return upload(file.getBytes(), folder, "auto", null);
+        } catch (IOException exception) {
+            throw new AppException(ErrorCode.FILE_UPLOAD_FAILED);
+        }
     }
 
     /** Delete by persisted Cloudinary identifiers. */
@@ -55,26 +87,29 @@ public class CloudinaryService {
         delete(assetUrl, null, null);
     }
 
-    private Asset upload(MultipartFile file, String folder, String resourceType) {
+    private Asset upload(byte[] content, String folder, String resourceType, String publicId) {
         try {
-            Map<?, ?> result = cloudinary.uploader().upload(
-                    file.getBytes(),
-                    ObjectUtils.asMap(
-                            "folder", folder,
-                            "resource_type", resourceType,
-                            "use_filename", false,
-                            "unique_filename", true,
-                            "overwrite", false));
+            Map<String, Object> options = ObjectUtils.asMap(
+                    "folder", folder,
+                    "resource_type", resourceType,
+                    "use_filename", false,
+                    "unique_filename", publicId == null,
+                    "overwrite", publicId != null);
+            if (publicId != null && !publicId.isBlank()) {
+                options.put("public_id", publicId);
+            }
+
+            Map<?, ?> result = cloudinary.uploader().upload(content, options);
 
             Object secureUrl = result.get("secure_url");
-            Object publicId = result.get("public_id");
+            Object returnedPublicId = result.get("public_id");
             Object actualResourceType = result.get("resource_type");
-            if (secureUrl == null || publicId == null) {
+            if (secureUrl == null || returnedPublicId == null) {
                 throw new AppException(ErrorCode.FILE_UPLOAD_FAILED);
             }
             return new Asset(
                     secureUrl.toString(),
-                    publicId.toString(),
+                    returnedPublicId.toString(),
                     actualResourceType == null ? resourceType : actualResourceType.toString());
         } catch (IOException | RuntimeException exception) {
             if (exception instanceof AppException appException) {
@@ -82,6 +117,21 @@ public class CloudinaryService {
             }
             throw new AppException(ErrorCode.FILE_UPLOAD_FAILED);
         }
+    }
+
+    private boolean isReadableImage(Path file) throws IOException {
+        String contentType = Files.probeContentType(file);
+        if (contentType != null) {
+            return contentType.toLowerCase(Locale.ROOT).startsWith("image/");
+        }
+
+        String filename = file.getFileName().toString().toLowerCase(Locale.ROOT);
+        return filename.endsWith(".jpg")
+                || filename.endsWith(".jpeg")
+                || filename.endsWith(".png")
+                || filename.endsWith(".gif")
+                || filename.endsWith(".bmp")
+                || filename.endsWith(".webp");
     }
 
     private void validateImage(MultipartFile file) {
