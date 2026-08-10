@@ -70,7 +70,8 @@ Set these variables in your deployment platform or secret manager:
 SPRING_PROFILES_ACTIVE=prod
 DB_HOST=your-production-db-host
 DB_PORT=3306
-DB_NAME=restaurant_pos_db
+# Aiven's default MySQL database is usually `defaultdb`.
+DB_NAME=defaultdb
 DB_USERNAME=restaurant_pos_app
 DB_PASSWORD=...
 JWT_SIGNER_KEY=...

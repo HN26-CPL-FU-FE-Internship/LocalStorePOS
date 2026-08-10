@@ -12,9 +12,8 @@
 SET NAMES utf8mb4;
 SET FOREIGN_KEY_CHECKS = 0;
 
--- CREATE DATABASE IF NOT EXISTS restaurant_pos_db
---   CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
--- USE restaurant_pos_db;
+-- The database/schema is provisioned externally and selected by the JDBC URL.
+-- Do not CREATE DATABASE or USE another schema inside a Flyway migration.
 
 -- =====================================================================
 -- 1. STORE / CẤU HÌNH CHUNG
