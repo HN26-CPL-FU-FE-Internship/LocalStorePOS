@@ -8,7 +8,7 @@ import com.pos.backend.dto.response.Table.RestaurantTableResponse;
 
 public interface RestaurantTableService {
 
-    List<RestaurantTableResponse> getTables(Long areaId, TableStatus status);
+    List<RestaurantTableResponse> getTables(Long areaId, Long floorId, TableStatus status);
 
     RestaurantTableResponse createTable(RestaurantTableRequest request);
 

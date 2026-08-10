@@ -12,6 +12,8 @@ import lombok.Getter;
 public class RestaurantTableResponse {
     private Long id;
     private String tableNumber;
+    private Long floorId;
+    private String floorName;
     private Long areaId;
     private String areaName;
     private Integer seats;

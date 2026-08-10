@@ -26,6 +26,9 @@ public class RestaurantTableRequest {
     @NotNull(message = "Area is required")
     private Long areaId;
 
+    /** Floor (tang) containing the table. When null, defaults to the first floor. */
+    private Long floorId;
+
     @NotNull(message = "Seats is required")
     @Positive(message = "Seats must be greater than 0")
     private Integer seats;

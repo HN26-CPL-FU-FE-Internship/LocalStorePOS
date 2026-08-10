@@ -12,6 +12,9 @@ export type ReservationStatus = 'booked' | 'seated' | 'completed' | 'cancelled' 
 export interface TableEntry {
     id: number;
     tableNumber: string;
+    /** Floor (tang) this table belongs to. All floors share one map. */
+    floorId: number | null;
+    floorName: string | null;
     areaId: number;
     areaName: string;
     seats: number;
@@ -29,11 +32,18 @@ export interface TableEntry {
 export interface TableFormData {
     tableNumber: string;
     areaId: number;
+    /** Floor (tang) containing the table. */
+    floorId?: number;
     seats: number;
     status?: TableStatus;
     xPosition?: number | null;
     yPosition?: number | null;
     shape?: TableShape;
+}
+
+export interface TableFloor {
+    id: number;
+    name: string;
 }
 
 export interface ReservationEntry {
@@ -77,9 +87,30 @@ export const deleteTableArea = async (id: number): Promise<void> => {
 };
 
 /* ------------------------------------------------------------------ */
+/*  Table Floors (tang)                                               */
+/* ------------------------------------------------------------------ */
+export const getTableFloors = async (): Promise<TableFloor[]> => {
+    const { data } = await api.get<ApiResponse<TableFloor[]>>('/table-floors');
+    return data.result;
+};
+
+export const createTableFloor = async (name: string): Promise<TableFloor> => {
+    const { data } = await api.post<ApiResponse<TableFloor>>('/table-floors', { name });
+    return data.result;
+};
+
+export const deleteTableFloor = async (id: number): Promise<void> => {
+    await api.delete(`/table-floors/${id}`);
+};
+
+/* ------------------------------------------------------------------ */
 /*  Tables                                                            */
 /* ------------------------------------------------------------------ */
-export const getTables = async (params: { areaId?: number; status?: TableStatus }): Promise<TableEntry[]> => {
+export const getTables = async (params: {
+    areaId?: number;
+    floorId?: number;
+    status?: TableStatus;
+}): Promise<TableEntry[]> => {
     const { data } = await api.get<ApiResponse<TableEntry[]>>('/tables', { params });
     return data.result;
 };

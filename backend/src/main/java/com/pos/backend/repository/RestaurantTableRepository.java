@@ -20,15 +20,22 @@ public interface RestaurantTableRepository extends JpaRepository<RestaurantTable
     @Query("""
                 SELECT t FROM RestaurantTable t
                 LEFT JOIN FETCH t.area a
-                WHERE (:areaId IS NULL OR a.id = :areaId)
+                LEFT JOIN FETCH t.floor f
+                WHERE (:floorId IS NULL OR f.id = :floorId)
+                AND (:areaId IS NULL OR a.id = :areaId)
                 AND (:status IS NULL OR t.status = :status)
                 ORDER BY t.tableNumber ASC
             """)
-    List<RestaurantTable> search(@Param("areaId") Long areaId, @Param("status") TableStatus status);
+    List<RestaurantTable> search(
+            @Param("areaId") Long areaId,
+            @Param("floorId") Long floorId,
+            @Param("status") TableStatus status);
 
     boolean existsByTableNumberIgnoreCase(String tableNumber);
 
     boolean existsByTableNumberIgnoreCaseAndIdNot(String tableNumber, Long id);
+
+    long countByFloorId(Long floorId);
 
     List<RestaurantTable> findByStatus(TableStatus status, Pageable pageable);
 }

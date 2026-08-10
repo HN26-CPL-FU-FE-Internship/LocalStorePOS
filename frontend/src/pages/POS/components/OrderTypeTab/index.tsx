@@ -16,7 +16,10 @@ const OrderTypeTab = ({
     const { data: waiters = [] } = useWaiters();
     const { data: customers = [] } = useCustomers();
 
-    const tableOptions = useMemo(() => tables.map((t) => ({ value: String(t.id), label: t.name })), [tables]);
+    const tableOptions = useMemo(
+        () => tables.map((t) => ({ value: String(t.id), label: t.floorName ? `${t.name} (${t.floorName})` : t.name })),
+        [tables],
+    );
     const waiterOptions = useMemo(() => waiters.map((w) => ({ value: String(w.id), label: w.name })), [waiters]);
     const customerOptions = useMemo(() => customers.map((c) => ({ value: String(c.id), label: c.name })), [customers]);
 

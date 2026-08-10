@@ -87,6 +87,9 @@ public enum ErrorCode {
     INVALID_PAYMENT_AMOUNT(1052, HttpStatus.BAD_REQUEST, "Invalid payment amount"),
     ORDER_NOT_ELIGIBLE_FOR_QR(1053, HttpStatus.BAD_REQUEST, "Order is not eligible for QR payment"),
     INVALID_TABLE_CAPACITY(1055, HttpStatus.BAD_REQUEST, "Invalid capacity for the selected table shape. Round table (6, 8, 10 seats), rectangular table (4, 6, 8 seats)"),
+    TABLE_FLOOR_NOT_FOUND(1056, HttpStatus.NOT_FOUND, "Table floor not found"),
+    TABLE_FLOOR_NAME_ALREADY_EXISTS(1057, HttpStatus.BAD_REQUEST, "Table floor name already exists"),
+    TABLE_FLOOR_HAS_TABLES(1058, HttpStatus.BAD_REQUEST, "Cannot delete floor that still has tables"),
     ;
 
     int code;

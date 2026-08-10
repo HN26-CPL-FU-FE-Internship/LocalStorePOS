@@ -6,9 +6,12 @@ import ConfirmModal from '@/components/common/ConfirmModal';
 import {
     createReservation,
     createTable,
+    createTableFloor,
     deleteTable,
+    deleteTableFloor,
     getReservations,
     getTableAreas,
+    getTableFloors,
     getTables,
     updateReservation,
     updateReservationStatus,
@@ -17,6 +20,7 @@ import {
     type ReservationEntry,
     type ReservationStatus,
     type TableEntry,
+    type TableFloor,
     type TableShape,
     type TableStatus,
 } from '@/api/table.api';
@@ -47,6 +51,7 @@ const SEATS_BY_SHAPE: Record<string, string[]> = {
 const emptyTableForm = {
     tableNumber: '',
     areaId: '',
+    floorId: '',
     seats: '6',
     xPosition: '500',
     yPosition: '320',
@@ -67,6 +72,8 @@ const TablesPage = () => {
     const [tables, setTables] = useState<TableEntry[]>([]);
     const [allReservations, setAllReservations] = useState<ReservationEntry[]>([]);
     const [areas, setAreas] = useState<Option[]>([]);
+    const [floors, setFloors] = useState<TableFloor[]>([]);
+    const [activeFloorId, setActiveFloorId] = useState<number | null>(null);
     const [customerOptions, setCustomerOptions] = useState<Option[]>([]);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
@@ -89,6 +96,9 @@ const TablesPage = () => {
               (r) => r.tableId === sidebarTable.id && (r.status === 'booked' || r.status === 'seated'),
           )
         : [];
+
+    const activeFloor = floors.find((f) => f.id === activeFloorId) ?? null;
+    const formFloorName = floors.find((f) => f.id === Number(tableForm.floorId))?.name ?? '';
 
     // Live ghost marker on the map while typing coordinates in Add/Edit modal.
     const previewCoords =
@@ -118,6 +128,12 @@ const TablesPage = () => {
     const [showStatusModal, setShowStatusModal] = useState(false);
     const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
     const [deleting, setDeleting] = useState(false);
+    const [showAddFloor, setShowAddFloor] = useState(false);
+    const [newFloorName, setNewFloorName] = useState('');
+    const [savingFloor, setSavingFloor] = useState(false);
+    const [showDeleteFloor, setShowDeleteFloor] = useState(false);
+    const [floorToDelete, setFloorToDelete] = useState<TableFloor | null>(null);
+    const [deletingFloor, setDeletingFloor] = useState(false);
     const [selectedStatus, setSelectedStatus] = useState<TableStatus>('available');
 
     const openTableAction = (table: TableEntry) => {
@@ -136,7 +152,7 @@ const TablesPage = () => {
             setShowTableAction(false);
 
             setNotice(`Table ${currentTable.tableNumber} updated.`);
-            await loadTables();
+            await loadTables(activeFloorId);
         } catch (err) {
             setError(extractErrorMessage(err, 'Cannot update table status.'));
         }
@@ -150,13 +166,18 @@ const TablesPage = () => {
         return fallback;
     };
 
-    const loadTables = async () => {
+    const loadTables = async (floorId: number | null) => {
         setLoading(true);
         setError(null);
         try {
-            // Always load every table: the map is a single fixed layout and
-            // shows the whole restaurant at once.
-            const [tablesData, reservationsData] = await Promise.all([getTables({}), getReservations({})]);
+            if (floorId == null) {
+                setTables([]);
+                setAllReservations([]);
+                return;
+            }
+            // Each floor has its own independent set of tables on the shared
+            // floor plan (the map is a single fixed layout).
+            const [tablesData, reservationsData] = await Promise.all([getTables({ floorId }), getReservations({})]);
             setTables(tablesData);
             setAllReservations(reservationsData);
         } catch {
@@ -169,9 +190,15 @@ const TablesPage = () => {
     useEffect(() => {
         (async () => {
             try {
-                const [areaList, customerList] = await Promise.all([getTableAreas(), getCustomerOptions()]);
+                const [areaList, customerList, floorList] = await Promise.all([
+                    getTableAreas(),
+                    getCustomerOptions(),
+                    getTableFloors(),
+                ]);
                 setAreas(areaList);
                 setCustomerOptions(customerList);
+                setFloors(floorList);
+                setActiveFloorId(floorList.length > 0 ? floorList[0].id : null);
             } catch {
                 // Non-fatal: dropdowns stay empty until retried.
             }
@@ -179,14 +206,64 @@ const TablesPage = () => {
     }, []);
 
     useEffect(() => {
-        loadTables();
-    }, []);
+        loadTables(activeFloorId);
+    }, [activeFloorId]);
 
     useEffect(() => {
         if (!notice) return;
         const handle = setTimeout(() => setNotice(null), 3000);
         return () => clearTimeout(handle);
     }, [notice]);
+
+    /* ---------- Floor CRUD ---------- */
+    const openDeleteFloor = (floor: TableFloor) => {
+        setFloorToDelete(floor);
+        setShowDeleteFloor(true);
+    };
+
+    const handleAddFloor = async () => {
+        const name = newFloorName.trim();
+        if (!name) return;
+        setSavingFloor(true);
+        setError(null);
+        try {
+            const floor = await createTableFloor(name);
+            setFloors((prev) => [...prev, floor]);
+            setActiveFloorId(floor.id);
+            setShowAddFloor(false);
+            setNotice(`Floor ${floor.name} added.`);
+            showToast('success', `Floor ${floor.name} added.`);
+        } catch (err) {
+            setError(extractErrorMessage(err, 'Failed to add floor.'));
+            showToast('error', 'Failed to add floor.');
+        } finally {
+            setSavingFloor(false);
+        }
+    };
+
+    const handleDeleteFloor = async () => {
+        if (!floorToDelete) return;
+        setDeletingFloor(true);
+        setError(null);
+        try {
+            await deleteTableFloor(floorToDelete.id);
+            setShowDeleteFloor(false);
+            setNotice(`Floor ${floorToDelete.name} deleted.`);
+            showToast('success', `Floor ${floorToDelete.name} deleted.`);
+            const remaining = floors.filter((f) => f.id !== floorToDelete.id);
+            setFloors(remaining);
+            if (activeFloorId === floorToDelete.id) {
+                setActiveFloorId(remaining.length > 0 ? remaining[0].id : null);
+            }
+            setFloorToDelete(null);
+        } catch (err) {
+            setError(extractErrorMessage(err, 'Failed to delete floor.'));
+            showToast('error', 'Failed to delete floor.');
+            setShowDeleteFloor(false);
+        } finally {
+            setDeletingFloor(false);
+        }
+    };
 
     /* ---------- Table CRUD ---------- */
     const openAddTable = () => {
@@ -196,16 +273,22 @@ const TablesPage = () => {
         const size = getTableSize(6, 'ROUND');
         const zone = ZONE_GEOMETRY[areaId];
         const spot = zone
-            ? findFreeSpot(zone, size.width, size.height, tables
-                  .filter((t) => t.areaId === areaId && t.xPosition != null && t.yPosition != null)
-                  .map((t) => {
-                      const s = getTableSize(t.seats, t.shape);
-                      return tableRect(s.width, s.height, t.xPosition as number, t.yPosition as number);
-                  }))
+            ? findFreeSpot(
+                  zone,
+                  size.width,
+                  size.height,
+                  tables
+                      .filter((t) => t.areaId === areaId && t.xPosition != null && t.yPosition != null)
+                      .map((t) => {
+                          const s = getTableSize(t.seats, t.shape);
+                          return tableRect(s.width, s.height, t.xPosition as number, t.yPosition as number);
+                      }),
+              )
             : { x: 500, y: 320 };
         setTableForm({
             ...emptyTableForm,
             areaId: String(areaId),
+            floorId: activeFloorId != null ? String(activeFloorId) : '',
             xPosition: String(spot.x),
             yPosition: String(spot.y),
         });
@@ -254,6 +337,7 @@ const TablesPage = () => {
             await createTable({
                 tableNumber: tableForm.tableNumber.trim(),
                 areaId: Number(tableForm.areaId),
+                floorId: tableForm.floorId ? Number(tableForm.floorId) : undefined,
                 seats: Number(tableForm.seats),
                 xPosition: Number(tableForm.xPosition),
                 yPosition: Number(tableForm.yPosition),
@@ -262,7 +346,7 @@ const TablesPage = () => {
             setShowAddTable(false);
             setNotice('Table added successfully.');
             showToast('success', 'Table added successfully.');
-            await loadTables();
+            await loadTables(activeFloorId);
         } catch (err) {
             setError(extractErrorMessage(err, 'Failed to add table.'));
             showToast('error', 'Failed to add table.');
@@ -281,6 +365,7 @@ const TablesPage = () => {
         setTableForm({
             tableNumber: table.tableNumber,
             areaId: String(table.areaId),
+            floorId: table.floorId != null ? String(table.floorId) : '',
             seats,
             xPosition: String(table.xPosition ?? 500),
             yPosition: String(table.yPosition ?? 320),
@@ -302,6 +387,7 @@ const TablesPage = () => {
             await updateTable(currentTable.id, {
                 tableNumber: tableForm.tableNumber.trim(),
                 areaId: Number(tableForm.areaId),
+                floorId: tableForm.floorId ? Number(tableForm.floorId) : undefined,
                 seats: Number(tableForm.seats),
                 xPosition: Number(tableForm.xPosition),
                 yPosition: Number(tableForm.yPosition),
@@ -310,7 +396,7 @@ const TablesPage = () => {
             setShowEditTable(false);
             setCurrentTable(null);
             setNotice('Table updated successfully.');
-            await loadTables();
+            await loadTables(activeFloorId);
         } catch (err) {
             setError(extractErrorMessage(err, 'Failed to update table.'));
         } finally {
@@ -324,9 +410,7 @@ const TablesPage = () => {
         if (!table) return;
 
         // Optimistic update: move the table immediately on the map.
-        setTables((prev) =>
-            prev.map((t) => (t.id === tableId ? { ...t, xPosition: x, yPosition: y } : t)),
-        );
+        setTables((prev) => prev.map((t) => (t.id === tableId ? { ...t, xPosition: x, yPosition: y } : t)));
 
         try {
             // Snap legacy seat counts to a valid value for the shape, so a
@@ -337,6 +421,7 @@ const TablesPage = () => {
             await updateTable(tableId, {
                 tableNumber: table.tableNumber,
                 areaId: table.areaId,
+                floorId: table.floorId ?? undefined,
                 seats,
                 xPosition: x,
                 yPosition: y,
@@ -345,14 +430,12 @@ const TablesPage = () => {
             setNotice(`Table ${table.tableNumber} moved to (${x}, ${y}).`);
         } catch (err) {
             setError(extractErrorMessage(err, 'Failed to save table position.'));
-            await loadTables(); // roll back to the server state
+            await loadTables(activeFloorId); // roll back to the server state
         }
     };
 
     const activeTableBookings = (table: TableEntry) =>
-        allReservations.filter(
-            (r) => r.tableId === table.id && (r.status === 'booked' || r.status === 'seated'),
-        );
+        allReservations.filter((r) => r.tableId === table.id && (r.status === 'booked' || r.status === 'seated'));
 
     const openDeleteTable = (table: TableEntry) => {
         setCurrentTable(table);
@@ -370,7 +453,7 @@ const TablesPage = () => {
             setNotice(`Table ${currentTable.tableNumber} deleted.`);
             showToast('success', `Table ${currentTable.tableNumber} deleted.`);
             setCurrentTable(null);
-            await loadTables();
+            await loadTables(activeFloorId);
         } catch (err) {
             setError(extractErrorMessage(err, 'Failed to delete table.'));
             showToast('error', 'Failed to delete table.');
@@ -384,7 +467,7 @@ const TablesPage = () => {
     //     try {
     //         await updateTableStatus(table.id, 'occupied');
     //         setNotice(`Table ${table.tableNumber} marked as Occupied.`);
-    //         await loadTables();
+    //         await loadTables(activeFloorId);
     //     } catch (err) {
     //         setError(extractErrorMessage(err, 'Unable to update table status.'));
     //     }
@@ -395,7 +478,7 @@ const TablesPage = () => {
             await updateTableStatus(table.id, 'available');
             setNotice(`Table ${table.tableNumber} marked as Available.`);
             setShowReservationInfo(false);
-            await loadTables();
+            await loadTables(activeFloorId);
         } catch (err) {
             setError(extractErrorMessage(err, 'Cannot update table status.'));
         }
@@ -434,7 +517,7 @@ const TablesPage = () => {
             setShowReserve(false);
             setCurrentTable(null);
             setNotice('Reservation created successfully.');
-            await loadTables();
+            await loadTables(activeFloorId);
         } catch (err) {
             setError(extractErrorMessage(err, 'Failed to create reservation.'));
         } finally {
@@ -480,7 +563,7 @@ const TablesPage = () => {
             setShowEditReservation(false);
             setCurrentReservation(null);
             setNotice('Reservation updated successfully.');
-            await loadTables();
+            await loadTables(activeFloorId);
         } catch (err) {
             setError(extractErrorMessage(err, 'Failed to update reservation.'));
         } finally {
@@ -497,7 +580,7 @@ const TablesPage = () => {
             }
             setShowReservationInfo(false);
             setNotice('Reservation cancelled.');
-            await loadTables();
+            await loadTables(activeFloorId);
         } catch (err) {
             setError(extractErrorMessage(err, 'Cannot cancel reservation.'));
         }
@@ -510,7 +593,7 @@ const TablesPage = () => {
     //         await updateTableStatus(currentTable.id, 'occupied');
     //         setShowReservationInfo(false);
     //         setNotice('Khách đã vào bàn.');
-    //         await loadTables();
+    //         await loadTables(activeFloorId);
     //     } catch (err) {
     //         setError(extractErrorMessage(err, 'Không thể cập nhật.'));
     //     }
@@ -531,19 +614,89 @@ const TablesPage = () => {
                             size="sm"
                             className="btn-icon rounded-circle ms-2"
                             aria-label="refresh"
-                            onClick={() => loadTables()}
+                            onClick={() => loadTables(activeFloorId)}
                         >
                             <Icon name="refresh-ccw" />
                         </Button>
                     </h3>
                 </div>
                 <div className="gap-2 d-flex align-items-center flex-wrap">
-                    <Button variant="primary" className="d-inline-flex align-items-center" onClick={openAddTable}>
+                    <Button
+                        variant="primary"
+                        className="d-inline-flex align-items-center"
+                        onClick={openAddTable}
+                        disabled={floors.length === 0}
+                        title={floors.length === 0 ? 'Add a floor first' : undefined}
+                    >
                         <Icon name="circle-plus" className="me-1" />
                         Add Table
                     </Button>
                 </div>
             </div>
+
+            {/* ---- Floor switcher: all floors share one map, each floor has its own tables ---- */}
+            {floors.length > 0 && (
+                <div className="d-flex align-items-center gap-2 flex-wrap mb-3">
+                    {floors.map((f) => {
+                        const isActive = f.id === activeFloorId;
+                        return (
+                            <div
+                                key={f.id}
+                                role="button"
+                                onClick={() => setActiveFloorId(f.id)}
+                                className={`d-inline-flex align-items-center ${isActive ? 'bg-primary text-white' : 'bg-white text-dark border'}`}
+                                style={{
+                                    borderRadius: 999,
+                                    padding: '7px 14px',
+                                    gap: 6,
+                                    cursor: 'pointer',
+                                    borderWidth: isActive ? 0 : 1,
+                                    boxShadow: isActive ? '0 2px 8px rgba(67, 97, 238, 0.35)' : 'none',
+                                    transition: 'all 0.18s ease',
+                                }}
+                                title={`View ${f.name}`}
+                            >
+                                <Icon name="building-2" size={14} />
+                                <span className="fw-semibold" style={{ fontSize: 13 }}>
+                                    {f.name}
+                                </span>
+                                {isActive && floors.length > 1 && (
+                                    <span
+                                        className="d-inline-flex align-items-center justify-content-center ms-1"
+                                        style={{
+                                            width: 18,
+                                            height: 18,
+                                            borderRadius: '50%',
+                                            background: isActive ? 'rgba(255,255,255,0.28)' : 'rgba(108,117,125,0.2)',
+                                            cursor: 'pointer',
+                                            transition: 'background 0.15s ease',
+                                        }}
+                                        title={`Delete ${f.name}`}
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            openDeleteFloor(f);
+                                        }}
+                                    >
+                                        <Icon name="x" size={12} />
+                                    </span>
+                                )}
+                            </div>
+                        );
+                    })}
+                    <button
+                        type="button"
+                        className="btn btn-sm btn-outline-primary d-inline-flex align-items-center"
+                        style={{ borderRadius: 999, gap: 5 }}
+                        onClick={() => {
+                            setNewFloorName(`Floor ${floors.length + 1}`);
+                            setShowAddFloor(true);
+                        }}
+                    >
+                        <Icon name="plus" size={14} />
+                        Add Floor
+                    </button>
+                </div>
+            )}
 
             {notice && (
                 <Alert variant="success" onClose={() => setNotice(null)} dismissible>
@@ -563,9 +716,30 @@ const TablesPage = () => {
                 </div>
             )}
 
-            {!loading && tables.length === 0 && <div className="text-center py-5 text-muted">No tables found.</div>}
+            {!loading && floors.length === 0 && (
+                <div className="text-center py-5">
+                    <p className="text-muted mb-3">No floors yet. Add a floor to start placing tables.</p>
+                    <Button
+                        variant="primary"
+                        className="d-inline-flex align-items-center"
+                        onClick={() => {
+                            setNewFloorName('Floor 1');
+                            setShowAddFloor(true);
+                        }}
+                    >
+                        <Icon name="plus" className="me-1" />
+                        Add Floor
+                    </Button>
+                </div>
+            )}
 
-            {!loading && (
+            {!loading && floors.length > 0 && tables.length === 0 && (
+                <div className="text-center py-5 text-muted">
+                    No tables on {activeFloor?.name ?? 'this floor'} yet. Click “Add Table” to place one.
+                </div>
+            )}
+
+            {!loading && floors.length > 0 && (
                 <FloorMap
                     tables={tables}
                     reservations={allReservations}
@@ -577,6 +751,47 @@ const TablesPage = () => {
                 />
             )}
 
+            {/* ---- Add Floor Modal ---- */}
+            <Modal show={showAddFloor} onHide={() => setShowAddFloor(false)} centered>
+                <Modal.Header closeButton>
+                    <Modal.Title>Add Floor</Modal.Title>
+                </Modal.Header>
+                <Form
+                    onSubmit={(e) => {
+                        e.preventDefault();
+                        handleAddFloor();
+                    }}
+                >
+                    <Modal.Body>
+                        <Form.Group>
+                            <Form.Label>
+                                Floor Name<span className="text-danger"> *</span>
+                            </Form.Label>
+                            <Form.Control
+                                type="text"
+                                placeholder="e.g. Floor 2"
+                                value={newFloorName}
+                                onChange={(e) => setNewFloorName(e.target.value)}
+                                maxLength={100}
+                                required
+                            />
+                            <Form.Text className="text-muted">
+                                All floors share the same floor plan — each floor has its own independent set of
+                                tables.
+                            </Form.Text>
+                        </Form.Group>
+                    </Modal.Body>
+                    <Modal.Footer>
+                        <Button variant="light" onClick={() => setShowAddFloor(false)}>
+                            Cancel
+                        </Button>
+                        <Button variant="primary" type="submit" disabled={savingFloor}>
+                            {savingFloor ? 'Saving...' : 'Add Floor'}
+                        </Button>
+                    </Modal.Footer>
+                </Form>
+            </Modal>
+
             {/* ---- Add / Edit Table Modal ---- */}
             {[
                 { show: showAddTable, setShow: setShowAddTable, title: 'Add Table', onSubmit: handleAddTable },
@@ -587,7 +802,10 @@ const TablesPage = () => {
                     show={show}
                     onHide={() => setShow(false)}
                     placement="end"
-                    style={{ width: 'min(92vw, 780px)' }}
+                    style={{
+                        width: 'min(92vw, 780px)',
+                        height: '100vh',
+                    }}
                 >
                     <Offcanvas.Header closeButton className="border-0 p-4 pb-2">
                         <h4 className="modal-title">{title}</h4>
@@ -598,9 +816,27 @@ const TablesPage = () => {
                             onSubmit();
                         }}
                     >
-                        <Offcanvas.Body className="p-4 pt-3">
+                        <Offcanvas.Body
+                            className="p-4 pt-3"
+                            style={{
+                                overflowY: 'auto',
+                                maxHeight: 'calc(100vh - 130px)',
+                            }}
+                        >
                             <Row className="g-4">
                                 <Col md={5}>
+                                    <Form.Group className="mb-3">
+                                        <Form.Label>Floor</Form.Label>
+                                        <Form.Control
+                                            type="text"
+                                            value={formFloorName || 'No floor'}
+                                            disabled
+                                            className="bg-light"
+                                        />
+                                        <Form.Text className="text-muted">
+                                            The table is added to the currently selected floor.
+                                        </Form.Text>
+                                    </Form.Group>
                                     <Form.Group className="mb-3">
                                         <Form.Label>
                                             Table Name<span className="text-danger"> *</span>
@@ -609,7 +845,9 @@ const TablesPage = () => {
                                             type="text"
                                             placeholder="e.g. T10"
                                             value={tableForm.tableNumber}
-                                            onChange={(e) => setTableForm((p) => ({ ...p, tableNumber: e.target.value }))}
+                                            onChange={(e) =>
+                                                setTableForm((p) => ({ ...p, tableNumber: e.target.value }))
+                                            }
                                             required
                                         />
                                     </Form.Group>
@@ -670,7 +908,13 @@ const TablesPage = () => {
                                                                 justifyContent: 'center',
                                                             }}
                                                         >
-                                                            <div style={{ width: s === 'ROUND' ? 68 : 90, height: s === 'ROUND' ? 68 : 56, position: 'relative' }}>
+                                                            <div
+                                                                style={{
+                                                                    width: s === 'ROUND' ? 68 : 90,
+                                                                    height: s === 'ROUND' ? 68 : 56,
+                                                                    position: 'relative',
+                                                                }}
+                                                            >
                                                                 <TableVisual
                                                                     shape={s}
                                                                     seats={Number(SEATS_BY_SHAPE[s][0])}
@@ -678,9 +922,23 @@ const TablesPage = () => {
                                                                 />
                                                             </div>
                                                         </div>
-                                                        <div style={{ fontSize: 12, fontWeight: 600, color: isActive ? '#4361ee' : '#6c757d', marginTop: 4 }}>
+                                                        <div
+                                                            style={{
+                                                                fontSize: 12,
+                                                                fontWeight: 600,
+                                                                color: isActive ? '#4361ee' : '#6c757d',
+                                                                marginTop: 4,
+                                                            }}
+                                                        >
                                                             {s === 'ROUND' ? 'Round' : 'Rectangle'}
-                                                            <span style={{ fontSize: 11, fontWeight: 400, display: 'block', color: isActive ? '#6b7cda' : '#adb5bd' }}>
+                                                            <span
+                                                                style={{
+                                                                    fontSize: 11,
+                                                                    fontWeight: 400,
+                                                                    display: 'block',
+                                                                    color: isActive ? '#6b7cda' : '#adb5bd',
+                                                                }}
+                                                            >
                                                                 {s === 'ROUND' ? '6 / 8 / 10 seats' : '4 / 6 / 8 seats'}
                                                             </span>
                                                         </div>
@@ -706,43 +964,14 @@ const TablesPage = () => {
                                             ))}
                                         </Form.Select>
                                     </Form.Group>
-                                    <Row>
-                                        <Col xs={6}>
-                                            <Form.Group>
-                                                <Form.Label>Position X</Form.Label>
-                                                <Form.Control
-                                                    type="number"
-                                                    min={0}
-                                                    max={1000}
-                                                    value={tableForm.xPosition}
-                                                    onChange={(e) => setTableForm((p) => ({ ...p, xPosition: e.target.value }))}
-                                                    required
-                                                />
-                                            </Form.Group>
-                                        </Col>
-                                        <Col xs={6}>
-                                            <Form.Group>
-                                                <Form.Label>Position Y</Form.Label>
-                                                <Form.Control
-                                                    type="number"
-                                                    min={0}
-                                                    max={640}
-                                                    value={tableForm.yPosition}
-                                                    onChange={(e) => setTableForm((p) => ({ ...p, yPosition: e.target.value }))}
-                                                    required
-                                                />
-                                            </Form.Group>
-                                        </Col>
-                                    </Row>
+                                    
                                     <p className="text-muted small mb-0 mt-3">
                                         <Icon name="info" size={13} className="me-1" />
                                         Tip: click or drag on the floor plan to fine-tune the position.
                                     </p>
                                 </Col>
                                 <Col md={7}>
-                                    <Form.Label className="d-block fw-semibold mb-2">
-                                        Place on floor plan
-                                    </Form.Label>
+                                    <Form.Label className="d-block fw-semibold mb-2">Place on floor plan</Form.Label>
                                     <PositionPicker
                                         x={Number(tableForm.xPosition) || 0}
                                         y={Number(tableForm.yPosition) || 0}
@@ -750,9 +979,17 @@ const TablesPage = () => {
                                         seats={Number(tableForm.seats) || 2}
                                         areas={areas}
                                         activeAreaId={tableForm.areaId ? Number(tableForm.areaId) : undefined}
-                                        existing={showEditTable && currentTable ? tables.filter((t) => t.id !== currentTable.id) : tables}
+                                        existing={
+                                            showEditTable && currentTable
+                                                ? tables.filter((t) => t.id !== currentTable.id)
+                                                : tables
+                                        }
                                         onPositionChange={(px, py) =>
-                                            setTableForm((p) => ({ ...p, xPosition: String(px), yPosition: String(py) }))
+                                            setTableForm((p) => ({
+                                                ...p,
+                                                xPosition: String(px),
+                                                yPosition: String(py),
+                                            }))
                                         }
                                     />
                                 </Col>
@@ -849,7 +1086,7 @@ const TablesPage = () => {
                             <Icon name="trash-2" className="me-2" />
                             Delete Table
                         </Button>
-                     </div>
+                    </div>
                 </Modal.Body>
             </Modal>
 
@@ -861,6 +1098,16 @@ const TablesPage = () => {
                 data={`table ${currentTable?.tableNumber ?? ''}`}
                 action={handleDeleteTable}
                 actionDisabled={deleting}
+            />
+
+            {/* ---- Delete Floor Confirmation ---- */}
+            <ConfirmModal
+                show={showDeleteFloor}
+                handleClose={() => setShowDeleteFloor(false)}
+                type="delete"
+                data={`floor ${floorToDelete?.name ?? ''}`}
+                action={handleDeleteFloor}
+                actionDisabled={deletingFloor}
             />
 
             {/* ---- Set Status Modal ---- */}
@@ -1238,6 +1485,58 @@ const TablesPage = () => {
                     )}
                 </Modal.Body>
             </Modal>
+
+            {/* ---- Bookings Sidebar ---- */}
+            <Offcanvas show={showBookingsSidebar} onHide={() => setShowBookingsSidebar(false)} placement="end">
+                <Offcanvas.Header closeButton className="border-bottom">
+                    <Offcanvas.Title>Bookings - Table {sidebarTable?.tableNumber}</Offcanvas.Title>
+                </Offcanvas.Header>
+                <Offcanvas.Body className="p-3">
+                    {sidebarReservations.length === 0 ? (
+                        <div className="text-center py-5 text-muted">No active reservations for this table.</div>
+                    ) : (
+                        <div className="d-flex flex-column gap-3">
+                            {sidebarReservations.map((res) => (
+                                <Card
+                                    key={res.id}
+                                    className="border shadow-sm border-light-subtle"
+                                    style={{ cursor: 'pointer', transition: 'all 0.2s ease-in-out' }}
+                                    onClick={() => {
+                                        if (sidebarTable) {
+                                            openSpecificReservationInfo(sidebarTable, res);
+                                        }
+                                    }}
+                                >
+                                    <Card.Body className="p-3">
+                                        <div className="d-flex justify-content-between align-items-start mb-2">
+                                            <h6 className="mb-0 fw-bold">{res.customerName}</h6>
+                                            <Badge
+                                                bg=""
+                                                className={reservationBadgeClass[res.status] || 'badge-soft-primary'}
+                                            >
+                                                {res.status.charAt(0).toUpperCase() + res.status.slice(1)}
+                                            </Badge>
+                                        </div>
+                                        <div className="text-muted small mb-1">
+                                            <Icon name="clock" className="me-1 text-warning" size={14} />
+                                            {new Date(res.reservationTime).toLocaleString('en-US', {
+                                                month: 'short',
+                                                day: '2-digit',
+                                                hour: '2-digit',
+                                                minute: '2-digit',
+                                            })}
+                                        </div>
+                                        <div className="text-muted small">
+                                            <Icon name="users" className="me-1 text-warning" size={14} />
+                                            {res.guests} guests
+                                        </div>
+                                    </Card.Body>
+                                </Card>
+                            ))}
+                        </div>
+                    )}
+                </Offcanvas.Body>
+            </Offcanvas>
         </>
     );
 };

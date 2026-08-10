@@ -34,11 +34,12 @@ public class RestaurantTableController {
     @GetMapping
     public ApiResponse<List<RestaurantTableResponse>> getTables(
             @RequestParam(required = false) Long areaId,
+            @RequestParam(required = false) Long floorId,
             @RequestParam(required = false) TableStatus status) {
 
         return ApiResponse.<List<RestaurantTableResponse>>builder()
                 .message("Success")
-                .result(restaurantTableService.getTables(areaId, status))
+                .result(restaurantTableService.getTables(areaId, floorId, status))
                 .build();
     }
 
