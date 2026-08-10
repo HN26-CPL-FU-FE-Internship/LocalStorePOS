@@ -7,6 +7,17 @@ spring:
     url: jdbc:mysql://${DB_HOST}:${DB_PORT:3306}/${DB_NAME}?useSSL=true&requireSSL=true&serverTimezone=UTC&characterEncoding=UTF-8
     username: ${DB_USERNAME}
     password: ${DB_PASSWORD}
+    hikari:
+      # Keep connection pool small on Render free (512MB) - each conn holds buffers.
+      maximum-pool-size: 5
+      minimum-idle: 2
+
+server:
+  tomcat:
+    threads:
+      # 200 default threads x 1MB stacks is a big native-memory consumer in a 512MB container.
+      max: 40
+      min-spare: 4
 
 logging:
   level:
