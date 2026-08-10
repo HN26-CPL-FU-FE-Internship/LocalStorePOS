@@ -17,6 +17,8 @@ const AREAS = [
 const table = (over: Partial<TableEntry>): TableEntry => ({
     id: 1,
     tableNumber: 'T1',
+    floorId: null,
+    floorName: null,
     areaId: 1,
     areaName: 'Main Hall',
     seats: 4,
