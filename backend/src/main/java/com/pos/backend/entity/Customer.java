@@ -35,8 +35,14 @@ public class Customer extends BaseEntity {
     @Column(length = 150)
     private String email;
 
-    @Column(name = "avatar_path")
+    @Column(name = "avatar_path", length = 1024)
     private String avatarPath;
+
+    @Column(name = "avatar_public_id", length = 512)
+    private String avatarPublicId;
+
+    @Column(name = "avatar_resource_type", length = 20)
+    private String avatarResourceType;
 
     @Column(name = "date_of_birth")
     private LocalDate dateOfBirth;

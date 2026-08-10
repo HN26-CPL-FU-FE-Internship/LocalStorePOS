@@ -103,11 +103,13 @@ public class CategoryServiceImpl implements CategoryService {
             throw new AppException(ErrorCode.CATEGORY_NAME_ALREADY_EXISTS);
         }
 
-        String imagePath = fileStorageUtil.storeImage(request.getImage(), IMAGE_SUB_FOLDER);
+        var image = fileStorageUtil.storeImageAsset(request.getImage(), IMAGE_SUB_FOLDER);
 
         Category category = Category.builder()
                 .name(name)
-                .imagePath(imagePath)
+                .imagePath(image == null ? null : image.secureUrl())
+                .imagePublicId(image == null ? null : image.publicId())
+                .imageResourceType(image == null ? null : image.resourceType())
                 .status(request.getStatus() != null ? request.getStatus() : CommonStatus.active)
                 .build();
 
@@ -138,9 +140,13 @@ public class CategoryServiceImpl implements CategoryService {
 
         if (request.getImage() != null && !request.getImage().isEmpty()) {
             String oldImagePath = category.getImagePath();
-            String newImagePath = fileStorageUtil.storeImage(request.getImage(), IMAGE_SUB_FOLDER);
-            category.setImagePath(newImagePath);
-            fileStorageUtil.deleteFile(oldImagePath);
+            String oldImagePublicId = category.getImagePublicId();
+            String oldImageResourceType = category.getImageResourceType();
+            var image = fileStorageUtil.storeImageAsset(request.getImage(), IMAGE_SUB_FOLDER);
+            category.setImagePath(image.secureUrl());
+            category.setImagePublicId(image.publicId());
+            category.setImageResourceType(image.resourceType());
+            fileStorageUtil.deleteFile(oldImagePath, oldImagePublicId, oldImageResourceType);
         }
 
         category = categoryRepository.save(category);
@@ -183,7 +189,7 @@ public class CategoryServiceImpl implements CategoryService {
         }
 
         categoryRepository.delete(category);
-        fileStorageUtil.deleteFile(category.getImagePath());
+        fileStorageUtil.deleteFile(category.getImagePath(), category.getImagePublicId(), category.getImageResourceType());
 
         auditLogService.log(null, AuditAction.CATEGORY_DELETED, "MENU_PRICE", "Category", id,
                 "Category deleted: " + category.getName(), null, null, "SUCCESS", null);

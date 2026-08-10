@@ -115,14 +115,17 @@ public class ItemServiceImpl implements ItemService {
         Category category = findCategoryOrThrow(request.getCategoryId());
         Tax tax = findTaxOrNull(request.getTaxId());
 
-        String imagePath = fileStorageUtil.storeImage(request.getImage(), IMAGE_SUB_FOLDER);
+        com.pos.backend.service.CloudinaryService.CloudinaryService.Asset image =
+                fileStorageUtil.storeImageAsset(request.getImage(), IMAGE_SUB_FOLDER);
 
         Item item = Item.builder()
                 .category(category)
                 .tax(tax)
                 .name(request.getName().trim())
                 .description(request.getDescription())
-                .imagePath(imagePath)
+                .imagePath(image == null ? null : image.secureUrl())
+                .imagePublicId(image == null ? null : image.publicId())
+                .imageResourceType(image == null ? null : image.resourceType())
                 .price(request.getPrice())
                 .netPrice(request.getNetPrice())
                 .foodType(request.getFoodType() != null ? request.getFoodType() : FoodType.veg)
@@ -163,9 +166,13 @@ public class ItemServiceImpl implements ItemService {
 
         if (request.getImage() != null && !request.getImage().isEmpty()) {
             String oldImagePath = item.getImagePath();
-            String newImagePath = fileStorageUtil.storeImage(request.getImage(), IMAGE_SUB_FOLDER);
-            item.setImagePath(newImagePath);
-            fileStorageUtil.deleteFile(oldImagePath);
+            String oldImagePublicId = item.getImagePublicId();
+            String oldImageResourceType = item.getImageResourceType();
+            var image = fileStorageUtil.storeImageAsset(request.getImage(), IMAGE_SUB_FOLDER);
+            item.setImagePath(image.secureUrl());
+            item.setImagePublicId(image.publicId());
+            item.setImageResourceType(image.resourceType());
+            fileStorageUtil.deleteFile(oldImagePath, oldImagePublicId, oldImageResourceType);
         }
 
         item = itemRepository.save(item);
@@ -218,7 +225,7 @@ public class ItemServiceImpl implements ItemService {
     public void deleteItem(Long id) {
         Item item = findItemOrThrow(id);
         itemRepository.delete(item);
-        fileStorageUtil.deleteFile(item.getImagePath());
+        fileStorageUtil.deleteFile(item.getImagePath(), item.getImagePublicId(), item.getImageResourceType());
 
         auditLogService.log(null, AuditAction.ITEM_DELETED, "MENU_PRICE", "Item", id,
                 "Item deleted: " + item.getName(), null, null, "SUCCESS", null);

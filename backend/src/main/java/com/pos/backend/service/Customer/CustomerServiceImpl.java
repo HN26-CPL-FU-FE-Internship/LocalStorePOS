@@ -91,13 +91,15 @@ public class CustomerServiceImpl implements CustomerService {
             throw new AppException(ErrorCode.CUSTOMER_PHONE_ALREADY_EXISTS);
         }
 
-        String avatarPath = fileStorageUtil.storeImage(request.getImage(), IMAGE_SUB_FOLDER);
+        var avatar = fileStorageUtil.storeImageAsset(request.getImage(), IMAGE_SUB_FOLDER);
 
         Customer customer = Customer.builder()
                 .name(request.getName().trim())
                 .phone(request.getPhone().trim())
                 .email(request.getEmail())
-                .avatarPath(avatarPath)
+                .avatarPath(avatar == null ? null : avatar.secureUrl())
+                .avatarPublicId(avatar == null ? null : avatar.publicId())
+                .avatarResourceType(avatar == null ? null : avatar.resourceType())
                 .dateOfBirth(request.getDateOfBirth())
                 .gender(request.getGender())
                 .status(request.getStatus() != null ? request.getStatus() : CommonStatus.active)
@@ -139,9 +141,13 @@ public class CustomerServiceImpl implements CustomerService {
 
         if (request.getImage() != null && !request.getImage().isEmpty()) {
             String oldAvatarPath = customer.getAvatarPath();
-            String newAvatarPath = fileStorageUtil.storeImage(request.getImage(), IMAGE_SUB_FOLDER);
-            customer.setAvatarPath(newAvatarPath);
-            fileStorageUtil.deleteFile(oldAvatarPath);
+            String oldAvatarPublicId = customer.getAvatarPublicId();
+            String oldAvatarResourceType = customer.getAvatarResourceType();
+            var avatar = fileStorageUtil.storeImageAsset(request.getImage(), IMAGE_SUB_FOLDER);
+            customer.setAvatarPath(avatar.secureUrl());
+            customer.setAvatarPublicId(avatar.publicId());
+            customer.setAvatarResourceType(avatar.resourceType());
+            fileStorageUtil.deleteFile(oldAvatarPath, oldAvatarPublicId, oldAvatarResourceType);
         }
 
         customer = customerRepository.save(customer);
@@ -154,7 +160,7 @@ public class CustomerServiceImpl implements CustomerService {
     public void deleteCustomer(Long id) {
         Customer customer = findCustomerOrThrow(id);
         customerRepository.delete(customer);
-        fileStorageUtil.deleteFile(customer.getAvatarPath());
+        fileStorageUtil.deleteFile(customer.getAvatarPath(), customer.getAvatarPublicId(), customer.getAvatarResourceType());
     }
 
     private Customer findCustomerOrThrow(Long id) {

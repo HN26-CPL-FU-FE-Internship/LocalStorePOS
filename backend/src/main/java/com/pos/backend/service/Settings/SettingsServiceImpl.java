@@ -70,9 +70,13 @@ public class SettingsServiceImpl implements SettingsService {
 
         if (request.getImage() != null && !request.getImage().isEmpty()) {
             String oldPath = store.getImagePath();
-            String newPath = fileStorageUtil.storeImage(request.getImage(), IMAGE_SUB_FOLDER);
-            store.setImagePath(newPath);
-            fileStorageUtil.deleteFile(oldPath);
+            String oldPublicId = store.getImagePublicId();
+            String oldResourceType = store.getImageResourceType();
+            var image = fileStorageUtil.storeImageAsset(request.getImage(), IMAGE_SUB_FOLDER);
+            store.setImagePath(image.secureUrl());
+            store.setImagePublicId(image.publicId());
+            store.setImageResourceType(image.resourceType());
+            fileStorageUtil.deleteFile(oldPath, oldPublicId, oldResourceType);
         }
 
         store = storeRepository.save(store);

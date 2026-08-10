@@ -1,21 +1,16 @@
 server:
-  port: 8080
+  port: ${PORT:8080}
   servlet:
     context-path: /restaurant-pos
 
 spring:
   profiles:
-    active: local
+    default: local
 
   servlet:
     multipart:
       max-file-size: 5MB
       max-request-size: 10MB
-
-  datasource:
-    url: jdbc:mysql://localhost:3306/restaurant_pos_db?useSSL=false&serverTimezone=Asia/Ho_Chi_Minh&characterEncoding=UTF-8&allowPublicKeyRetrieval=true
-    username: root
-    password: 1234
 
   jpa:
     hibernate:
@@ -31,19 +26,17 @@ spring:
     validate-on-migrate: true
     clean-disabled: true
 
-  logging:
-    level:
-      org.flywaydb: INFO
-      org.hibernate.SQL: DEBUG
+legacy-assets:
+  migration:
+    # Network migration is opt-in; keep local files for rollback/verification.
+    enabled: ${LEGACY_ASSETS_MIGRATION_ENABLED:false}
+    dry-run: ${LEGACY_ASSETS_MIGRATION_DRY_RUN:false}
+
+logging:
+  level:
+    org.flywaydb: INFO
+    org.hibernate.SQL: INFO
 
 jwt:
-  signer-key: "UoMH756YIqZAYeR8AuczJ0RrB0wO/mlwQiGxa+NahqXfUd6+OYxy0CkI4QnCGLWM"
   access-token-expiration: 30
   refresh-token-expiration: 10080
-
-esms:
-  api-key: ${ESMS_API_KEY:}
-  secret-key: ${ESMS_SECRET_KEY:}
-  brandname: ${ESMS_BRANDNAME:}
-  enabled: ${ESMS_ENABLED:false}
-  sandbox: ${ESMS_SANDBOX:false}

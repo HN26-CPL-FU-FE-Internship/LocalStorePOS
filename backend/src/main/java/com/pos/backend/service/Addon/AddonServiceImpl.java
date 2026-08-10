@@ -78,14 +78,16 @@ public class AddonServiceImpl implements AddonService {
     public AddonListItemResponse createAddon(AddonRequest request) {
         Item item = findItemOrThrow(request.getItemId());
 
-        String imagePath = fileStorageUtil.storeImage(request.getImage(), IMAGE_SUB_FOLDER);
+        var image = fileStorageUtil.storeImageAsset(request.getImage(), IMAGE_SUB_FOLDER);
 
         Addon addon = Addon.builder()
                 .item(item)
                 .name(request.getName().trim())
                 .price(request.getPrice())
                 .description(request.getDescription())
-                .imagePath(imagePath)
+                .imagePath(image == null ? null : image.secureUrl())
+                .imagePublicId(image == null ? null : image.publicId())
+                .imageResourceType(image == null ? null : image.resourceType())
                 .status(request.getStatus() != null ? request.getStatus() : CommonStatus.active)
                 .build();
 
@@ -111,9 +113,13 @@ public class AddonServiceImpl implements AddonService {
 
         if (request.getImage() != null && !request.getImage().isEmpty()) {
             String oldImagePath = addon.getImagePath();
-            String newImagePath = fileStorageUtil.storeImage(request.getImage(), IMAGE_SUB_FOLDER);
-            addon.setImagePath(newImagePath);
-            fileStorageUtil.deleteFile(oldImagePath);
+            String oldImagePublicId = addon.getImagePublicId();
+            String oldImageResourceType = addon.getImageResourceType();
+            var image = fileStorageUtil.storeImageAsset(request.getImage(), IMAGE_SUB_FOLDER);
+            addon.setImagePath(image.secureUrl());
+            addon.setImagePublicId(image.publicId());
+            addon.setImageResourceType(image.resourceType());
+            fileStorageUtil.deleteFile(oldImagePath, oldImagePublicId, oldImageResourceType);
         }
 
         addon = addonRepository.save(addon);
@@ -135,7 +141,7 @@ public class AddonServiceImpl implements AddonService {
     public void deleteAddon(Long id) {
         Addon addon = findAddonOrThrow(id);
         addonRepository.delete(addon);
-        fileStorageUtil.deleteFile(addon.getImagePath());
+        fileStorageUtil.deleteFile(addon.getImagePath(), addon.getImagePublicId(), addon.getImageResourceType());
     }
 
     private Addon findAddonOrThrow(Long id) {

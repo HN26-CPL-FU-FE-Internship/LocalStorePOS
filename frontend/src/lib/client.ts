@@ -1,6 +1,6 @@
 import { Client } from '@stomp/stompjs';
 
-const API_BASE_URL = import.meta.env.VITE_API_LOCAL_URL ?? 'http://localhost:8080/restaurant-pos/api';
+const API_BASE_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:8080/restaurant-pos/api';
 
 /**
  * Derive the WebSocket broker URL from the REST API base URL so the socket

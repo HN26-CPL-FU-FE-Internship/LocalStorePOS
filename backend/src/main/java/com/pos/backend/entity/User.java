@@ -47,8 +47,14 @@ public class User extends BaseEntity {
     @Column(name = "password_hash", nullable = false)
     private String passwordHash;
 
-    @Column(name = "avatar_path")
+    @Column(name = "avatar_path", length = 1024)
     private String avatarPath;
+
+    @Column(name = "avatar_public_id", length = 512)
+    private String avatarPublicId;
+
+    @Column(name = "avatar_resource_type", length = 20)
+    private String avatarResourceType;
 
     @Builder.Default
     @Enumerated(EnumType.STRING)

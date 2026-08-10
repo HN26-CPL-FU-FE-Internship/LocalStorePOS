@@ -42,8 +42,14 @@ public class Addon extends BaseEntity {
     @Column(columnDefinition = "text")
     private String description;
 
-    @Column(name = "image_path")
+    @Column(name = "image_path", length = 1024)
     private String imagePath;
+
+    @Column(name = "image_public_id", length = 512)
+    private String imagePublicId;
+
+    @Column(name = "image_resource_type", length = 20)
+    private String imageResourceType;
 
     @Builder.Default
     @Enumerated(EnumType.STRING)

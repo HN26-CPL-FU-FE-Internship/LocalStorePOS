@@ -11,7 +11,7 @@ import { api } from '@/lib/axios';
  */
 export const getAssetUrl = (path: string | null | undefined): string | undefined => {
     if (!path) return undefined;
-    if (path.startsWith('http')) return path;
+    if (/^https?:\/\//i.test(path) || path.startsWith('//')) return path;
 
     const base = api.defaults.baseURL?.replace(/\/api\/?$/, '') ?? '';
     return `${base}${path}`;

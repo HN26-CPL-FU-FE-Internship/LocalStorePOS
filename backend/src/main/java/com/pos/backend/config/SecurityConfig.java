@@ -1,5 +1,6 @@
 package com.pos.backend.config;
 
+import java.util.Arrays;
 import java.util.List;
 
 import javax.crypto.spec.SecretKeySpec;
@@ -46,13 +47,18 @@ public class SecurityConfig {
     @Value("${jwt.signer-key}")
     String signerKey;
 
+    @Value("${app.cors.allowed-origins}")
+    String allowedOrigins;
+
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity httpSecurity) throws Exception {
 
         httpSecurity.authorizeHttpRequests(request -> request
                 .requestMatchers(HttpMethod.POST, publicEndPoints).permitAll()
-                .requestMatchers(HttpMethod.GET, "/api/payments/*").permitAll()
+                // Read-only compatibility for legacy local assets. New assets
+                // are Cloudinary CDN URLs and never pass through this route.
                 .requestMatchers("/uploads/**").permitAll()
+                .requestMatchers(HttpMethod.GET, "/api/payments/*").permitAll()
                 .requestMatchers("/ws/**").permitAll()
                 .anyRequest().authenticated());
 
@@ -78,10 +84,10 @@ public class SecurityConfig {
 
         CorsConfiguration configuration = new CorsConfiguration();
 
-        configuration.setAllowedOrigins(List.of(
-                "http://localhost:5173",
-                "http://localhost:3000",
-                "https://registration-pieces-mile-multimedia.trycloudflare.com"));
+        configuration.setAllowedOrigins(Arrays.stream(allowedOrigins.split(","))
+                .map(String::trim)
+                .filter(origin -> !origin.isBlank())
+                .toList());
         configuration.setAllowedMethods(List.of(
                 "GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
         configuration.setAllowedHeaders(List.of(
