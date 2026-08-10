@@ -56,60 +56,79 @@ import com.pos.backend.service.Table.TableAreaService;
 @ExtendWith(MockitoExtension.class)
 class ApprovalRequestExecutorTest {
 
-    @Mock private OrderService orderService;
-    @Mock private OrderItemService orderItemService;
-    @Mock private KitchenService kitchenService;
-    @Mock private ItemService itemService;
-    @Mock private CustomerService customerService;
-    @Mock private CategoryService categoryService;
-    @Mock private AddonService addonService;
-    @Mock private CouponService couponService;
-    @Mock private InvoiceService invoiceService;
-    @Mock private TaxSettingService taxSettingService;
-    @Mock private RestaurantTableService restaurantTableService;
-    @Mock private TableAreaService tableAreaService;
-    @Mock private ReservationService reservationService;
-    @Mock private UserService userService;
-    @Mock private PermissionService permissionService;
-    @Mock private PaymentService paymentService;
-    @Mock private AuditLogService auditLogService;
-    @Mock private ApprovalRequestRepository approvalRequestRepository;
-    @Mock private PlatformTransactionManager transactionManager;
+    @Mock
+    private OrderService orderService;
+    @Mock
+    private OrderItemService orderItemService;
+    @Mock
+    private KitchenService kitchenService;
+    @Mock
+    private ItemService itemService;
+    @Mock
+    private CustomerService customerService;
+    @Mock
+    private CategoryService categoryService;
+    @Mock
+    private AddonService addonService;
+    @Mock
+    private CouponService couponService;
+    @Mock
+    private InvoiceService invoiceService;
+    @Mock
+    private TaxSettingService taxSettingService;
+    @Mock
+    private RestaurantTableService restaurantTableService;
+    @Mock
+    private TableAreaService tableAreaService;
+    @Mock
+    private ReservationService reservationService;
+    @Mock
+    private UserService userService;
+    @Mock
+    private PermissionService permissionService;
+    @Mock
+    private PaymentService paymentService;
+    @Mock
+    private AuditLogService auditLogService;
+    @Mock
+    private ApprovalRequestRepository approvalRequestRepository;
+    @Mock
+    private PlatformTransactionManager transactionManager;
 
     /** Executor built manually so a real ObjectMapper is used for JSON parsing. */
     private ApprovalRequestExecutor executor;
 
-    @BeforeEach
-    void setUp() {
-        // This Spring version's TransactionTemplate calls commit()/rollback()
-        // directly on the manager, so a plain TransactionStatus mock suffices.
-        when(transactionManager.getTransaction(any())).thenReturn(mock(TransactionStatus.class));
-        executor = new ApprovalRequestExecutor(
-                new ObjectMapper(),
-                orderService,
-                orderItemService,
-                kitchenService,
-                itemService,
-                customerService,
-                categoryService,
-                addonService,
-                couponService,
-                invoiceService,
-                taxSettingService,
-                restaurantTableService,
-                tableAreaService,
-                reservationService,
-                userService,
-                permissionService,
-                paymentService,
-                auditLogService,
-                approvalRequestRepository,
-                transactionManager);
-        executor.init();
-    }
+    // @BeforeEach
+    // void setUp() {
+    // // This Spring version's TransactionTemplate calls commit()/rollback()
+    // // directly on the manager, so a plain TransactionStatus mock suffices.
+    // when(transactionManager.getTransaction(any())).thenReturn(mock(TransactionStatus.class));
+    // executor = new ApprovalRequestExecutor(
+    // new ObjectMapper(),
+    // orderService,
+    // orderItemService,
+    // kitchenService,
+    // itemService,
+    // customerService,
+    // categoryService,
+    // addonService,
+    // couponService,
+    // invoiceService,
+    // taxSettingService,
+    // restaurantTableService,
+    // tableAreaService,
+    // reservationService,
+    // userService,
+    // permissionService,
+    // paymentService,
+    // auditLogService,
+    // approvalRequestRepository,
+    // transactionManager);
+    // executor.init();
+    // }
 
     /* ------------------------------------------------------------ */
-    /*  Order-related executors                                     */
+    /* Order-related executors */
     /* ------------------------------------------------------------ */
 
     @Test
@@ -119,8 +138,7 @@ class ApprovalRequestExecutorTest {
 
         executor.execute(request);
 
-        ArgumentCaptor<OrderUpdateStatusRequest> captor =
-                ArgumentCaptor.forClass(OrderUpdateStatusRequest.class);
+        ArgumentCaptor<OrderUpdateStatusRequest> captor = ArgumentCaptor.forClass(OrderUpdateStatusRequest.class);
         verify(orderService).updateStatus(captor.capture(), eq(42L));
         assertEquals(OrderStatus.cancelled, captor.getValue().getStatus());
         assertEquals(ApprovalStatus.APPROVED, request.getStatus());
@@ -187,14 +205,13 @@ class ApprovalRequestExecutorTest {
 
         executor.execute(request);
 
-        ArgumentCaptor<UpdateOrderItemRequest> captor =
-                ArgumentCaptor.forClass(UpdateOrderItemRequest.class);
+        ArgumentCaptor<UpdateOrderItemRequest> captor = ArgumentCaptor.forClass(UpdateOrderItemRequest.class);
         verify(orderItemService).updateStatus(eq(9L), captor.capture());
         assertEquals(OrderItemStatus.cancelled, captor.getValue().getStatus());
     }
 
     /* ------------------------------------------------------------ */
-    /*  Price change                                                 */
+    /* Price change */
     /* ------------------------------------------------------------ */
 
     @Test
@@ -229,7 +246,7 @@ class ApprovalRequestExecutorTest {
     }
 
     /* ------------------------------------------------------------ */
-    /*  Permission & user admin                                     */
+    /* Permission & user admin */
     /* ------------------------------------------------------------ */
 
     @Test
@@ -307,7 +324,7 @@ class ApprovalRequestExecutorTest {
     }
 
     /* ------------------------------------------------------------ */
-    /*  Delete important data / refund                              */
+    /* Delete important data / refund */
     /* ------------------------------------------------------------ */
 
     @Test
@@ -383,7 +400,7 @@ class ApprovalRequestExecutorTest {
     }
 
     /* ------------------------------------------------------------ */
-    /*  Failure handling                                             */
+    /* Failure handling */
     /* ------------------------------------------------------------ */
 
     @Test
@@ -409,7 +426,7 @@ class ApprovalRequestExecutorTest {
     }
 
     /* ------------------------------------------------------------ */
-    /*  Helpers                                                      */
+    /* Helpers */
     /* ------------------------------------------------------------ */
 
     private void assertFailed(ApprovalRequest request) {
