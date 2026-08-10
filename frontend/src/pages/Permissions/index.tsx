@@ -1,10 +1,12 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Table, Card, Button, Modal, Form, Nav, Spinner, Alert } from 'react-bootstrap';
+import { Table, Card, Button, Modal, Form, Nav, Spinner } from 'react-bootstrap';
 import PageHeader from '@/components/common/PageHeader';
 import Icon from '@/components/common/Icon';
 import ApprovalRequestModal from '@/components/common/ApprovalRequestModal';
 import ConfirmModal from '@/components/common/ConfirmModal';
 import useAuth from '@/hooks/useAuth';
+import useContextData from '@/hooks/useContextData';
+import { ToastContext } from '@/provider/ToastProvider/ToastContext';
 import { api } from '@/lib/axios';
 import type { ApiResponse } from '@/types/auth';
 import type { PermissionModule } from '@/types';
@@ -64,7 +66,6 @@ const PermissionsPage = () => {
     // Loading & feedback
     const [loadingRoles, setLoadingRoles] = useState(false);
     const [loadingPerms, setLoadingPerms] = useState(false);
-    const [feedback, setFeedback] = useState<{ type: 'success' | 'danger'; message: string } | null>(null);
 
     // Reset to default
     const [showResetApproval, setShowResetApproval] = useState(false);
@@ -79,10 +80,7 @@ const PermissionsPage = () => {
     // const prevActiveRoleRef = useRef<number | null>(null);
 
     /* ---------- helpers ---------- */
-    const showFeedback = useCallback((type: 'success' | 'danger', message: string) => {
-        setFeedback({ type, message });
-        setTimeout(() => setFeedback(null), 4000);
-    }, []);
+    const { showToast } = useContextData(ToastContext);
 
     /* ---------- fetch roles ---------- */
     const loadRoles = useCallback(async () => {
@@ -108,11 +106,11 @@ const PermissionsPage = () => {
                 setActiveRoleId(fetched[0].id);
             }
         } catch {
-            showFeedback('danger', 'Failed to load roles');
+            showToast('error', 'Failed to load roles');
         } finally {
             setLoadingRoles(false);
         }
-    }, [activeRoleId, showFeedback]);
+    }, [activeRoleId, showToast]);
 
     useEffect(() => {
         // eslint-disable-next-line react-hooks/set-state-in-effect
@@ -137,12 +135,12 @@ const PermissionsPage = () => {
                 }));
                 loadedRolesRef.current.add(roleId);
             } catch {
-                showFeedback('danger', 'Failed to load permissions');
+                showToast('error', 'Failed to load permissions');
             } finally {
                 setLoadingPerms(false);
             }
         },
-        [showFeedback],
+        [showToast],
     );
 
     useEffect(() => {
@@ -206,15 +204,15 @@ const PermissionsPage = () => {
             // Reload the role permissions so the UI reflects the defaults
             loadedRolesRef.current.delete(activeRoleId);
             await fetchPermissions(activeRoleId);
-            showFeedback('success', 'Permissions reset to default.');
+            showToast('success', 'Permissions reset to default.');
         } catch {
-            showFeedback('danger', 'Failed to reset permissions');
+            showToast('error', 'Failed to reset permissions');
         }
     };
 
     const handleSendResetApproval = () => {
         setShowResetApproval(false);
-        showFeedback('success', 'Permission reset request sent. Please wait for approval.');
+        showToast('info', 'Permission reset request sent. Please wait for approval.');
     };
 
     // Save changes requires approval before they take effect — admins save
@@ -232,15 +230,15 @@ const PermissionsPage = () => {
                 ...prev,
                 [activeRoleId]: activePermissions.map((m) => ({ ...m })),
             }));
-            showFeedback('success', 'Permissions updated successfully.');
+            showToast('success', 'Permissions updated successfully.');
         } catch {
-            showFeedback('danger', 'Failed to update permissions');
+            showToast('error', 'Failed to update permissions');
         }
     };
 
     const handleSendSaveApproval = () => {
         setShowSaveApproval(false);
-        showFeedback('success', 'Permission change request sent. Please wait for approval.');
+        showToast('info', 'Permission change request sent. Please wait for approval.');
     };
 
     /* ---------- add role ---------- */
@@ -257,9 +255,9 @@ const PermissionsPage = () => {
             setActiveRoleId(newRole.id);
             setNewRoleName('');
             setShowAddRole(false);
-            showFeedback('success', `Role "${newRole.name}" created`);
+            showToast('success', `Role "${newRole.name}" created`);
         } catch {
-            showFeedback('danger', 'Failed to create role');
+            showToast('error', 'Failed to create role');
         } finally {
             setAddingRole(false);
         }
@@ -288,9 +286,9 @@ const PermissionsPage = () => {
             const nextRoles = roles.filter((r) => r.id !== activeRoleId);
             setRoles(nextRoles);
             setActiveRoleId(nextRoles.length > 0 ? nextRoles[0].id : null);
-            showFeedback('success', 'Role deleted successfully.');
+            showToast('success', 'Role deleted successfully.');
         } catch {
-            showFeedback('danger', 'Failed to delete role');
+            showToast('error', 'Failed to delete role');
         } finally {
             setDeletingRole(false);
         }
@@ -298,7 +296,7 @@ const PermissionsPage = () => {
 
     const handleSendDeleteRoleApproval = () => {
         setShowDeleteRoleApproval(false);
-        showFeedback('success', 'Role deletion request sent. Please wait for approval.');
+        showToast('info', 'Role deletion request sent. Please wait for approval.');
     };
 
     /* ---------- render ---------- */
@@ -322,12 +320,6 @@ const PermissionsPage = () => {
                 }
             />
 
-            {/* ---- Feedback Alert ---- */}
-            {feedback && (
-                <Alert variant={feedback.type} dismissible onClose={() => setFeedback(null)} className="mb-3">
-                    {feedback.message}
-                </Alert>
-            )}
 
             {/* ---- Main Content ---- */}
             <div className="row justify-content-center">

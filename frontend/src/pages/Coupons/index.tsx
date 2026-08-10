@@ -1,10 +1,12 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Table, Card, Badge, Button, Dropdown, Modal, Form, Offcanvas, Alert, Spinner, Row, Col } from 'react-bootstrap';
+import { Table, Card, Badge, Button, Dropdown, Modal, Form, Offcanvas, Spinner, Row, Col } from 'react-bootstrap';
 import { isAxiosError } from 'axios';
 import Icon from '@/components/common/Icon';
 import ApprovalRequestModal from '@/components/common/ApprovalRequestModal';
 import ConfirmModal from '@/components/common/ConfirmModal';
 import useAuth from '@/hooks/useAuth';
+import useContextData from '@/hooks/useContextData';
+import { ToastContext } from '@/provider/ToastProvider/ToastContext';
 import {
     createCoupon,
     deleteCoupon,
@@ -61,11 +63,10 @@ const formatDiscount = (type: DiscountType, amount: number) =>
 /*  Component                                                         */
 /* ------------------------------------------------------------------ */
 const CouponsPage = () => {
+    const { showToast } = useContextData(ToastContext);
     /* ---------- data state ---------- */
     const [coupons, setCoupons] = useState<CouponEntry[]>([]);
     const [loading, setLoading] = useState(false);
-    const [error, setError] = useState<string | null>(null);
-    const [notice, setNotice] = useState<string | null>(null);
     const [categoryOptions, setCategoryOptions] = useState<Option[]>([]);
 
     /* ---------- query state ---------- */
@@ -127,7 +128,6 @@ const CouponsPage = () => {
     /* ---------- data loading ---------- */
     const loadCoupons = async () => {
         setLoading(true);
-        setError(null);
         try {
             const result = await getCoupons({
                 page,
@@ -141,7 +141,7 @@ const CouponsPage = () => {
             setTotalPages(result.totalPages || 1);
             setTotalElements(result.totalElements);
         } catch {
-            setError('Failed to load coupons. Please try again.');
+            showToast('error', 'Failed to load coupons. Please try again.');
         } finally {
             setLoading(false);
         }
@@ -161,11 +161,6 @@ const CouponsPage = () => {
         return () => clearTimeout(handle);
     }, [searchInput]);
 
-    useEffect(() => {
-        if (!notice) return;
-        const handle = setTimeout(() => setNotice(null), 3000);
-        return () => clearTimeout(handle);
-    }, [notice]);
 
     const extractErrorMessage = (err: unknown, fallback: string) => {
         if (isAxiosError(err) && err.response?.data && typeof err.response.data === 'object') {
@@ -193,16 +188,16 @@ const CouponsPage = () => {
 
     const handleAdd = async () => {
         setSaving(true);
-        setError(null);
         try {
             await createCoupon(buildPayload());
             setShowAdd(false);
             resetForm();
-            setNotice('Coupon added successfully.');
+            showToast('success', 'Coupon added successfully.');
             setPage(1);
             await loadCoupons();
         } catch (err) {
-            setError(extractErrorMessage(err, 'Failed to add coupon.'));
+            const message = extractErrorMessage(err, 'Failed to add coupon.');
+            showToast('error', message);
         } finally {
             setSaving(false);
         }
@@ -225,16 +220,16 @@ const CouponsPage = () => {
     const handleEdit = async () => {
         if (!currentCoupon) return;
         setSaving(true);
-        setError(null);
         try {
             await updateCoupon(currentCoupon.id, buildPayload());
             setShowEdit(false);
             setCurrentCoupon(null);
             resetForm();
-            setNotice('Coupon updated successfully.');
+            showToast('success', 'Coupon updated successfully.');
             await loadCoupons();
         } catch (err) {
-            setError(extractErrorMessage(err, 'Failed to update coupon.'));
+            const message = extractErrorMessage(err, 'Failed to update coupon.');
+            showToast('error', message);
         } finally {
             setSaving(false);
         }
@@ -252,8 +247,9 @@ const CouponsPage = () => {
             await navigator.clipboard.writeText(currentCoupon.code);
             setCopied(true);
             setTimeout(() => setCopied(false), 2000);
+            showToast('success', 'Coupon code copied to clipboard.');
         } catch {
-            // Clipboard API unavailable — silently ignore.
+            showToast('error', 'Failed to copy coupon code.');
         }
     };
 
@@ -271,15 +267,15 @@ const CouponsPage = () => {
     const handleDeleteConfirm = async () => {
         if (!currentCoupon) return;
         setDeleting(true);
-        setError(null);
         try {
             await deleteCoupon(currentCoupon.id);
             setShowDeleteConfirm(false);
             setCurrentCoupon(null);
-            setNotice('Coupon deleted successfully.');
+            showToast('success', 'Coupon deleted successfully.');
             await loadCoupons();
         } catch (err) {
-            setError(extractErrorMessage(err, 'Failed to delete coupon.'));
+            const message = extractErrorMessage(err, 'Failed to delete coupon.');
+            showToast('error', message);
         } finally {
             setDeleting(false);
         }
@@ -291,8 +287,10 @@ const CouponsPage = () => {
         try {
             await updateCouponStatus(coupon.id, nextStatus);
             setCoupons((prev) => prev.map((c) => (c.id === coupon.id ? { ...c, status: nextStatus } : c)));
+            showToast('success', 'Coupon status updated.');
         } catch (err) {
-            setError(extractErrorMessage(err, 'Cannot update status.'));
+            const message = extractErrorMessage(err, 'Cannot update status.');
+            showToast('error', message);
         }
     };
 
@@ -364,16 +362,6 @@ const CouponsPage = () => {
                 </div>
             </div>
 
-            {notice && (
-                <Alert variant="success" onClose={() => setNotice(null)} dismissible>
-                    {notice}
-                </Alert>
-            )}
-            {error && (
-                <Alert variant="danger" onClose={() => setError(null)} dismissible>
-                    {error}
-                </Alert>
-            )}
 
             {/* ---- Card with table ---- */}
             <Card className="mb-0">
@@ -754,7 +742,7 @@ const CouponsPage = () => {
                 onSent={() => {
                     setShowDeleteApproval(false);
                     setCurrentCoupon(null);
-                    setNotice('Delete coupon request sent.');
+                    showToast('info', 'Delete coupon request sent.');
                 }}
             />
 

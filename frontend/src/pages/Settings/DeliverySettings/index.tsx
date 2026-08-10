@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { queryClient } from '@/lib';
 import { DELIVERY_SETTING_QUERY_KEY } from '@/hooks/pos/useDeliverySetting';
-import { Card, Button, Form, Alert } from 'react-bootstrap';
+import { Card, Button, Form } from 'react-bootstrap';
 import Icon from '@/components/common/Icon';
 import {
     getDeliverySetting,
@@ -10,6 +10,8 @@ import {
     type DeliverySettingFormData,
     type DeliveryChargeTypeValue,
 } from '@/api/delivery-setting.api';
+import useContextData from '@/hooks/useContextData';
+import { ToastContext } from '@/provider/ToastProvider/ToastContext';
 
 const CHARGE_TYPES: { value: DeliveryChargeTypeValue; label: string }[] = [
     { value: 'free', label: 'Free Delivery' },
@@ -18,11 +20,10 @@ const CHARGE_TYPES: { value: DeliveryChargeTypeValue; label: string }[] = [
 ];
 
 const DeliverySettingsPage = () => {
+    const { showToast } = useContextData(ToastContext);
     const [setting, setSetting] = useState<DeliverySetting | null>(null);
     const [loading, setLoading] = useState(false);
     const [saving, setSaving] = useState(false);
-    const [error, setError] = useState<string | null>(null);
-    const [success, setSuccess] = useState<string | null>(null);
 
     const [chargeType, setChargeType] = useState<DeliveryChargeTypeValue>('fixed');
     const [freeDeliveryOver, setFreeDeliveryOver] = useState('');
@@ -33,7 +34,6 @@ const DeliverySettingsPage = () => {
 
     const loadSetting = useCallback(async () => {
         setLoading(true);
-        setError(null);
         try {
             const result = await getDeliverySetting();
             setSetting(result);
@@ -44,27 +44,20 @@ const DeliverySettingsPage = () => {
             setMinDeliveryOver(result.minDeliveryOver?.toString() || '');
             setMinDistanceForFreeKm(result.minDistanceForFreeKm?.toString() || '');
         } catch {
-            setError('Failed to load delivery settings.');
+            showToast('error', 'Failed to load delivery settings.');
         } finally {
             setLoading(false);
         }
-    }, []);
+    }, [showToast]);
 
     useEffect(() => {
         // eslint-disable-next-line react-hooks/set-state-in-effect
         loadSetting();
     }, [loadSetting]);
-    useEffect(() => {
-        if (!success) return;
-        const t = setTimeout(() => setSuccess(null), 3000);
-        return () => clearTimeout(t);
-    }, [success]);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setSaving(true);
-        setError(null);
-        setSuccess(null);
         try {
             const payload: DeliverySettingFormData = {
                 deliveryChargeType: chargeType,
@@ -81,9 +74,9 @@ const DeliverySettingsPage = () => {
             const updatedSetting = await updateDeliverySetting(payload);
             setSetting(updatedSetting);
             queryClient.setQueryData(DELIVERY_SETTING_QUERY_KEY, updatedSetting);
-            setSuccess('Delivery settings updated successfully.');
+            showToast('success', 'Delivery settings updated successfully.');
         } catch (err: unknown) {
-            setError(err instanceof Error ? err.message : 'Failed to update delivery settings.');
+            showToast('error', err instanceof Error ? err.message : 'Failed to update delivery settings.');
         } finally {
             setSaving(false);
         }
@@ -117,16 +110,6 @@ const DeliverySettingsPage = () => {
                 </div>
             </div>
 
-            {success && (
-                <Alert variant="success" onClose={() => setSuccess(null)} dismissible>
-                    {success}
-                </Alert>
-            )}
-            {error && (
-                <Alert variant="danger" onClose={() => setError(null)} dismissible>
-                    {error}
-                </Alert>
-            )}
 
             <Card className="mb-0">
                 <Card.Body>

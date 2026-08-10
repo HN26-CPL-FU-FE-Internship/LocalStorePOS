@@ -1,10 +1,12 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Table, Card, Badge, Button, Dropdown, Modal, Form, Offcanvas, Alert, Spinner } from 'react-bootstrap';
+import { Table, Card, Badge, Button, Dropdown, Modal, Form, Offcanvas, Spinner } from 'react-bootstrap';
 import { isAxiosError } from 'axios';
 import Icon from '@/components/common/Icon';
 import ApprovalRequestModal from '@/components/common/ApprovalRequestModal';
 import ConfirmModal from '@/components/common/ConfirmModal';
 import useAuth from '@/hooks/useAuth';
+import useContextData from '@/hooks/useContextData';
+import { ToastContext } from '@/provider/ToastProvider/ToastContext';
 import { getAssetUrl } from '@/lib';
 import {
     createAddon,
@@ -51,12 +53,11 @@ const formatCurrency = (value: number) => `$${Number(value).toFixed(2)}`;
 /*  Component                                                         */
 /* ------------------------------------------------------------------ */
 const AddonsPage = () => {
+    const { showToast } = useContextData(ToastContext);
     /* ---------- data state ---------- */
     const [addons, setAddons] = useState<AddonEntry[]>([]);
     const [columns, setColumns] = useState<ColumnOption[]>(defaultColumns);
     const [loading, setLoading] = useState(false);
-    const [error, setError] = useState<string | null>(null);
-    const [notice, setNotice] = useState<string | null>(null);
     const [itemOptions, setItemOptions] = useState<Option[]>([]);
 
     /* ---------- query state ---------- */
@@ -129,7 +130,6 @@ const AddonsPage = () => {
     /* ---------- data loading ---------- */
     const loadAddons = async () => {
         setLoading(true);
-        setError(null);
         try {
             const result = await getAddons({
                 page,
@@ -144,7 +144,7 @@ const AddonsPage = () => {
             setTotalPages(result.totalPages || 1);
             setTotalElements(result.totalElements);
         } catch {
-            setError('Failed to load addons. Please try again.');
+            showToast('error', 'Failed to load addons. Please try again.');
         } finally {
             setLoading(false);
         }
@@ -164,11 +164,6 @@ const AddonsPage = () => {
         return () => clearTimeout(handle);
     }, [searchInput]);
 
-    useEffect(() => {
-        if (!notice) return;
-        const handle = setTimeout(() => setNotice(null), 3000);
-        return () => clearTimeout(handle);
-    }, [notice]);
 
     const extractErrorMessage = (err: unknown, fallback: string) => {
         if (isAxiosError(err) && err.response?.data && typeof err.response.data === 'object') {
@@ -207,16 +202,16 @@ const AddonsPage = () => {
 
     const handleAdd = async () => {
         setSaving(true);
-        setError(null);
         try {
             await createAddon(buildPayload());
             setShowAdd(false);
             resetForm();
-            setNotice('Addon added successfully.');
+            showToast('success', 'Addon added successfully.');
             setPage(1);
             await loadAddons();
         } catch (err) {
-            setError(extractErrorMessage(err, 'Failed to add addon.'));
+            const message = extractErrorMessage(err, 'Failed to add addon.');
+            showToast('error', message);
         } finally {
             setSaving(false);
         }
@@ -239,16 +234,16 @@ const AddonsPage = () => {
     const handleEdit = async () => {
         if (!currentAddon) return;
         setSaving(true);
-        setError(null);
         try {
             await updateAddon(currentAddon.id, buildPayload());
             setShowEdit(false);
             setCurrentAddon(null);
             resetForm();
-            setNotice('Addon updated successfully.');
+            showToast('success', 'Addon updated successfully.');
             await loadAddons();
         } catch (err) {
-            setError(extractErrorMessage(err, 'Failed to update addon.'));
+            const message = extractErrorMessage(err, 'Failed to update addon.');
+            showToast('error', message);
         } finally {
             setSaving(false);
         }
@@ -268,15 +263,15 @@ const AddonsPage = () => {
     const handleDeleteConfirm = async () => {
         if (!currentAddon) return;
         setDeleting(true);
-        setError(null);
         try {
             await deleteAddon(currentAddon.id);
             setShowDeleteConfirm(false);
             setCurrentAddon(null);
-            setNotice('Addon deleted successfully.');
+            showToast('success', 'Addon deleted successfully.');
             await loadAddons();
         } catch (err) {
-            setError(extractErrorMessage(err, 'Failed to delete addon.'));
+            const message = extractErrorMessage(err, 'Failed to delete addon.');
+            showToast('error', message);
         } finally {
             setDeleting(false);
         }
@@ -288,8 +283,10 @@ const AddonsPage = () => {
         try {
             await updateAddonStatus(addon.id, nextStatus);
             setAddons((prev) => prev.map((a) => (a.id === addon.id ? { ...a, status: nextStatus } : a)));
+            showToast('success', 'Addon status updated.');
         } catch (err) {
-            setError(extractErrorMessage(err, 'Cannot update status.'));
+            const message = extractErrorMessage(err, 'Cannot update status.');
+            showToast('error', message);
         }
     };
 
@@ -359,16 +356,6 @@ const AddonsPage = () => {
                 </div>
             </div>
 
-            {notice && (
-                <Alert variant="success" onClose={() => setNotice(null)} dismissible>
-                    {notice}
-                </Alert>
-            )}
-            {error && (
-                <Alert variant="danger" onClose={() => setError(null)} dismissible>
-                    {error}
-                </Alert>
-            )}
 
             {/* ---- Card with table ---- */}
             <Card className="mb-0">
@@ -747,7 +734,7 @@ const AddonsPage = () => {
                 onSent={() => {
                     setShowDeleteApproval(false);
                     setCurrentAddon(null);
-                    setNotice('Delete addon request sent.');
+                    showToast('info', 'Delete addon request sent.');
                 }}
             />
 

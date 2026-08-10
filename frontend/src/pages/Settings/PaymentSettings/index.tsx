@@ -1,7 +1,9 @@
 import { useCallback, useEffect, useState } from 'react';
-import { Card, Button, Alert } from 'react-bootstrap';
+import { Card, Button } from 'react-bootstrap';
 import Icon from '@/components/common/Icon';
 import { getPaymentMethods, togglePaymentMethod, type PaymentMethod } from '@/api/payment-method.api';
+import useContextData from '@/hooks/useContextData';
+import { ToastContext } from '@/provider/ToastProvider/ToastContext';
 
 const PAYMENT_ICONS: Record<string, string> = {
     cash: 'dollar-sign',
@@ -14,43 +16,35 @@ const PAYMENT_ICONS: Record<string, string> = {
 };
 
 const PaymentSettingsPage = () => {
+    const { showToast } = useContextData(ToastContext);
     const [methods, setMethods] = useState<PaymentMethod[]>([]);
     const [loading, setLoading] = useState(false);
-    const [error, setError] = useState<string | null>(null);
-    const [success, setSuccess] = useState<string | null>(null);
     const [toggling, setToggling] = useState<number | null>(null);
 
     const loadMethods = useCallback(async () => {
         setLoading(true);
-        setError(null);
         try {
             const result = await getPaymentMethods();
             setMethods(result);
         } catch {
-            setError('Failed to load payment methods.');
+            showToast('error', 'Failed to load payment methods.');
         } finally {
             setLoading(false);
         }
-    }, []);
+    }, [showToast]);
 
     // eslint-disable-next-line react-hooks/set-state-in-effect
     useEffect(() => { loadMethods(); }, [loadMethods]);
 
-    useEffect(() => {
-        if (!success) return;
-        const t = setTimeout(() => setSuccess(null), 3000);
-        return () => clearTimeout(t);
-    }, [success]);
 
     const handleToggle = async (id: number) => {
         setToggling(id);
-        setError(null);
         try {
             const updated = await togglePaymentMethod(id);
             setMethods((prev) => prev.map((m) => (m.id === id ? updated : m)));
-            setSuccess(`Payment method ${updated.isEnabled ? 'enabled' : 'disabled'} successfully.`);
+            showToast('success', `Payment method ${updated.isEnabled ? 'enabled' : 'disabled'} successfully.`);
         } catch (err: unknown) {
-            setError(err instanceof Error ? err.message : 'Failed to toggle payment method.');
+            showToast('error', err instanceof Error ? err.message : 'Failed to toggle payment method.');
         } finally {
             setToggling(null);
         }
@@ -77,8 +71,6 @@ const PaymentSettingsPage = () => {
                 </div>
             </div>
 
-            {success && <Alert variant="success" onClose={() => setSuccess(null)} dismissible>{success}</Alert>}
-            {error && <Alert variant="danger" onClose={() => setError(null)} dismissible>{error}</Alert>}
 
             <Card className="mb-0">
                 <Card.Body>

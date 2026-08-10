@@ -1,10 +1,12 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Row, Col, Card, Button, Dropdown, Modal, Form, Offcanvas, Alert, Spinner, Badge } from 'react-bootstrap';
+import { Row, Col, Card, Button, Dropdown, Modal, Form, Offcanvas, Spinner, Badge } from 'react-bootstrap';
 import { isAxiosError } from 'axios';
 import Icon from '@/components/common/Icon';
 import ApprovalRequestModal from '@/components/common/ApprovalRequestModal';
 import ConfirmModal from '@/components/common/ConfirmModal';
 import useAuth from '@/hooks/useAuth';
+import useContextData from '@/hooks/useContextData';
+import { ToastContext } from '@/provider/ToastProvider/ToastContext';
 import { getAssetUrl } from '@/lib';
 import {
     createItem,
@@ -71,11 +73,10 @@ const formatCurrency = (value: number | null | undefined) =>
 /*  Component                                                         */
 /* ------------------------------------------------------------------ */
 const ItemsPage = () => {
+    const { showToast } = useContextData(ToastContext);
     /* ---------- data state ---------- */
     const [items, setItems] = useState<ItemEntry[]>([]);
     const [loading, setLoading] = useState(false);
-    const [error, setError] = useState<string | null>(null);
-    const [notice, setNotice] = useState<string | null>(null);
     const [categoryOptions, setCategoryOptions] = useState<Option[]>([]);
     const [taxOptions, setTaxOptions] = useState<Option[]>([]);
 
@@ -163,7 +164,6 @@ const ItemsPage = () => {
     /* ---------- data loading ---------- */
     const loadItems = async () => {
         setLoading(true);
-        setError(null);
         try {
             const result = await getItems({
                 page,
@@ -179,7 +179,7 @@ const ItemsPage = () => {
             setTotalPages(result.totalPages || 1);
             setTotalElements(result.totalElements);
         } catch {
-            setError('Failed to load items. Please try again.');
+            showToast('error', 'Failed to load items. Please try again.');
         } finally {
             setLoading(false);
         }
@@ -199,11 +199,6 @@ const ItemsPage = () => {
         return () => clearTimeout(handle);
     }, [searchInput]);
 
-    useEffect(() => {
-        if (!notice) return;
-        const handle = setTimeout(() => setNotice(null), 3000);
-        return () => clearTimeout(handle);
-    }, [notice]);
 
     const extractErrorMessage = (err: unknown, fallback: string) => {
         if (isAxiosError(err) && err.response?.data && typeof err.response.data === 'object') {
@@ -259,16 +254,16 @@ const ItemsPage = () => {
 
     const handleAdd = async () => {
         setSaving(true);
-        setError(null);
         try {
             await createItem(buildPayload());
             setShowAdd(false);
             resetForm();
-            setNotice('Item added successfully.');
+            showToast('success', 'Item added successfully.');
             setPage(1);
             await loadItems();
         } catch (err) {
-            setError(extractErrorMessage(err, 'Failed to add item.'));
+            const message = extractErrorMessage(err, 'Failed to add item.');
+            showToast('error', message);
         } finally {
             setSaving(false);
         }
@@ -296,7 +291,7 @@ const ItemsPage = () => {
             setVariations(full.variations.map((v) => ({ ...v })));
             setAddons(full.addons.map((a) => ({ ...a })));
         } catch (err) {
-            setError(extractErrorMessage(err, 'Failed to load item details.'));
+            showToast('error', extractErrorMessage(err, 'Failed to load item details.'));
             setShowEdit(false);
         }
     };
@@ -315,16 +310,16 @@ const ItemsPage = () => {
         }
 
         setSaving(true);
-        setError(null);
         try {
             await updateItem(currentItem.id, buildPayload());
             setShowEdit(false);
             setCurrentItem(null);
             resetForm();
-            setNotice('Item updated successfully.');
+            showToast('success', 'Item updated successfully.');
             await loadItems();
         } catch (err) {
-            setError(extractErrorMessage(err, 'Failed to update item.'));
+            const message = extractErrorMessage(err, 'Failed to update item.');
+            showToast('error', message);
         } finally {
             setSaving(false);
         }
@@ -339,7 +334,7 @@ const ItemsPage = () => {
             const full = await getItem(item.id);
             setDetail(full);
         } catch (err) {
-            setError(extractErrorMessage(err, 'Failed to load item details.'));
+            showToast('error', extractErrorMessage(err, 'Failed to load item details.'));
             setShowDetails(false);
         } finally {
             setDetailLoading(false);
@@ -360,15 +355,15 @@ const ItemsPage = () => {
     const handleDeleteConfirm = async () => {
         if (!currentItem) return;
         setDeleting(true);
-        setError(null);
         try {
             await deleteItem(currentItem.id);
             setShowDeleteConfirm(false);
             setCurrentItem(null);
-            setNotice('Item deleted successfully.');
+            showToast('success', 'Item deleted successfully.');
             await loadItems();
         } catch (err) {
-            setError(extractErrorMessage(err, 'Failed to delete item.'));
+            const message = extractErrorMessage(err, 'Failed to delete item.');
+            showToast('error', message);
         } finally {
             setDeleting(false);
         }
@@ -382,16 +377,16 @@ const ItemsPage = () => {
     const handleHide = async () => {
         if (!currentItem) return;
         setHiding(true);
-        setError(null);
         try {
             const nextStatus: ItemStatus = currentItem.status === 'hidden' ? 'active' : 'hidden';
             await updateItemStatus(currentItem.id, nextStatus);
             setShowHide(false);
             setCurrentItem(null);
-            setNotice(nextStatus === 'hidden' ? 'Item hidden.' : 'Item made visible again.');
+            showToast('success', nextStatus === 'hidden' ? 'Item hidden.' : 'Item made visible again.');
             await loadItems();
         } catch (err) {
-            setError(extractErrorMessage(err, 'Cannot update item status.'));
+            const message = extractErrorMessage(err, 'Cannot update item status.');
+            showToast('error', message);
         } finally {
             setHiding(false);
         }
@@ -501,16 +496,6 @@ const ItemsPage = () => {
                 </div>
             </div>
 
-            {notice && (
-                <Alert variant="success" onClose={() => setNotice(null)} dismissible>
-                    {notice}
-                </Alert>
-            )}
-            {error && (
-                <Alert variant="danger" onClose={() => setError(null)} dismissible>
-                    {error}
-                </Alert>
-            )}
 
             {/* ---- Item grid ---- */}
             {loading && (
@@ -1045,7 +1030,7 @@ const ItemsPage = () => {
                 onSent={() => {
                     setShowDeleteApproval(false);
                     setCurrentItem(null);
-                    setNotice('Delete item request sent.');
+                    showToast('info', 'Delete item request sent.');
                 }}
             />
 
@@ -1086,7 +1071,7 @@ const ItemsPage = () => {
                     setShowPriceApproval(false);
                     setCurrentItem(null);
                     resetForm();
-                    setNotice('Price change request sent.');
+                    showToast('info', 'Price change request sent.');
                 }}
             />
 

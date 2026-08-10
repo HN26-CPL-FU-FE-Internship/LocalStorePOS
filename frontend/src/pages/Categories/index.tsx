@@ -1,9 +1,11 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Card, Button, Modal, Form, Offcanvas, Alert } from 'react-bootstrap';
+import { Card, Button, Modal, Form, Offcanvas } from 'react-bootstrap';
 import Icon from '@/components/common/Icon';
 import ApprovalRequestModal from '@/components/common/ApprovalRequestModal';
 import ConfirmModal from '@/components/common/ConfirmModal';
 import useAuth from '@/hooks/useAuth';
+import useContextData from '@/hooks/useContextData';
+import { ToastContext } from '@/provider/ToastProvider/ToastContext';
 import { getAssetUrl } from '@/lib';
 import {
     createCategory,
@@ -27,12 +29,11 @@ import CategoryTable from './components/CategoryTable';
 /* ------------------------------------------------------------------ */
 
 const CategoriesPage = () => {
+    const { showToast } = useContextData(ToastContext);
     /* ---------- data state ---------- */
     const [categories, setCategories] = useState<CategoryEntry[]>([]);
     const [columns, setColumns] = useState<ColumnOption[]>(defaultColumns);
     const [loading, setLoading] = useState(false);
-    const [error, setError] = useState<string | null>(null);
-    const [notice, setNotice] = useState<string | null>(null);
 
     /* ---------- query state ---------- */
     const [searchInput, setSearchInput] = useState('');
@@ -90,7 +91,6 @@ const CategoriesPage = () => {
     /* ---------- data loading ---------- */
     const loadCategories = async () => {
         setLoading(true);
-        setError(null);
         try {
             const result = await getCategories({
                 page,
@@ -104,7 +104,7 @@ const CategoriesPage = () => {
             setTotalPages(result.totalPages || 1);
             setTotalElements(result.totalElements);
         } catch {
-            setError('Failed to load categories. Please try again.');
+            showToast('error', 'Failed to load categories. Please try again.');
         } finally {
             setLoading(false);
         }
@@ -125,12 +125,6 @@ const CategoriesPage = () => {
         return () => clearTimeout(handle);
     }, [searchInput]);
 
-    // Auto-dismiss notices
-    useEffect(() => {
-        if (!notice) return;
-        const handle = setTimeout(() => setNotice(null), 3000);
-        return () => clearTimeout(handle);
-    }, [notice]);
 
     /* ---------- image handling ---------- */
     const handleImageChange = (file: File | null) => {
@@ -152,16 +146,16 @@ const CategoriesPage = () => {
 
     const handleAdd = async () => {
         setSaving(true);
-        setError(null);
         try {
             await createCategory({ name: form.name.trim(), status: form.status, image: imageFile });
             setShowAdd(false);
             resetForm();
-            setNotice('Category added successfully.');
+            showToast('success', 'Category added successfully.');
             setPage(1);
             await loadCategories();
         } catch (err) {
-            setError(extractErrorMessage(err, 'Failed to add category.'));
+            const message = extractErrorMessage(err, 'Failed to add category.');
+            showToast('error', message);
         } finally {
             setSaving(false);
         }
@@ -178,7 +172,6 @@ const CategoriesPage = () => {
     const handleEdit = async () => {
         if (!currentCategory) return;
         setSaving(true);
-        setError(null);
         try {
             await updateCategory(currentCategory.id, {
                 name: form.name.trim(),
@@ -188,10 +181,11 @@ const CategoriesPage = () => {
             setShowEdit(false);
             setCurrentCategory(null);
             resetForm();
-            setNotice('Category updated successfully.');
+            showToast('success', 'Category updated successfully.');
             await loadCategories();
         } catch (err) {
-            setError(extractErrorMessage(err, 'Failed to update category.'));
+            const message = extractErrorMessage(err, 'Failed to update category.');
+            showToast('error', message);
         } finally {
             setSaving(false);
         }
@@ -211,15 +205,15 @@ const CategoriesPage = () => {
     const handleDeleteConfirm = async () => {
         if (!currentCategory) return;
         setDeleting(true);
-        setError(null);
         try {
             await deleteCategory(currentCategory.id);
             setShowDeleteConfirm(false);
             setCurrentCategory(null);
-            setNotice('Category deleted successfully.');
+            showToast('success', 'Category deleted successfully.');
             await loadCategories();
         } catch (err) {
-            setError(extractErrorMessage(err, 'Failed to delete category.'));
+            const message = extractErrorMessage(err, 'Failed to delete category.');
+            showToast('error', message);
         } finally {
             setDeleting(false);
         }
@@ -231,8 +225,10 @@ const CategoriesPage = () => {
         try {
             await updateCategoryStatus(category.id, nextStatus);
             setCategories((prev) => prev.map((c) => (c.id === category.id ? { ...c, status: nextStatus } : c)));
+            showToast('success', 'Category status updated.');
         } catch (err) {
-            setError(extractErrorMessage(err, 'Cannot update status.'));
+            const message = extractErrorMessage(err, 'Cannot update status.');
+            showToast('error', message);
         }
     };
 
@@ -261,16 +257,6 @@ const CategoriesPage = () => {
             {/* ---- Page Header ---- */}
             <CategoryHeader onRefresh={loadCategories} onAdd={openAdd} />
 
-            {notice && (
-                <Alert variant="success" onClose={() => setNotice(null)} dismissible>
-                    {notice}
-                </Alert>
-            )}
-            {error && (
-                <Alert variant="danger" onClose={() => setError(null)} dismissible>
-                    {error}
-                </Alert>
-            )}
 
             {/* ---- Card with table ---- */}
             <Card className="mb-0">
@@ -529,7 +515,7 @@ const CategoriesPage = () => {
                 onSent={() => {
                     setShowDeleteApproval(false);
                     setCurrentCategory(null);
-                    setNotice('Delete category request sent.');
+                    showToast('info', 'Delete category request sent.');
                 }}
             />
 

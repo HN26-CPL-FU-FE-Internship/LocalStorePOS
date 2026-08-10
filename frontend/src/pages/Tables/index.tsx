@@ -1,8 +1,9 @@
-import { useEffect, useState } from 'react';
-import { Row, Col, Card, Button, Modal, Form, Alert, Spinner, Badge, Offcanvas } from 'react-bootstrap';
+import { useCallback, useEffect, useState } from 'react';
+import { Row, Col, Card, Button, Modal, Form, Spinner, Badge, Offcanvas } from 'react-bootstrap';
 import { isAxiosError } from 'axios';
 import Icon from '@/components/common/Icon';
 import ConfirmModal from '@/components/common/ConfirmModal';
+import ApprovalRequestModal from '@/components/common/ApprovalRequestModal';
 import {
     createReservation,
     createTable,
@@ -27,6 +28,7 @@ import {
 import { getCustomerOptions } from '@/api/customer.api';
 import type { Option } from '@/api/item.api';
 import useContextData from '@/hooks/useContextData';
+import useAuth from '@/hooks/useAuth';
 import { ToastContext } from '@/provider/ToastProvider/ToastContext';
 import FloorMap from './components/FloorMap';
 import PositionPicker from './components/PositionPicker';
@@ -77,6 +79,8 @@ const formatDateTime = (value: string) =>
 // const cx = bindCx(styles);
 
 const TablesPage = () => {
+    const { showToast } = useContextData(ToastContext);
+    const { hasPermission, isAdmin } = useAuth();
     const [tables, setTables] = useState<TableEntry[]>([]);
     const [allReservations, setAllReservations] = useState<ReservationEntry[]>([]);
     const [areas, setAreas] = useState<Option[]>([]);
@@ -84,8 +88,6 @@ const TablesPage = () => {
     const [activeFloorId, setActiveFloorId] = useState<number | null>(null);
     const [customerOptions, setCustomerOptions] = useState<Option[]>([]);
     const [loading, setLoading] = useState(false);
-    const [error, setError] = useState<string | null>(null);
-    const [notice, setNotice] = useState<string | null>(null);
 
     const [showAddTable, setShowAddTable] = useState(false);
     const [showEditTable, setShowEditTable] = useState(false);
@@ -147,6 +149,10 @@ const TablesPage = () => {
     const [showDeleteFloor, setShowDeleteFloor] = useState(false);
     const [floorToDelete, setFloorToDelete] = useState<TableFloor | null>(null);
     const [deletingFloor, setDeletingFloor] = useState(false);
+    const [showAddFloorApproval, setShowAddFloorApproval] = useState(false);
+    const [pendingFloorName, setPendingFloorName] = useState('');
+    const [showDeleteFloorApproval, setShowDeleteFloorApproval] = useState(false);
+    const [showDeleteTableApproval, setShowDeleteTableApproval] = useState(false);
     const [selectedStatus, setSelectedStatus] = useState<TableStatus>('available');
 
     const openTableAction = (table: TableEntry) => {
@@ -164,10 +170,11 @@ const TablesPage = () => {
             setShowStatusModal(false);
             setShowTableAction(false);
 
-            setNotice(`Table ${currentTable.tableNumber} updated.`);
+            showToast('success', `Table ${currentTable.tableNumber} updated.`);
             await loadTables(activeFloorId);
         } catch (err) {
-            setError(extractErrorMessage(err, 'Cannot update table status.'));
+            const message = extractErrorMessage(err, 'Cannot update table status.');
+            showToast('error', message);
         }
     };
 
@@ -179,26 +186,31 @@ const TablesPage = () => {
         return fallback;
     };
 
-    const loadTables = async (floorId: number | null) => {
-        setLoading(true);
-        setError(null);
-        try {
-            if (floorId == null) {
-                setTables([]);
-                setAllReservations([]);
-                return;
+    const loadTables = useCallback(
+        async (floorId: number | null) => {
+            setLoading(true);
+            try {
+                if (floorId == null) {
+                    setTables([]);
+                    setAllReservations([]);
+                    return;
+                }
+                // Each floor has its own independent set of tables on the shared
+                // floor plan (the map is a single fixed layout).
+                const [tablesData, reservationsData] = await Promise.all([
+                    getTables({ floorId }),
+                    getReservations({}),
+                ]);
+                setTables(tablesData);
+                setAllReservations(reservationsData);
+            } catch {
+                showToast('error', 'Failed to load data. Please try again.');
+            } finally {
+                setLoading(false);
             }
-            // Each floor has its own independent set of tables on the shared
-            // floor plan (the map is a single fixed layout).
-            const [tablesData, reservationsData] = await Promise.all([getTables({ floorId }), getReservations({})]);
-            setTables(tablesData);
-            setAllReservations(reservationsData);
-        } catch {
-            setError('Failed to load data. Please try again.');
-        } finally {
-            setLoading(false);
-        }
-    };
+        },
+        [showToast],
+    );
 
     useEffect(() => {
         (async () => {
@@ -220,35 +232,40 @@ const TablesPage = () => {
 
     useEffect(() => {
         loadTables(activeFloorId);
-    }, [activeFloorId]);
+    }, [activeFloorId, loadTables]);
 
-    useEffect(() => {
-        if (!notice) return;
-        const handle = setTimeout(() => setNotice(null), 3000);
-        return () => clearTimeout(handle);
-    }, [notice]);
 
     /* ---------- Floor CRUD ---------- */
     const openDeleteFloor = (floor: TableFloor) => {
         setFloorToDelete(floor);
-        setShowDeleteFloor(true);
+        // Admins delete directly; everyone else sends an approval request.
+        if (isAdmin) {
+            setShowDeleteFloor(true);
+        } else {
+            setShowDeleteFloorApproval(true);
+        }
     };
 
     const handleAddFloor = async () => {
         const name = newFloorName.trim();
         if (!name) return;
+        // Non-admin floor changes go through admin approval.
+        if (!isAdmin) {
+            setPendingFloorName(name);
+            setShowAddFloor(false);
+            setShowAddFloorApproval(true);
+            return;
+        }
         setSavingFloor(true);
-        setError(null);
         try {
             const floor = await createTableFloor(name);
             setFloors((prev) => [...prev, floor]);
             setActiveFloorId(floor.id);
             setShowAddFloor(false);
-            setNotice(`Floor ${floor.name} added.`);
             showToast('success', `Floor ${floor.name} added.`);
         } catch (err) {
-            setError(extractErrorMessage(err, 'Failed to add floor.'));
-            showToast('error', 'Failed to add floor.');
+            const message = extractErrorMessage(err, 'Failed to add floor.');
+            showToast('error', message);
         } finally {
             setSavingFloor(false);
         }
@@ -257,11 +274,9 @@ const TablesPage = () => {
     const handleDeleteFloor = async () => {
         if (!floorToDelete) return;
         setDeletingFloor(true);
-        setError(null);
         try {
             await deleteTableFloor(floorToDelete.id);
             setShowDeleteFloor(false);
-            setNotice(`Floor ${floorToDelete.name} deleted.`);
             showToast('success', `Floor ${floorToDelete.name} deleted.`);
             const remaining = floors.filter((f) => f.id !== floorToDelete.id);
             setFloors(remaining);
@@ -270,8 +285,8 @@ const TablesPage = () => {
             }
             setFloorToDelete(null);
         } catch (err) {
-            setError(extractErrorMessage(err, 'Failed to delete floor.'));
-            showToast('error', 'Failed to delete floor.');
+            const message = extractErrorMessage(err, 'Failed to delete floor.');
+            showToast('error', message);
             setShowDeleteFloor(false);
         } finally {
             setDeletingFloor(false);
@@ -308,8 +323,6 @@ const TablesPage = () => {
         setShowAddTable(true);
     };
 
-    const { showToast } = useContextData(ToastContext);
-
     /* Position used for collision checks when adding/editing. */
     const tablePositionCheck = () => {
         const size = getTableSize(Number(tableForm.seats) || 6, tableForm.shape);
@@ -340,12 +353,10 @@ const TablesPage = () => {
 
     const handleAddTable = async () => {
         if (positionOverlapsExisting()) {
-            setError('Position overlaps another table. Pick a free spot on the map.');
             showToast('error', 'Position overlaps another table.');
             return;
         }
         setSaving(true);
-        setError(null);
         try {
             await createTable({
                 tableNumber: tableForm.tableNumber.trim(),
@@ -357,12 +368,11 @@ const TablesPage = () => {
                 shape: tableForm.shape,
             });
             setShowAddTable(false);
-            setNotice('Table added successfully.');
             showToast('success', 'Table added successfully.');
             await loadTables(activeFloorId);
         } catch (err) {
-            setError(extractErrorMessage(err, 'Failed to add table.'));
-            showToast('error', 'Failed to add table.');
+            const message = extractErrorMessage(err, 'Failed to add table.');
+            showToast('error', message);
         } finally {
             setSaving(false);
         }
@@ -390,12 +400,10 @@ const TablesPage = () => {
     const handleEditTable = async () => {
         if (!currentTable) return;
         if (positionOverlapsExisting(currentTable.id)) {
-            setError('Position overlaps another table. Pick a free spot on the map.');
             showToast('error', 'Position overlaps another table.');
             return;
         }
         setSaving(true);
-        setError(null);
         try {
             await updateTable(currentTable.id, {
                 tableNumber: tableForm.tableNumber.trim(),
@@ -408,10 +416,11 @@ const TablesPage = () => {
             });
             setShowEditTable(false);
             setCurrentTable(null);
-            setNotice('Table updated successfully.');
+            showToast('success', 'Table updated successfully.');
             await loadTables(activeFloorId);
         } catch (err) {
-            setError(extractErrorMessage(err, 'Failed to update table.'));
+            const message = extractErrorMessage(err, 'Failed to update table.');
+            showToast('error', message);
         } finally {
             setSaving(false);
         }
@@ -440,9 +449,10 @@ const TablesPage = () => {
                 yPosition: y,
                 shape,
             });
-            setNotice(`Table ${table.tableNumber} moved to (${x}, ${y}).`);
+            showToast('success', `Table ${table.tableNumber} moved to (${x}, ${y}).`);
         } catch (err) {
-            setError(extractErrorMessage(err, 'Failed to save table position.'));
+            const message = extractErrorMessage(err, 'Failed to save table position.');
+            showToast('error', message);
             await loadTables(activeFloorId); // roll back to the server state
         }
     };
@@ -453,23 +463,26 @@ const TablesPage = () => {
     const openDeleteTable = (table: TableEntry) => {
         setCurrentTable(table);
         setShowTableAction(false);
-        setShowDeleteConfirm(true);
+        // Admins delete directly; everyone else sends an approval request.
+        if (isAdmin) {
+            setShowDeleteConfirm(true);
+        } else {
+            setShowDeleteTableApproval(true);
+        }
     };
 
     const handleDeleteTable = async () => {
         if (!currentTable) return;
         setDeleting(true);
-        setError(null);
         try {
             await deleteTable(currentTable.id);
             setShowDeleteConfirm(false);
-            setNotice(`Table ${currentTable.tableNumber} deleted.`);
             showToast('success', `Table ${currentTable.tableNumber} deleted.`);
             setCurrentTable(null);
             await loadTables(activeFloorId);
         } catch (err) {
-            setError(extractErrorMessage(err, 'Failed to delete table.'));
-            showToast('error', 'Failed to delete table.');
+            const message = extractErrorMessage(err, 'Failed to delete table.');
+            showToast('error', message);
             setShowDeleteConfirm(false);
         } finally {
             setDeleting(false);
@@ -487,14 +500,19 @@ const TablesPage = () => {
     // };
 
     const handleFreeTable = async (table: TableEntry) => {
+        if (activeTableBookings(table).length > 0) {
+            showToast('error', 'Cancel or complete the active bookings first.');
+            return;
+        }
         try {
             await updateTableStatus(table.id, 'available');
-            setNotice(`Table ${table.tableNumber} marked as Available.`);
+            showToast('success', `Table ${table.tableNumber} marked as Available.`);
             setShowReservationInfo(false);
             setShowBookingsSidebar(false);
             await loadTables(activeFloorId);
         } catch (err) {
-            setError(extractErrorMessage(err, 'Cannot update table status.'));
+            const message = extractErrorMessage(err, 'Cannot update table status.');
+            showToast('error', message);
         }
     };
 
@@ -509,12 +527,14 @@ const TablesPage = () => {
         if (!currentTable) return;
 
         if (new Date(reservationForm.reservationTime).getTime() < Date.now()) {
+            showToast('error', 'Reservation time must be in the future.');
             return;
         }
 
         setSaving(true);
-        setError(null);
         try {
+            // The backend mirrors the reservation state onto the table
+            // (booked → table booked, seated → table occupied).
             await createReservation({
                 customerId: Number(reservationForm.customerId),
                 tableId: currentTable.id,
@@ -523,17 +543,13 @@ const TablesPage = () => {
                 notes: reservationForm.notes || undefined,
                 status: reservationForm.status,
             });
-            if (reservationForm.status === 'booked') {
-                await updateTableStatus(currentTable.id, 'booked');
-            } else if (reservationForm.status === 'seated') {
-                await updateTableStatus(currentTable.id, 'occupied');
-            }
             setShowReserve(false);
             setCurrentTable(null);
-            setNotice('Reservation created successfully.');
+            showToast('success', 'Reservation created successfully.');
             await loadTables(activeFloorId);
         } catch (err) {
-            setError(extractErrorMessage(err, 'Failed to create reservation.'));
+            const message = extractErrorMessage(err, 'Failed to create reservation.');
+            showToast('error', message);
         } finally {
             setSaving(false);
         }
@@ -559,12 +575,16 @@ const TablesPage = () => {
     const handleEditReservation = async () => {
         if (!currentReservation) return;
 
-        if (new Date(reservationForm.reservationTime).getTime() < Date.now()) {
+        // Resolving a reservation (completed/cancelled/paid) stays allowed even
+        // when the booked time has already passed — only active bookings must
+        // be in the future.
+        const resolving = ['completed', 'cancelled', 'paid'].includes(reservationForm.status);
+        if (!resolving && new Date(reservationForm.reservationTime).getTime() < Date.now()) {
+            showToast('error', 'Reservation time must be in the future.');
             return;
         }
 
         setSaving(true);
-        setError(null);
         try {
             await updateReservation(currentReservation.id, {
                 customerId: Number(reservationForm.customerId),
@@ -576,10 +596,11 @@ const TablesPage = () => {
             });
             setShowEditReservation(false);
             setCurrentReservation(null);
-            setNotice('Reservation updated successfully.');
+            showToast('success', 'Reservation updated successfully.');
             await loadTables(activeFloorId);
         } catch (err) {
-            setError(extractErrorMessage(err, 'Failed to update reservation.'));
+            const message = extractErrorMessage(err, 'Failed to update reservation.');
+            showToast('error', message);
         } finally {
             setSaving(false);
         }
@@ -588,15 +609,15 @@ const TablesPage = () => {
     const handleCancelReservation = async () => {
         if (!currentReservation) return;
         try {
+            // The backend releases the table only when no other active
+            // reservation remains on it — no manual status patch here.
             await updateReservationStatus(currentReservation.id, 'cancelled');
-            if (currentTable) {
-                await updateTableStatus(currentTable.id, 'available');
-            }
             setShowReservationInfo(false);
-            setNotice('Reservation cancelled.');
+            showToast('success', 'Reservation cancelled.');
             await loadTables(activeFloorId);
         } catch (err) {
-            setError(extractErrorMessage(err, 'Cannot cancel reservation.'));
+            const message = extractErrorMessage(err, 'Cannot cancel reservation.');
+            showToast('error', message);
         }
     };
 
@@ -635,16 +656,18 @@ const TablesPage = () => {
                     </h3>
                 </div>
                 <div className="gap-2 d-flex align-items-center flex-wrap">
-                    <Button
-                        variant="primary"
-                        className="d-inline-flex align-items-center"
-                        onClick={openAddTable}
-                        disabled={floors.length === 0}
-                        title={floors.length === 0 ? 'Add a floor first' : undefined}
-                    >
-                        <Icon name="circle-plus" className="me-1" />
-                        Add Table
-                    </Button>
+                    {hasPermission('Tables', 'add') && (
+                        <Button
+                            variant="primary"
+                            className="d-inline-flex align-items-center"
+                            onClick={openAddTable}
+                            disabled={floors.length === 0}
+                            title={floors.length === 0 ? 'Add a floor first' : undefined}
+                        >
+                            <Icon name="circle-plus" className="me-1" />
+                            Add Table
+                        </Button>
+                    )}
                 </div>
             </div>
 
@@ -697,30 +720,21 @@ const TablesPage = () => {
                             </div>
                         );
                     })}
-                    <button
-                        type="button"
-                        className="btn btn-sm btn-outline-primary d-inline-flex align-items-center"
-                        style={{ borderRadius: 999, gap: 5 }}
-                        onClick={() => {
-                            setNewFloorName(`Floor ${floors.length + 1}`);
-                            setShowAddFloor(true);
-                        }}
-                    >
-                        <Icon name="plus" size={14} />
-                        Add Floor
-                    </button>
+                    {hasPermission('Tables', 'add') && (
+                        <button
+                            type="button"
+                            className="btn btn-sm btn-outline-primary d-inline-flex align-items-center"
+                            style={{ borderRadius: 999, gap: 5 }}
+                            onClick={() => {
+                                setNewFloorName(`Floor ${floors.length + 1}`);
+                                setShowAddFloor(true);
+                            }}
+                        >
+                            <Icon name="plus" size={14} />
+                            Add Floor
+                        </button>
+                    )}
                 </div>
-            )}
-
-            {notice && (
-                <Alert variant="success" onClose={() => setNotice(null)} dismissible>
-                    {notice}
-                </Alert>
-            )}
-            {error && (
-                <Alert variant="danger" onClose={() => setError(null)} dismissible>
-                    {error}
-                </Alert>
             )}
 
             {loading && (
@@ -733,17 +747,19 @@ const TablesPage = () => {
             {!loading && floors.length === 0 && (
                 <div className="text-center py-5">
                     <p className="text-muted mb-3">No floors yet. Add a floor to start placing tables.</p>
-                    <Button
-                        variant="primary"
-                        className="d-inline-flex align-items-center"
-                        onClick={() => {
-                            setNewFloorName('Floor 1');
-                            setShowAddFloor(true);
-                        }}
-                    >
-                        <Icon name="plus" className="me-1" />
-                        Add Floor
-                    </Button>
+                    {hasPermission('Tables', 'add') && (
+                        <Button
+                            variant="primary"
+                            className="d-inline-flex align-items-center"
+                            onClick={() => {
+                                setNewFloorName('Floor 1');
+                                setShowAddFloor(true);
+                            }}
+                        >
+                            <Icon name="plus" className="me-1" />
+                            Add Floor
+                        </Button>
+                    )}
                 </div>
             )}
 
@@ -762,6 +778,7 @@ const TablesPage = () => {
                     onTableClick={openTableAction}
                     onViewBookings={openBookingsSidebar}
                     onDragEnd={handleDragTable}
+                    editable={hasPermission('Tables', 'edit')}
                 />
             )}
 
@@ -1030,18 +1047,20 @@ const TablesPage = () => {
                 <Modal.Body>
                     {currentTable?.status === 'available' ? (
                         <div className="d-grid gap-3">
-                            <Button
-                                variant="outline-primary"
-                                onClick={() => {
-                                    setShowTableAction(false);
-                                    if (currentTable) {
-                                        openEditTable(currentTable);
-                                    }
-                                }}
-                            >
-                                <Icon name="pencil-line" className="me-2" />
-                                Edit Table (Position / Shape)
-                            </Button>
+                            {hasPermission('Tables', 'edit') && (
+                                <Button
+                                    variant="outline-primary"
+                                    onClick={() => {
+                                        setShowTableAction(false);
+                                        if (currentTable) {
+                                            openEditTable(currentTable);
+                                        }
+                                    }}
+                                >
+                                    <Icon name="pencil-line" className="me-2" />
+                                    Edit Table (Position / Shape)
+                                </Button>
+                            )}
 
 
                             <Button
@@ -1063,27 +1082,29 @@ const TablesPage = () => {
                                     onClick={() => {
                                         if (currentTable) {
                                             openDeleteTable(currentTable);
-                                    }
-                                }}
-                            >
-                                <Icon name="trash-2" className="me-2" />
-                                Delete Table
-                            </Button>
+                                        }
+                                    }}
+                                >
+                                    <Icon name="trash-2" className="me-2" />
+                                    Delete Table
+                                </Button>
                         </div>
                     ) : (
                         <div className="d-grid gap-3">
-                            <Button
-                                variant="outline-primary"
-                                onClick={() => {
-                                    setShowTableAction(false);
-                                    if (currentTable) {
-                                        openEditTable(currentTable);
-                                    }
-                                }}
-                            >
-                                <Icon name="pencil-line" className="me-2" />
-                                Edit Table (Position / Shape)
-                            </Button>
+                            {hasPermission('Tables', 'edit') && (
+                                <Button
+                                    variant="outline-primary"
+                                    onClick={() => {
+                                        setShowTableAction(false);
+                                        if (currentTable) {
+                                            openEditTable(currentTable);
+                                        }
+                                    }}
+                                >
+                                    <Icon name="pencil-line" className="me-2" />
+                                    Edit Table (Position / Shape)
+                                </Button>
+                            )}
 
                             <Button
                                 variant="primary"
@@ -1136,7 +1157,7 @@ const TablesPage = () => {
                 actionDisabled={deleting}
             />
 
-            {/* ---- Delete Floor Confirmation ---- */}
+            {/* ---- Delete Floor Confirmation (admins delete directly) ---- */}
             <ConfirmModal
                 show={showDeleteFloor}
                 handleClose={() => setShowDeleteFloor(false)}
@@ -1144,6 +1165,66 @@ const TablesPage = () => {
                 data={`floor ${floorToDelete?.name ?? ''}`}
                 action={handleDeleteFloor}
                 actionDisabled={deletingFloor}
+            />
+
+            {/* ---- Add Floor Request (requires approval) ---- */}
+            <ApprovalRequestModal
+                show={showAddFloorApproval}
+                onHide={() => {
+                    setShowAddFloorApproval(false);
+                    setPendingFloorName('');
+                }}
+                actionLabel="add floor"
+                requestType="CREATE_TABLE_FLOOR"
+                description={pendingFloorName ? `Add floor ${pendingFloorName}` : 'Add floor'}
+                targetType="TABLE_FLOOR"
+                targetDisplay={pendingFloorName || null}
+                additionalData={pendingFloorName ? JSON.stringify({ name: pendingFloorName }) : null}
+                onSent={() => {
+                    setShowAddFloorApproval(false);
+                    setPendingFloorName('');
+                    showToast('info', 'Add floor request sent.');
+                }}
+            />
+
+            {/* ---- Delete Floor Request (requires approval) ---- */}
+            <ApprovalRequestModal
+                show={showDeleteFloorApproval}
+                onHide={() => setShowDeleteFloorApproval(false)}
+                actionLabel="delete floor"
+                requestType="DELETE_IMPORTANT_DATA"
+                description={floorToDelete ? `Delete floor ${floorToDelete.name}` : 'Delete floor'}
+                targetType="TABLE_FLOOR"
+                targetId={floorToDelete?.id}
+                targetDisplay={floorToDelete?.name}
+                additionalData={
+                    floorToDelete ? JSON.stringify({ targetType: 'TABLE_FLOOR', targetId: floorToDelete.id }) : null
+                }
+                onSent={() => {
+                    setShowDeleteFloorApproval(false);
+                    setFloorToDelete(null);
+                    showToast('info', 'Delete floor request sent.');
+                }}
+            />
+
+            {/* ---- Delete Table Request (requires approval) ---- */}
+            <ApprovalRequestModal
+                show={showDeleteTableApproval}
+                onHide={() => setShowDeleteTableApproval(false)}
+                actionLabel="delete table"
+                requestType="DELETE_IMPORTANT_DATA"
+                description={currentTable ? `Delete table ${currentTable.tableNumber}` : 'Delete table'}
+                targetType="TABLE"
+                targetId={currentTable?.id}
+                targetDisplay={currentTable?.tableNumber}
+                additionalData={
+                    currentTable ? JSON.stringify({ targetType: 'TABLE', targetId: currentTable.id }) : null
+                }
+                onSent={() => {
+                    setShowDeleteTableApproval(false);
+                    setCurrentTable(null);
+                    showToast('info', 'Delete table request sent.');
+                }}
             />
 
             {/* ---- Set Status Modal ---- */}

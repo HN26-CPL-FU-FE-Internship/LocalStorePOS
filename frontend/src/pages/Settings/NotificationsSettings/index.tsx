@@ -1,7 +1,9 @@
 import { useCallback, useEffect, useState } from 'react';
-import { Card, Button, Form, Alert } from 'react-bootstrap';
+import { Card, Button, Form } from 'react-bootstrap';
 import Icon from '@/components/common/Icon';
 import { getNotificationSetting, updateNotificationSetting, type NotificationSetting, type NotificationSettingFormData } from '@/api/notification-setting.api';
+import useContextData from '@/hooks/useContextData';
+import { ToastContext } from '@/provider/ToastProvider/ToastContext';
 
 interface ChannelConfig {
     key: 'push' | 'sms' | 'email';
@@ -16,17 +18,15 @@ interface CategoryConfig {
 }
 
 const NotificationsSettingsPage = () => {
+    const { showToast } = useContextData(ToastContext);
     const [setting, setSetting] = useState<NotificationSetting | null>(null);
     const [loading, setLoading] = useState(false);
     const [saving, setSaving] = useState(false);
-    const [error, setError] = useState<string | null>(null);
-    const [success, setSuccess] = useState<string | null>(null);
 
     const [form, setForm] = useState<NotificationSettingFormData>({});
 
     const loadSetting = useCallback(async () => {
         setLoading(true);
-        setError(null);
         try {
             const result = await getNotificationSetting();
             setSetting(result);
@@ -47,30 +47,23 @@ const NotificationsSettingsPage = () => {
                 accountEmail: result.accountEmail,
             });
         } catch {
-            setError('Failed to load notification settings.');
+            showToast('error', 'Failed to load notification settings.');
         } finally {
             setLoading(false);
         }
-    }, []);
+    }, [showToast]);
 
     // eslint-disable-next-line react-hooks/set-state-in-effect
     useEffect(() => { loadSetting(); }, [loadSetting]);
-    useEffect(() => {
-        if (!success) return;
-        const t = setTimeout(() => setSuccess(null), 3000);
-        return () => clearTimeout(t);
-    }, [success]);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setSaving(true);
-        setError(null);
-        setSuccess(null);
         try {
             await updateNotificationSetting(form);
-            setSuccess('Notification settings updated successfully.');
+            showToast('success', 'Notification settings updated successfully.');
         } catch (err: unknown) {
-            setError(err instanceof Error ? err.message : 'Failed to update notification settings.');
+            showToast('error', err instanceof Error ? err.message : 'Failed to update notification settings.');
         } finally {
             setSaving(false);
         }
@@ -141,8 +134,6 @@ const NotificationsSettingsPage = () => {
                 </div>
             </div>
 
-            {success && <Alert variant="success" onClose={() => setSuccess(null)} dismissible>{success}</Alert>}
-            {error && <Alert variant="danger" onClose={() => setError(null)} dismissible>{error}</Alert>}
 
             <Card className="mb-0">
                 <Card.Body>

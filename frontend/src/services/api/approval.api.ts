@@ -16,7 +16,8 @@ export type ApprovalRequestType =
     | 'PRICE_CHANGE'
     | 'PERMISSION_CHANGE'
     | 'USER_CREATE_DELETE'
-    | 'DELETE_IMPORTANT_DATA';
+    | 'DELETE_IMPORTANT_DATA'
+    | 'CREATE_TABLE_FLOOR';
 
 export type ApprovalStatus = 'PENDING' | 'APPROVED' | 'REJECTED' | 'FAILED';
 
@@ -89,6 +90,7 @@ export const approvalTypeLabels: Record<ApprovalRequestType, string> = {
     PERMISSION_CHANGE: 'Permission Change (Role/Permission)',
     USER_CREATE_DELETE: 'Create or Delete User',
     DELETE_IMPORTANT_DATA: 'Delete Important Data',
+    CREATE_TABLE_FLOOR: 'Add Table Floor',
 };
 
 export const approvalTypeBadgeColors: Record<ApprovalRequestType, string> = {
@@ -103,6 +105,7 @@ export const approvalTypeBadgeColors: Record<ApprovalRequestType, string> = {
     PERMISSION_CHANGE: 'secondary',
     USER_CREATE_DELETE: 'primary',
     DELETE_IMPORTANT_DATA: 'danger',
+    CREATE_TABLE_FLOOR: 'primary',
 };
 
 /* ------------------------------------------------------------------ */

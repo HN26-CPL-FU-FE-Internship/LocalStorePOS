@@ -1,7 +1,9 @@
 import { useCallback, useEffect, useState } from 'react';
-import { Card, Button, Alert } from 'react-bootstrap';
+import { Card, Button } from 'react-bootstrap';
 import Icon from '@/components/common/Icon';
 import { getIntegrations, toggleIntegration, type IntegrationEntry } from '@/api/integration.api';
+import useContextData from '@/hooks/useContextData';
+import { ToastContext } from '@/provider/ToastProvider/ToastContext';
 
 const INTEGRATION_ICONS: Record<string, string> = {
     gmail: 'mail',
@@ -10,42 +12,34 @@ const INTEGRATION_ICONS: Record<string, string> = {
 };
 
 const IntegrationsSettingsPage = () => {
+    const { showToast } = useContextData(ToastContext);
     const [integrations, setIntegrations] = useState<IntegrationEntry[]>([]);
     const [loading, setLoading] = useState(false);
-    const [error, setError] = useState<string | null>(null);
-    const [success, setSuccess] = useState<string | null>(null);
     const [toggling, setToggling] = useState<number | null>(null);
 
     const loadIntegrations = useCallback(async () => {
         setLoading(true);
-        setError(null);
         try {
             const result = await getIntegrations();
             setIntegrations(result);
         } catch {
-            setError('Failed to load integrations.');
+            showToast('error', 'Failed to load integrations.');
         } finally {
             setLoading(false);
         }
-    }, []);
+    }, [showToast]);
 
     // eslint-disable-next-line react-hooks/set-state-in-effect
     useEffect(() => { loadIntegrations(); }, [loadIntegrations]);
-    useEffect(() => {
-        if (!success) return;
-        const t = setTimeout(() => setSuccess(null), 3000);
-        return () => clearTimeout(t);
-    }, [success]);
 
     const handleToggle = async (id: number) => {
         setToggling(id);
-        setError(null);
         try {
             const updated = await toggleIntegration(id);
             setIntegrations((prev) => prev.map((i) => (i.id === id ? updated : i)));
-            setSuccess(`Integration ${updated.isConnected ? 'connected' : 'disconnected'} successfully.`);
+            showToast('success', `Integration ${updated.isConnected ? 'connected' : 'disconnected'} successfully.`);
         } catch (err: unknown) {
-            setError(err instanceof Error ? err.message : 'Failed to toggle integration.');
+            showToast('error', err instanceof Error ? err.message : 'Failed to toggle integration.');
         } finally {
             setToggling(null);
         }
@@ -72,8 +66,6 @@ const IntegrationsSettingsPage = () => {
                 </div>
             </div>
 
-            {success && <Alert variant="success" onClose={() => setSuccess(null)} dismissible>{success}</Alert>}
-            {error && <Alert variant="danger" onClose={() => setError(null)} dismissible>{error}</Alert>}
 
             <Card className="mb-0">
                 <Card.Body>

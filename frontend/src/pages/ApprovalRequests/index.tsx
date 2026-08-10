@@ -1,9 +1,11 @@
 import { useCallback, useEffect, useState } from 'react';
 import { keepPreviousData, useMutation, useQuery } from '@tanstack/react-query';
-import { Table, Card, Badge, Button, Modal, Form, Spinner, Alert, Nav } from 'react-bootstrap';
+import { Table, Card, Badge, Button, Modal, Form, Spinner, Nav } from 'react-bootstrap';
 import PageHeader from '@/components/common/PageHeader';
 import { queryClient } from '@/lib';
 import Icon from '@/components/common/Icon';
+import useContextData from '@/hooks/useContextData';
+import { ToastContext } from '@/provider/ToastProvider/ToastContext';
 import Pagination from '@/components/common/Pagination';
 import {
     getApprovalRequests,
@@ -57,7 +59,6 @@ const ApprovalRequestsPage = () => {
     /* ---------- state ---------- */
     const [currentPage, setCurrentPage] = useState(1);
     const [activeTab, setActiveTab] = useState<FilterTab>('all');
-    const [feedback, setFeedback] = useState<{ type: 'success' | 'danger'; message: string } | null>(null);
 
     // Detail modal
     const [showDetail, setShowDetail] = useState(false);
@@ -72,10 +73,7 @@ const ApprovalRequestsPage = () => {
     const [typeFilter, setTypeFilter] = useState<ApprovalRequestType | ''>('');
 
     /* ---------- helpers ---------- */
-    const showFeedback = (type: 'success' | 'danger', message: string) => {
-        setFeedback({ type, message });
-        setTimeout(() => setFeedback(null), 4000);
-    };
+    const { showToast } = useContextData(ToastContext);
 
     /* ---------- data (TanStack Query) ---------- */
     const approvalQuery = useQuery<ApprovalPageResponse>({
@@ -108,19 +106,19 @@ const ApprovalRequestsPage = () => {
     const approveMutation = useMutation({
         mutationFn: (payload: ApprovalActionPayload) => approveApprovalRequest(payload.requestId, payload.reason),
         onSuccess: () => {
-            showFeedback('success', 'Request approved successfully');
+            showToast('success', 'Request approved successfully');
             queryClient.invalidateQueries({ queryKey: ['approval-requests'] });
         },
-        onError: () => showFeedback('danger', 'Action failed'),
+        onError: () => showToast('error', 'Action failed'),
     });
 
     const rejectMutation = useMutation({
         mutationFn: (payload: ApprovalActionPayload) => rejectApprovalRequest(payload.requestId, payload.reason),
         onSuccess: () => {
-            showFeedback('success', 'Request rejected');
+            showToast('success', 'Request rejected');
             queryClient.invalidateQueries({ queryKey: ['approval-requests'] });
         },
-        onError: () => showFeedback('danger', 'Action failed'),
+        onError: () => showToast('error', 'Action failed'),
     });
 
     // Refresh after actions / when a new approval request arrives via WebSocket
@@ -169,7 +167,7 @@ const ApprovalRequestsPage = () => {
     const handleActionConfirm = async () => {
         if (!detailRequest) return;
         if (!actionReason.trim()) {
-            showFeedback('danger', 'Please enter a reason');
+            showToast('error', 'Please enter a reason');
             return;
         }
         const payload: ApprovalActionPayload = { requestId: detailRequest.id, reason: actionReason };
@@ -204,12 +202,6 @@ const ApprovalRequestsPage = () => {
                 }
             />
 
-            {/* ---- Feedback ---- */}
-            {feedback && (
-                <Alert variant={feedback.type} dismissible onClose={() => setFeedback(null)} className="mb-3">
-                    {feedback.message}
-                </Alert>
-            )}
 
             {/* ---- Filter Tabs ---- */}
             <Card className="mb-3">

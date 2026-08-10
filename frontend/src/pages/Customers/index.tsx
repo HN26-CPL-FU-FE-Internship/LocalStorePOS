@@ -1,10 +1,12 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Row, Col, Card, Button, Dropdown, Modal, Form, Offcanvas, Alert, Spinner, Badge } from 'react-bootstrap';
+import { Row, Col, Card, Button, Dropdown, Modal, Form, Offcanvas, Spinner, Badge } from 'react-bootstrap';
 import { isAxiosError } from 'axios';
 import Icon from '@/components/common/Icon';
 import ApprovalRequestModal from '@/components/common/ApprovalRequestModal';
 import ConfirmModal from '@/components/common/ConfirmModal';
 import useAuth from '@/hooks/useAuth';
+import useContextData from '@/hooks/useContextData';
+import { ToastContext } from '@/provider/ToastProvider/ToastContext';
 import { getAssetUrl } from '@/lib';
 import {
     createCustomer,
@@ -46,11 +48,10 @@ const formatDate = (value: string) =>
 const genderLabel = (g: Gender | null) => (g ? g.charAt(0).toUpperCase() + g.slice(1) : '-');
 
 const CustomersPage = () => {
+    const { showToast } = useContextData(ToastContext);
     /* ---------- data state ---------- */
     const [customers, setCustomers] = useState<CustomerEntry[]>([]);
     const [loading, setLoading] = useState(false);
-    const [error, setError] = useState<string | null>(null);
-    const [notice, setNotice] = useState<string | null>(null);
 
     /* ---------- query state ---------- */
     const [searchInput, setSearchInput] = useState('');
@@ -102,7 +103,6 @@ const CustomersPage = () => {
 
     const loadCustomers = async () => {
         setLoading(true);
-        setError(null);
         try {
             const result = await getCustomers({
                 page,
@@ -116,7 +116,7 @@ const CustomersPage = () => {
             setTotalPages(result.totalPages || 1);
             setTotalElements(result.totalElements);
         } catch {
-            setError('Failed to load customers. Please try again.');
+            showToast('error', 'Failed to load customers. Please try again.');
         } finally {
             setLoading(false);
         }
@@ -136,11 +136,6 @@ const CustomersPage = () => {
         return () => clearTimeout(handle);
     }, [searchInput]);
 
-    useEffect(() => {
-        if (!notice) return;
-        const handle = setTimeout(() => setNotice(null), 3000);
-        return () => clearTimeout(handle);
-    }, [notice]);
 
     const extractErrorMessage = (err: unknown, fallback: string) => {
         if (isAxiosError(err) && err.response?.data && typeof err.response.data === 'object') {
@@ -178,16 +173,16 @@ const CustomersPage = () => {
 
     const handleAdd = async () => {
         setSaving(true);
-        setError(null);
         try {
             await createCustomer(buildPayload());
             setShowAdd(false);
             resetForm();
-            setNotice('Customer added successfully.');
+            showToast('success', 'Customer added successfully.');
             setPage(1);
             await loadCustomers();
         } catch (err) {
-            setError(extractErrorMessage(err, 'Failed to add customer.'));
+            const message = extractErrorMessage(err, 'Failed to add customer.');
+            showToast('error', message);
         } finally {
             setSaving(false);
         }
@@ -211,16 +206,16 @@ const CustomersPage = () => {
     const handleEdit = async () => {
         if (!currentCustomer) return;
         setSaving(true);
-        setError(null);
         try {
             await updateCustomer(currentCustomer.id, buildPayload());
             setShowEdit(false);
             setCurrentCustomer(null);
             resetForm();
-            setNotice('Customer updated successfully.');
+            showToast('success', 'Customer updated successfully.');
             await loadCustomers();
         } catch (err) {
-            setError(extractErrorMessage(err, 'Failed to update customer.'));
+            const message = extractErrorMessage(err, 'Failed to update customer.');
+            showToast('error', message);
         } finally {
             setSaving(false);
         }
@@ -240,15 +235,15 @@ const CustomersPage = () => {
     const handleDeleteConfirm = async () => {
         if (!currentCustomer) return;
         setDeleting(true);
-        setError(null);
         try {
             await deleteCustomer(currentCustomer.id);
             setShowDeleteConfirm(false);
             setCurrentCustomer(null);
-            setNotice('Customer deleted successfully.');
+            showToast('success', 'Customer deleted successfully.');
             await loadCustomers();
         } catch (err) {
-            setError(extractErrorMessage(err, 'Failed to delete customer.'));
+            const message = extractErrorMessage(err, 'Failed to delete customer.');
+            showToast('error', message);
         } finally {
             setDeleting(false);
         }
@@ -338,16 +333,6 @@ const CustomersPage = () => {
                 </div>
             </div>
 
-            {notice && (
-                <Alert variant="success" onClose={() => setNotice(null)} dismissible>
-                    {notice}
-                </Alert>
-            )}
-            {error && (
-                <Alert variant="danger" onClose={() => setError(null)} dismissible>
-                    {error}
-                </Alert>
-            )}
 
             {loading && (
                 <div className="text-center py-5">
@@ -652,7 +637,7 @@ const CustomersPage = () => {
                 onSent={() => {
                     setShowDeleteApproval(false);
                     setCurrentCustomer(null);
-                    setNotice('Delete customer request sent.');
+                    showToast('info', 'Delete customer request sent.');
                 }}
             />
 

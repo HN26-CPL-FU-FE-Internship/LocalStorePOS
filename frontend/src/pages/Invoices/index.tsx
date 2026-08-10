@@ -1,10 +1,12 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Table, Card, Badge, Button, Dropdown, Form, Alert, Spinner } from 'react-bootstrap';
+import { Table, Card, Badge, Button, Dropdown, Form, Spinner } from 'react-bootstrap';
 import { useNavigate } from 'react-router-dom';
 import Icon from '@/components/common/Icon';
 import ApprovalRequestModal from '@/components/common/ApprovalRequestModal';
 import ConfirmModal from '@/components/common/ConfirmModal';
 import useAuth from '@/hooks/useAuth';
+import useContextData from '@/hooks/useContextData';
+import { ToastContext } from '@/provider/ToastProvider/ToastContext';
 import { getAssetUrl } from '@/lib';
 import { deleteInvoice, getInvoices, type InvoiceEntry, type InvoiceStatus } from '@/api/invoice.api';
 import configs from '@/configs';
@@ -34,12 +36,11 @@ const formatDate = (value: string) =>
 const formatCurrency = (value: number) => `$${Number(value).toFixed(2)}`;
 
 const InvoicesPage = () => {
+    const { showToast } = useContextData(ToastContext);
     const navigate = useNavigate();
 
     const [invoices, setInvoices] = useState<InvoiceEntry[]>([]);
     const [loading, setLoading] = useState(false);
-    const [error, setError] = useState<string | null>(null);
-    const [notice, setNotice] = useState<string | null>(null);
 
     const [searchInput, setSearchInput] = useState('');
     const [search, setSearch] = useState('');
@@ -65,7 +66,6 @@ const InvoicesPage = () => {
 
     const loadInvoices = async () => {
         setLoading(true);
-        setError(null);
         try {
             const result = await getInvoices({
                 page,
@@ -79,7 +79,7 @@ const InvoicesPage = () => {
             setTotalPages(result.totalPages || 1);
             setTotalElements(result.totalElements);
         } catch {
-            setError('Failed to load invoices. Please try again.');
+            showToast('error', 'Failed to load invoices. Please try again.');
         } finally {
             setLoading(false);
         }
@@ -99,11 +99,6 @@ const InvoicesPage = () => {
         return () => clearTimeout(handle);
     }, [searchInput]);
 
-    useEffect(() => {
-        if (!notice) return;
-        const handle = setTimeout(() => setNotice(null), 3000);
-        return () => clearTimeout(handle);
-    }, [notice]);
 
     const { isAdmin } = useAuth();
 
@@ -119,15 +114,14 @@ const InvoicesPage = () => {
     const handleDeleteConfirm = async () => {
         if (!currentInvoice) return;
         setDeleting(true);
-        setError(null);
         try {
             await deleteInvoice(currentInvoice.id);
             setShowDeleteConfirm(false);
             setCurrentInvoice(null);
-            setNotice('Invoice deleted successfully.');
+            showToast('success', 'Invoice deleted successfully.');
             await loadInvoices();
         } catch {
-            setError('Failed to delete invoice.');
+            showToast('error', 'Failed to delete invoice.');
         } finally {
             setDeleting(false);
         }
@@ -157,16 +151,6 @@ const InvoicesPage = () => {
                 </div>
             </div>
 
-            {notice && (
-                <Alert variant="success" onClose={() => setNotice(null)} dismissible>
-                    {notice}
-                </Alert>
-            )}
-            {error && (
-                <Alert variant="danger" onClose={() => setError(null)} dismissible>
-                    {error}
-                </Alert>
-            )}
 
             <Card className="mb-0">
                 <Card.Body>
@@ -378,7 +362,7 @@ const InvoicesPage = () => {
                 onSent={() => {
                     setShowDeleteApproval(false);
                     setCurrentInvoice(null);
-                    setNotice('Delete invoice request sent.');
+                    showToast('info', 'Delete invoice request sent.');
                 }}
             />
 

@@ -15,6 +15,8 @@ import Icon from '@/components/common/Icon';
 import ApprovalRequestModal from '@/components/common/ApprovalRequestModal';
 import ConfirmModal from '@/components/common/ConfirmModal';
 import useAuth from '@/hooks/useAuth';
+import useContextData from '@/hooks/useContextData';
+import { ToastContext } from '@/provider/ToastProvider/ToastContext';
 import {
     createUser,
     deleteUser,
@@ -102,6 +104,7 @@ const sortConfigMap: Record<SortOption, { sortBy: string; sortDir: string }> = {
 /*  Component                                                         */
 /* ------------------------------------------------------------------ */
 const UsersPage = () => {
+    const { showToast } = useContextData(ToastContext);
     const [currentPage, setCurrentPage] = useState(1);
     const PAGE_SIZE = 10;
 
@@ -241,7 +244,7 @@ const UsersPage = () => {
     /* ---------- add user ---------- */
     const handleAdd = async () => {
         if (addForm.password !== addForm.confirmPassword) {
-            alert('Passwords do not match');
+            showToast('error', 'Passwords do not match');
             return;
         }
         // Creating a user requires approval before it takes effect — admins
@@ -264,10 +267,11 @@ const UsersPage = () => {
                 setAddForm(addEmptyForm);
                 clearAvatar();
                 await loadUsers();
+                showToast('success', 'User created successfully.');
             } catch (err: unknown) {
                 const msg =
                     (err as AxiosError<{ message?: string }>)?.response?.data?.message || 'Failed to create user';
-                alert(msg);
+                showToast('error', msg);
             } finally {
                 setSaving(false);
             }
@@ -299,7 +303,7 @@ const UsersPage = () => {
     const handleEdit = async () => {
         if (!currentUser) return;
         if (editForm.password && editForm.password !== editForm.confirmPassword) {
-            alert('Passwords do not match');
+            showToast('error', 'Passwords do not match');
             return;
         }
         try {
@@ -320,10 +324,11 @@ const UsersPage = () => {
             setEditForm(editEmptyForm);
             clearAvatar();
             await loadUsers();
+            showToast('success', 'User updated successfully.');
         } catch (err: unknown) {
             const msg =
                 (err as AxiosError<{ message?: string }>)?.response?.data?.message || 'Failed to update user';
-            alert(msg);
+            showToast('error', msg);
         }
     };
 
@@ -345,10 +350,11 @@ const UsersPage = () => {
             setShowDeleteConfirm(false);
             setCurrentUser(null);
             await loadUsers();
+            showToast('success', 'User deleted successfully.');
         } catch (err: unknown) {
             const msg =
                 (err as AxiosError<{ message?: string }>)?.response?.data?.message || 'Failed to delete user';
-            alert(msg);
+            showToast('error', msg);
         } finally {
             setDeleting(false);
         }
@@ -407,8 +413,9 @@ const UsersPage = () => {
             }));
             await updateUserPermissions(currentUser.id, payload);
             setShowPermission(false);
+            showToast('success', 'Permissions saved successfully.');
         } catch {
-            alert('Failed to save permissions');
+            showToast('error', 'Failed to save permissions');
         } finally {
             setSavingPerms(false);
         }
@@ -1246,6 +1253,7 @@ const UsersPage = () => {
                     setShowAddApproval(false);
                     setAddForm(addEmptyForm);
                     clearAvatar();
+                    showToast('info', 'Create user request sent.');
                 }}
             />
 
@@ -1275,6 +1283,7 @@ const UsersPage = () => {
                 onSent={() => {
                     setShowDeleteApproval(false);
                     setCurrentUser(null);
+                    showToast('info', 'Delete user request sent.');
                 }}
             />
 

@@ -1,8 +1,10 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Card, Button, Form, Alert } from 'react-bootstrap';
+import { Card, Button, Form } from 'react-bootstrap';
 import Icon from '@/components/common/Icon';
 import { getAssetUrl } from '@/lib';
 import { getStoreSetting, updateStoreSetting, type StoreSetting, type StoreSettingFormData } from '@/api/store.api';
+import useContextData from '@/hooks/useContextData';
+import { ToastContext } from '@/provider/ToastProvider/ToastContext';
 
 const CURRENCIES = [
     { value: 'USD', label: 'USD - US Dollar' },
@@ -20,11 +22,10 @@ const CURRENCIES = [
 ];
 
 const StoreSettingsPage = () => {
+    const { showToast } = useContextData(ToastContext);
     const [setting, setSetting] = useState<StoreSetting | null>(null);
     const [loading, setLoading] = useState(false);
     const [saving, setSaving] = useState(false);
-    const [error, setError] = useState<string | null>(null);
-    const [success, setSuccess] = useState<string | null>(null);
 
     const [form, setForm] = useState<StoreSettingFormData>({
         name: '',
@@ -37,7 +38,6 @@ const StoreSettingsPage = () => {
 
     const loadSetting = useCallback(async () => {
         setLoading(true);
-        setError(null);
         try {
             const result = await getStoreSetting();
             setSetting(result);
@@ -62,22 +62,17 @@ const StoreSettingsPage = () => {
                 enableTable: result.enableTable ?? true,
             });
         } catch {
-            setError('Failed to load store settings. Please try again.');
+            showToast('error', 'Failed to load store settings. Please try again.');
         } finally {
             setLoading(false);
         }
-    }, []);
+    }, [showToast]);
 
     useEffect(() => {
         // eslint-disable-next-line react-hooks/set-state-in-effect
         loadSetting();
     }, [loadSetting]);
 
-    useEffect(() => {
-        if (!success) return;
-        const t = setTimeout(() => setSuccess(null), 3000);
-        return () => clearTimeout(t);
-    }, [success]);
 
     const handleImageChange = (file: File | null) => {
         setImageFile(file);
@@ -93,14 +88,12 @@ const StoreSettingsPage = () => {
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setSaving(true);
-        setError(null);
-        setSuccess(null);
         try {
             const updated = await updateStoreSetting({ ...form, image: imageFile || undefined });
             setSetting(updated);
-            setSuccess('Store settings updated successfully.');
+            showToast('success', 'Store settings updated successfully.');
         } catch (err: unknown) {
-            setError(err instanceof Error ? err.message : 'Failed to update store settings.');
+            showToast('error', err instanceof Error ? err.message : 'Failed to update store settings.');
         } finally {
             setSaving(false);
         }
@@ -129,16 +122,6 @@ const StoreSettingsPage = () => {
                 </div>
             </div>
 
-            {success && (
-                <Alert variant="success" onClose={() => setSuccess(null)} dismissible>
-                    {success}
-                </Alert>
-            )}
-            {error && (
-                <Alert variant="danger" onClose={() => setError(null)} dismissible>
-                    {error}
-                </Alert>
-            )}
 
             <Card className="mb-0">
                 <Card.Body>

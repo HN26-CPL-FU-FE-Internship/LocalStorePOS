@@ -1,9 +1,11 @@
 import { useCallback, useEffect, useState, type Dispatch, type SetStateAction } from 'react';
-import { Card, Button, Modal, Form, Alert } from 'react-bootstrap';
+import { Card, Button, Modal, Form } from 'react-bootstrap';
 import Icon from '@/components/common/Icon';
 import ApprovalRequestModal from '@/components/common/ApprovalRequestModal';
 import ConfirmModal from '@/components/common/ConfirmModal';
 import useAuth from '@/hooks/useAuth';
+import useContextData from '@/hooks/useContextData';
+import { ToastContext } from '@/provider/ToastProvider/ToastContext';
 import {
     getTaxes,
     createTax,
@@ -49,10 +51,9 @@ const TaxFormContent = ({ form, setForm }: TaxFormContentProps) => (
 );
 
 const TaxSettingsPage = () => {
+    const { showToast } = useContextData(ToastContext);
     const [taxes, setTaxes] = useState<TaxEntry[]>([]);
     const [loading, setLoading] = useState(false);
-    const [error, setError] = useState<string | null>(null);
-    const [success, setSuccess] = useState<string | null>(null);
 
     const [showAdd, setShowAdd] = useState(false);
     const [showEdit, setShowEdit] = useState(false);
@@ -65,27 +66,21 @@ const TaxSettingsPage = () => {
 
     const loadTaxes = useCallback(async () => {
         setLoading(true);
-        setError(null);
         try {
             const result = await getTaxes();
             setTaxes(result);
         } catch {
-            setError('Failed to load tax settings.');
+            showToast('error', 'Failed to load tax settings.');
         } finally {
             setLoading(false);
         }
-    }, []);
+    }, [showToast]);
 
     useEffect(() => {
         // eslint-disable-next-line react-hooks/set-state-in-effect
         loadTaxes();
     }, [loadTaxes]);
 
-    useEffect(() => {
-        if (!success) return;
-        const t = setTimeout(() => setSuccess(null), 3000);
-        return () => clearTimeout(t);
-    }, [success]);
 
     const resetForm = () => setForm(emptyForm);
 
@@ -96,15 +91,14 @@ const TaxSettingsPage = () => {
 
     const handleAdd = async () => {
         setSaving(true);
-        setError(null);
         try {
             await createTax(form);
             setShowAdd(false);
             resetForm();
-            setSuccess('Tax created successfully.');
+            showToast('success', 'Tax created successfully.');
             await loadTaxes();
         } catch (err: unknown) {
-            setError(err instanceof Error ? err.message : 'Failed to create tax.');
+            showToast('error', err instanceof Error ? err.message : 'Failed to create tax.');
         } finally {
             setSaving(false);
         }
@@ -124,16 +118,15 @@ const TaxSettingsPage = () => {
     const handleEdit = async () => {
         if (!currentTax) return;
         setSaving(true);
-        setError(null);
         try {
             await updateTax(currentTax.id, form);
             setShowEdit(false);
             setCurrentTax(null);
             resetForm();
-            setSuccess('Tax updated successfully.');
+            showToast('success', 'Tax updated successfully.');
             await loadTaxes();
         } catch (err: unknown) {
-            setError(err instanceof Error ? err.message : 'Failed to update tax.');
+            showToast('error', err instanceof Error ? err.message : 'Failed to update tax.');
         } finally {
             setSaving(false);
         }
@@ -153,15 +146,14 @@ const TaxSettingsPage = () => {
     const handleDeleteConfirm = async () => {
         if (!currentTax) return;
         setDeleting(true);
-        setError(null);
         try {
             await deleteTax(currentTax.id);
             setShowDeleteConfirm(false);
             setCurrentTax(null);
-            setSuccess('Tax deleted successfully.');
+            showToast('success', 'Tax deleted successfully.');
             await loadTaxes();
         } catch (err: unknown) {
-            setError(err instanceof Error ? err.message : 'Failed to delete tax.');
+            showToast('error', err instanceof Error ? err.message : 'Failed to delete tax.');
         } finally {
             setDeleting(false);
         }
@@ -173,8 +165,9 @@ const TaxSettingsPage = () => {
         try {
             await updateTaxStatus(tax.id, nextStatus);
             setTaxes((prev) => prev.map((t) => (t.id === tax.id ? { ...t, status: nextStatus } : t)));
+            showToast('success', 'Tax status updated.');
         } catch (err: unknown) {
-            setError(err instanceof Error ? err.message : 'Failed to update status.');
+            showToast('error', err instanceof Error ? err.message : 'Failed to update status.');
         }
     };
 
@@ -196,8 +189,6 @@ const TaxSettingsPage = () => {
                 </div>
             </div>
 
-            {success && <Alert variant="success" onClose={() => setSuccess(null)} dismissible>{success}</Alert>}
-            {error && <Alert variant="danger" onClose={() => setError(null)} dismissible>{error}</Alert>}
 
             <Card className="mb-0">
                 <Card.Body>
@@ -318,7 +309,7 @@ const TaxSettingsPage = () => {
                 onSent={() => {
                     setShowDeleteApproval(false);
                     setCurrentTax(null);
-                    setSuccess('Delete tax request sent.');
+                    showToast('info', 'Delete tax request sent.');
                 }}
             />
 

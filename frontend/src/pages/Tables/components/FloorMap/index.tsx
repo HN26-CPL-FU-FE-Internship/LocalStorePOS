@@ -27,6 +27,8 @@ interface FloorMapProps {
     preview?: { x: number; y: number; shape?: TableShape; seats?: number } | null;
     /** Called when a table is dropped at a new position (drag-and-drop). */
     onDragEnd?: (tableId: number, x: number, y: number) => void;
+    /** Disables drag-and-drop (e.g. when the user lacks the Tables edit permission). */
+    editable?: boolean;
 }
 
 const FloorMap = ({
@@ -37,6 +39,7 @@ const FloorMap = ({
     onViewBookings,
     preview,
     onDragEnd,
+    editable = true,
 }: FloorMapProps) => {
     const [hoveredId, setHoveredId] = useState<number | null>(null);
     const mapRef = useRef<HTMLDivElement | null>(null);
@@ -71,7 +74,7 @@ const FloorMap = ({
 
     /* ---- drag-and-drop (pointer events) ---- */
     const handlePointerDown = (e: React.PointerEvent, table: TableEntry) => {
-        if (!onDragEnd) return;
+        if (!onDragEnd || !editable) return;
         const rect = mapRef.current?.getBoundingClientRect();
         if (!rect) return;
         const start = resolvePosition(table);
@@ -414,7 +417,9 @@ const FloorMap = ({
                 </span>
                 <span className={styles['map-hint']}>
                     <Icon name="info" size={13} />
-                    Fixed floor plan 1000 × 640 — drag a table to reposition it
+                    {editable
+                        ? 'Fixed floor plan 1000 × 640 — drag a table to reposition it'
+                        : 'Fixed floor plan 1000 × 640'}
                 </span>
             </div>
         </div>

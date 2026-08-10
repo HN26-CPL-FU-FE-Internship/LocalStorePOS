@@ -1,22 +1,22 @@
 import { useCallback, useEffect, useState } from 'react';
-import { Card, Button, Form, Alert } from 'react-bootstrap';
+import { Card, Button, Form } from 'react-bootstrap';
 import Icon from '@/components/common/Icon';
 import { getPrintSetting, updatePrintSetting, type PrintSetting, type PrintSettingFormData } from '@/api/print-setting.api';
+import useContextData from '@/hooks/useContextData';
+import { ToastContext } from '@/provider/ToastProvider/ToastContext';
 
 const PAGE_SIZES = ['A1', 'A2', 'A3', 'A4', 'A5', 'Letter', 'Legal', 'Receipt (80mm)', 'Receipt (58mm)'];
 
 const PrintSettingsPage = () => {
+    const { showToast } = useContextData(ToastContext);
     const [setting, setSetting] = useState<PrintSetting | null>(null);
     const [loading, setLoading] = useState(false);
     const [saving, setSaving] = useState(false);
-    const [error, setError] = useState<string | null>(null);
-    const [success, setSuccess] = useState<string | null>(null);
 
     const [form, setForm] = useState<PrintSettingFormData>({});
 
     const loadSetting = useCallback(async () => {
         setLoading(true);
-        setError(null);
         try {
             const result = await getPrintSetting();
             setSetting(result);
@@ -31,30 +31,23 @@ const PrintSettingsPage = () => {
                 footerText: result.footerText || '',
             });
         } catch {
-            setError('Failed to load print settings.');
+            showToast('error', 'Failed to load print settings.');
         } finally {
             setLoading(false);
         }
-    }, []);
+    }, [showToast]);
 
     // eslint-disable-next-line react-hooks/set-state-in-effect
     useEffect(() => { loadSetting(); }, [loadSetting]);
-    useEffect(() => {
-        if (!success) return;
-        const t = setTimeout(() => setSuccess(null), 3000);
-        return () => clearTimeout(t);
-    }, [success]);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setSaving(true);
-        setError(null);
-        setSuccess(null);
         try {
             await updatePrintSetting(form);
-            setSuccess('Print settings updated successfully.');
+            showToast('success', 'Print settings updated successfully.');
         } catch (err: unknown) {
-            setError(err instanceof Error ? err.message : 'Failed to update print settings.');
+            showToast('error', err instanceof Error ? err.message : 'Failed to update print settings.');
         } finally {
             setSaving(false);
         }
@@ -81,8 +74,6 @@ const PrintSettingsPage = () => {
                 </div>
             </div>
 
-            {success && <Alert variant="success" onClose={() => setSuccess(null)} dismissible>{success}</Alert>}
-            {error && <Alert variant="danger" onClose={() => setError(null)} dismissible>{error}</Alert>}
 
             <Card className="mb-0">
                 <Card.Body>
