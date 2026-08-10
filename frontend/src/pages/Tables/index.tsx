@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Row, Col, Button, Modal, Form, Alert, Spinner, Badge, Offcanvas } from 'react-bootstrap';
+import { Row, Col, Card, Button, Modal, Form, Alert, Spinner, Badge, Offcanvas } from 'react-bootstrap';
 import { isAxiosError } from 'axios';
 import Icon from '@/components/common/Icon';
 import ConfirmModal from '@/components/common/ConfirmModal';
@@ -61,6 +61,14 @@ const emptyReservationForm = {
     status: 'booked' as ReservationStatus,
 };
 
+const formatDateTime = (value: string) =>
+    new Date(value).toLocaleString('en-US', {
+        month: 'short',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit',
+    });
+
 // const cx = bindCx(styles);
 
 const TablesPage = () => {
@@ -83,6 +91,16 @@ const TablesPage = () => {
 
     const [tableForm, setTableForm] = useState(emptyTableForm);
     const [reservationForm, setReservationForm] = useState(emptyReservationForm);
+    const [showBookingsSidebar, setShowBookingsSidebar] = useState(false);
+    const [sidebarTable, setSidebarTable] = useState<TableEntry | null>(null);
+
+    const sidebarReservations = sidebarTable
+        ? allReservations
+              .filter(
+                  (r) => r.tableId === sidebarTable.id && (r.status === 'booked' || r.status === 'seated'),
+              )
+              .sort((a, b) => new Date(a.reservationTime).getTime() - new Date(b.reservationTime).getTime())
+        : [];
 
     // Live ghost marker on the map while typing coordinates in Add/Edit modal.
     const previewCoords =
@@ -95,10 +113,17 @@ const TablesPage = () => {
               }
             : null;
 
-    const openReservationInfo = (table: TableEntry) => {
-        const booking = activeTableBookings(table)[0] ?? null;
+    /** Open the right-hand bookings panel listing every active reservation. */
+    const openBookingsSidebar = (table: TableEntry) => {
+        setSidebarTable(table);
+        setShowBookingsSidebar(true);
+    };
+
+    /** Drill into one booking from the sidebar: close it and show details. */
+    const openSpecificReservationInfo = (table: TableEntry, reservation: ReservationEntry) => {
         setCurrentTable(table);
-        setCurrentReservation(booking);
+        setCurrentReservation(reservation);
+        setShowBookingsSidebar(false);
         setShowReservationInfo(true);
     };
 
@@ -383,6 +408,7 @@ const TablesPage = () => {
             await updateTableStatus(table.id, 'available');
             setNotice(`Table ${table.tableNumber} marked as Available.`);
             setShowReservationInfo(false);
+            setShowBookingsSidebar(false);
             await loadTables();
         } catch (err) {
             setError(extractErrorMessage(err, 'Cannot update table status.'));
@@ -560,7 +586,7 @@ const TablesPage = () => {
                     areas={areas}
                     preview={previewCoords}
                     onTableClick={openTableAction}
-                    onViewBookings={openReservationInfo}
+                    onViewBookings={openBookingsSidebar}
                     onDragEnd={handleDragTable}
                 />
             )}
@@ -811,7 +837,7 @@ const TablesPage = () => {
                                 onClick={() => {
                                     setShowTableAction(false);
                                     if (currentTable) {
-                                        openReservationInfo(currentTable);
+                                        openBookingsSidebar(currentTable);
                                     }
                                 }}
                             >
@@ -1178,11 +1204,11 @@ const TablesPage = () => {
                                 </Badge>
                             </div>
                             <div className="d-flex justify-content-between mb-2">
-                                <span className="text-warning">Customer</span>
+                                <span className="text-dark fw-semibold">Customer</span>
                                 <span className="fw-medium text-dark">{currentReservation.customerName}</span>
                             </div>
                             <div className="d-flex justify-content-between mb-2">
-                                <span className="text-warning">Date</span>
+                                <span className="text-dark fw-semibold">Date</span>
                                 <span className="fw-medium text-dark">
                                     {new Date(currentReservation.reservationTime).toLocaleDateString('en-US', {
                                         month: 'short',
@@ -1192,7 +1218,7 @@ const TablesPage = () => {
                                 </span>
                             </div>
                             <div className="d-flex justify-content-between mb-2">
-                                <span className="text-warning">Time</span>
+                                <span className="text-dark fw-semibold">Time</span>
                                 <span className="fw-medium text-dark">
                                     {new Date(currentReservation.reservationTime).toLocaleTimeString('en-US', {
                                         hour: '2-digit',
@@ -1201,11 +1227,11 @@ const TablesPage = () => {
                                 </span>
                             </div>
                             <div className="d-flex justify-content-between mb-2">
-                                <span className="text-warning">Guests</span>
+                                <span className="text-dark fw-semibold">Guests</span>
                                 <span className="fw-medium text-dark">{currentReservation.guests}</span>
                             </div>
                             <div className="d-flex justify-content-between mb-4">
-                                <span className="text-warning">Seats</span>
+                                <span className="text-dark fw-semibold">Seats</span>
                                 <span className="fw-medium text-dark">{currentTable?.seats}</span>
                             </div>
                             <div className="d-flex gap-2">
@@ -1228,6 +1254,66 @@ const TablesPage = () => {
                     )}
                 </Modal.Body>
             </Modal>
+
+            {/* ---- Bookings Sidebar (right-hand list of reservation times) ---- */}
+            <Offcanvas
+                show={showBookingsSidebar}
+                onHide={() => setShowBookingsSidebar(false)}
+                placement="end"
+                style={{ width: 'min(92vw, 420px)' }}
+            >
+                <Offcanvas.Header closeButton className="border-bottom">
+                    <Offcanvas.Title>Bookings — Table {sidebarTable?.tableNumber}</Offcanvas.Title>
+                </Offcanvas.Header>
+                <Offcanvas.Body className="p-3">
+                    {sidebarReservations.length === 0 ? (
+                        <div className="text-center py-5">
+                            <p className="text-muted mb-4">No active reservations for this table.</p>
+                            {sidebarTable && (
+                                <Button variant="outline-primary" onClick={() => handleFreeTable(sidebarTable)}>
+                                    <Icon name="check" className="me-2" />
+                                    Mark as Available
+                                </Button>
+                            )}
+                        </div>
+                    ) : (
+                        <div className="d-flex flex-column gap-3">
+                            {sidebarReservations.map((res) => (
+                                <Card
+                                    key={res.id}
+                                    className="border shadow-sm border-light-subtle"
+                                    style={{ cursor: 'pointer', transition: 'all 0.2s ease-in-out' }}
+                                    onClick={() => {
+                                        if (sidebarTable) {
+                                            openSpecificReservationInfo(sidebarTable, res);
+                                        }
+                                    }}
+                                >
+                                    <Card.Body className="p-3">
+                                        <div className="d-flex justify-content-between align-items-start mb-2">
+                                            <h6 className="mb-0 fw-bold text-dark">{res.customerName}</h6>
+                                            <Badge
+                                                bg=""
+                                                className={reservationBadgeClass[res.status] || 'badge-soft-primary'}
+                                            >
+                                                {res.status.charAt(0).toUpperCase() + res.status.slice(1)}
+                                            </Badge>
+                                        </div>
+                                        <div className="small text-dark d-flex align-items-center gap-2 mb-1">
+                                            <Icon name="clock" size={14} />
+                                            {formatDateTime(res.reservationTime)}
+                                        </div>
+                                        <div className="small text-dark d-flex align-items-center gap-2">
+                                            <Icon name="users" size={14} />
+                                            {res.guests} {res.guests === 1 ? 'guest' : 'guests'}
+                                        </div>
+                                    </Card.Body>
+                                </Card>
+                            ))}
+                        </div>
+                    )}
+                </Offcanvas.Body>
+            </Offcanvas>
         </>
     );
 };
