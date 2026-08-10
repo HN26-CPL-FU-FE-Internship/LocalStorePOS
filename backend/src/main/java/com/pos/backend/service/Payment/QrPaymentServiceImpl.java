@@ -62,7 +62,7 @@ public class QrPaymentServiceImpl implements QrPaymentService {
     private final WebSocketService webSocketService;
     private final NotificationService notificationService;
 
-    @Value("${app.qr-payment.base-url:https://registration-pieces-mile-multimedia.trycloudflare.com/restaurant-pos}")
+    @Value("${app.cors.allowed-origins}")
     private String qrPaymentBaseUrl;
 
     @Override
