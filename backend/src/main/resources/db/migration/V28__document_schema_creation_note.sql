@@ -1,0 +1,21 @@
+-- =============================================================================
+-- V28 — Schema creation note (documentation / no-op)
+-- =============================================================================
+-- V1__init_schema.sql contains hard-coded statements:
+--
+--     CREATE DATABASE IF NOT EXISTS restaurant_pos_db ...
+--     USE restaurant_pos_db;
+--
+-- Those statements are left untouched on purpose: V1 has already been applied
+-- to every existing database, and editing an applied migration would break
+-- Flyway's checksum validation on those environments.
+--
+-- The database itself must be created outside of migrations — Flyway always
+-- connects to the database named in spring.datasource.url (e.g.
+-- restaurant_pos_db, or a dedicated test database) and runs all migrations
+-- against that connection. Creating/selecting a schema by name inside a
+-- migration would silently switch the connection to the wrong database.
+--
+-- This migration intentionally contains no schema changes.
+-- =============================================================================
+SELECT 1;
