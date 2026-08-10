@@ -26,12 +26,10 @@ public class RestaurantTableServiceImpl implements RestaurantTableService {
     private final RestaurantTableRepository restaurantTableRepository;
     private final TableAreaRepository tableAreaRepository;
     private final TableFloorRepository tableFloorRepository;
-    private final ReservationRepository reservationRepository;
 
     @Override
     @Transactional
     public List<RestaurantTableResponse> getTables(Long areaId, Long floorId, TableStatus status) {
-        autoArriveReservations();
         return restaurantTableRepository.search(areaId, floorId, status).stream().map(this::toResponse).toList();
     }
 
