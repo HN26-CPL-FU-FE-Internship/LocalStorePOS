@@ -12,6 +12,7 @@ import useAuth from '@/hooks/useAuth';
 import { filterSidebarTabs } from '@/utils/navigation';
 import { Link, useLocation } from 'react-router-dom';
 import configs from '@/configs';
+import logoSmall from '@/assets/img/logo-small.svg';
 
 export interface SidebarProps {
     onClose: () => void;
@@ -60,10 +61,7 @@ const Sidebar = ({ onClose }: SidebarProps) => {
             <div className="sidebar sidebar-twocol">
                 <div className="twocol-mini">
                     <Link to={configs.routes.dashboard} className="logo-small">
-                        <img
-                            src="https://restaurant-pos-backend-kfk1.onrender.com/src/assets/img/logo-small.svg"
-                            alt="Logo"
-                        />
+                        <img src={logoSmall} alt="Logo" />
                     </Link>
 
                     <div className="sidebar-left">

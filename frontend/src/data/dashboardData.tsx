@@ -1,3 +1,4 @@
+import profileImages from '@/assets/img/profiles';
 import type { CustomerSearchResult, OrderSearchResult, KitchenSearchResult, NotificationGroup } from '../types';
 
 export const customerSearchResults: CustomerSearchResult[] = [
@@ -6,21 +7,21 @@ export const customerSearchResults: CustomerSearchResult[] = [
         name: 'Adrian James',
         gender: 'Male',
         code: '#CR6569',
-        avatarUrl: 'https://restaurant-pos-backend-kfk1.onrender.com/src/assets/img/profiles/avatar-32.jpg',
+        avatarUrl: profileImages['avatar-32'],
     },
     {
         id: 'c2',
         name: 'Sue Allen',
         gender: 'Female',
         code: '#CR6569',
-        avatarUrl: 'https://restaurant-pos-backend-kfk1.onrender.com/src/assets/img/profiles/avatar-33.jpg',
+        avatarUrl: profileImages['avatar-33'],
     },
     {
         id: 'c3',
         name: 'Frank Barrett',
         gender: 'Male',
         code: '#CR4824',
-        avatarUrl: 'https://restaurant-pos-backend-kfk1.onrender.com/src/assets/img/profiles/avatar-31.jpg',
+        avatarUrl: profileImages['avatar-31'],
     },
     { id: 'c4', name: 'Walkin Customer', gender: 'Male', code: '#CR8238' },
 ];

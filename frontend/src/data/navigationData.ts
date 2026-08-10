@@ -1,4 +1,6 @@
 import configs from '@/configs';
+import storeImages from '@/assets/img/store';
+import profileImages from '@/assets/img/profiles';
 import type { QuickLink, SidebarTab, StoreOption, UserProfile, ProfileMenuItem } from '../types';
 
 // NOTE: every static href from the original HTML (pos.html, orders.html, ...)
@@ -28,24 +30,24 @@ export const storeOptions: StoreOption[] = [
     {
         id: 'store-1',
         name: 'Streak House',
-        imageUrl: 'https://restaurant-pos-backend-kfk1.onrender.com/src/assets/img/store/store-01.jpg',
+        imageUrl: storeImages['store-01'],
     },
     {
         id: 'store-2',
         name: 'Hotchilli Hub',
-        imageUrl: 'https://restaurant-pos-backend-kfk1.onrender.com/src/assets/img/store/store-02.jpg',
+        imageUrl: storeImages['store-02'],
     },
     {
         id: 'store-3',
         name: 'The Flavor Lab',
-        imageUrl: 'https://restaurant-pos-backend-kfk1.onrender.com/src/assets/img/store/store-03.jpg',
+        imageUrl: storeImages['store-03'],
     },
 ];
 
 export const currentUser: UserProfile = {
     name: 'Adrian James',
     role: 'Administrator',
-    avatarUrl: 'https://restaurant-pos-backend-kfk1.onrender.com/src/assets/img/profiles/avatar-27.jpg',
+    avatarUrl: profileImages['avatar-27'],
     plan: 'Pro',
 };
 

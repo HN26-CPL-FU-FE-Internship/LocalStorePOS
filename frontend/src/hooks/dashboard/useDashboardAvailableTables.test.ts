@@ -4,6 +4,7 @@ import { renderHook, waitFor } from '@testing-library/react';
 import React from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import useDashboardAvailableTables from './useDashboardAvailableTables';
+import tableImages from '@/assets/img/tables';
 import * as dashboardApi from '@/api/dashboard.api';
 
 vi.mock('@/api/dashboard.api', () => ({
@@ -42,9 +43,11 @@ describe('useDashboardAvailableTables', () => {
             guests: 6,
             imageUrl: '/tables/01.svg',
         });
-        expect(result.current.data[1].imageUrl).toBe(
-            'https://restaurant-pos-backend-kfk1.onrender.com/src/assets/img/tables/tables-17.svg',
-        );
+        const fallback = result.current.data[1].imageUrl;
+        expect(fallback).toBe(tableImages['tables-17']);
+        // Asset must resolve to a real URL string (catches broken imports/keys).
+        expect(typeof fallback).toBe('string');
+        expect(fallback!.length).toBeGreaterThan(0);
     });
 
     it('uses default image URL when imageUrl is missing', async () => {
@@ -54,9 +57,11 @@ describe('useDashboardAvailableTables', () => {
 
         await waitFor(() => expect(result.current.isLoading).toBe(false));
 
-        expect(result.current.data[0].imageUrl).toBe(
-            'https://restaurant-pos-backend-kfk1.onrender.com/src/assets/img/tables/tables-17.svg',
-        );
+        const fallback = result.current.data[0].imageUrl;
+        expect(fallback).toBe(tableImages['tables-17']);
+        // Asset must resolve to a real URL string (catches broken imports/keys).
+        expect(typeof fallback).toBe('string');
+        expect(fallback!.length).toBeGreaterThan(0);
     });
 
     it('returns empty array on empty response', async () => {
