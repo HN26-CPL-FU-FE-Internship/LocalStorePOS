@@ -19,5 +19,6 @@ public class TableResponse {
     String name;
     Integer seats;
     String areaName;
+    String floorName;
     String shape;
 }

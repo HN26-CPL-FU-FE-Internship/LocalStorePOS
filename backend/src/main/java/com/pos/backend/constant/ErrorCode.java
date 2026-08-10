@@ -92,6 +92,9 @@ public enum ErrorCode {
     RESOURCE_NOT_FOUND(1065, HttpStatus.NOT_FOUND, "Resource not found"),
     ADMIN_NO_APPROVAL_NEEDED(1066, HttpStatus.BAD_REQUEST,
             "Admins can apply changes directly and do not require approval"),
+    TABLE_FLOOR_NOT_FOUND(1056, HttpStatus.NOT_FOUND, "Table floor not found"),
+    TABLE_FLOOR_NAME_ALREADY_EXISTS(1057, HttpStatus.BAD_REQUEST, "Table floor name already exists"),
+    TABLE_FLOOR_HAS_TABLES(1058, HttpStatus.BAD_REQUEST, "Cannot delete floor that still has tables"),
     ;
 
     int code;

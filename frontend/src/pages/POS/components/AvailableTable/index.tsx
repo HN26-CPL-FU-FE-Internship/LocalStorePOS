@@ -69,6 +69,7 @@ const AvailableTable = () => {
                                                 <p className="fw-semibold fs-12 mb-0">{table.name}</p>
                                                 <p className="mb-0 text-muted" style={{ fontSize: 11 }}>
                                                     {table.seats} seats · {table.areaName}
+                                                    {table.floorName ? ` · ${table.floorName}` : ''}
                                                 </p>
                                             </div>
                                         </Button>

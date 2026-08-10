@@ -3,7 +3,7 @@ import type { ReservationEntry, TableEntry, TableShape, TableStatus } from '@/ap
 import Icon from '@/components/common/Icon';
 import { bindCx } from '@/utils';
 import styles from './FloorMap.module.scss';
-import { DECOR_OBSTACLES, getTableSize, MAP_H, MAP_W, obstacleRect, resolvePlacement, tableRect, ZONE_GEOMETRY, type Rect } from '../floorMapConstants';
+import { DECOR_OBSTACLES, getTableSize, MAP_H, MAP_W, obstacleRect, resolvePlacement, tableRect, type Rect, ZONE_GEOMETRY } from '../floorMapConstants';
 import TableVisual from '@/components/common/TableVisual';
 
 const STATUS_LABEL: Record<TableStatus, string> = {

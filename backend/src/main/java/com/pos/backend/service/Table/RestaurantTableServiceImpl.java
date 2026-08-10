@@ -11,11 +11,13 @@ import com.pos.backend.dto.request.Table.RestaurantTableRequest;
 import com.pos.backend.dto.response.Table.RestaurantTableResponse;
 import com.pos.backend.entity.RestaurantTable;
 import com.pos.backend.entity.TableArea;
+import com.pos.backend.entity.TableFloor;
 import com.pos.backend.exception.AppException;
 import com.pos.backend.repository.OrderRepository;
 import com.pos.backend.repository.ReservationRepository;
 import com.pos.backend.repository.RestaurantTableRepository;
 import com.pos.backend.repository.TableAreaRepository;
+import com.pos.backend.repository.TableFloorRepository;
 
 import lombok.RequiredArgsConstructor;
 
@@ -27,11 +29,12 @@ public class RestaurantTableServiceImpl implements RestaurantTableService {
     private final TableAreaRepository tableAreaRepository;
     private final ReservationRepository reservationRepository;
     private final OrderRepository orderRepository;
+    private final TableFloorRepository tableFloorRepository;
 
     @Override
-    @Transactional(readOnly = true)
-    public List<RestaurantTableResponse> getTables(Long areaId, TableStatus status) {
-        return restaurantTableRepository.search(areaId, status).stream().map(this::toResponse).toList();
+    @Transactional
+    public List<RestaurantTableResponse> getTables(Long areaId, Long floorId, TableStatus status) {
+        return restaurantTableRepository.search(areaId, floorId, status).stream().map(this::toResponse).toList();
     }
 
     @Override
@@ -39,6 +42,7 @@ public class RestaurantTableServiceImpl implements RestaurantTableService {
     public RestaurantTableResponse createTable(RestaurantTableRequest request) {
         validateShapeAndSeats(request.getShape(), request.getSeats());
         TableArea area = findAreaOrThrow(request.getAreaId());
+        TableFloor floor = findFloorOrThrow(request.getFloorId());
 
         String tableNumber = request.getTableNumber().trim();
         if (restaurantTableRepository.existsByTableNumberIgnoreCase(tableNumber)) {
@@ -47,6 +51,7 @@ public class RestaurantTableServiceImpl implements RestaurantTableService {
 
         RestaurantTable table = RestaurantTable.builder()
                 .area(area)
+                .floor(floor)
                 .tableNumber(tableNumber)
                 .seats(request.getSeats())
                 .status(request.getStatus() != null ? request.getStatus() : TableStatus.available)
@@ -66,6 +71,9 @@ public class RestaurantTableServiceImpl implements RestaurantTableService {
         RestaurantTable table = findTableOrThrow(id);
         validateShapeAndSeats((request.getShape() != null && !request.getShape().isBlank()) ? request.getShape() : table.getShape(), request.getSeats());
         TableArea area = findAreaOrThrow(request.getAreaId());
+        TableFloor floor = findFloorOrThrow(request.getFloorId() != null
+                ? request.getFloorId()
+                : (table.getFloor() != null ? table.getFloor().getId() : null));
 
         String tableNumber = request.getTableNumber().trim();
         if (restaurantTableRepository.existsByTableNumberIgnoreCaseAndIdNot(tableNumber, id)) {
@@ -73,6 +81,7 @@ public class RestaurantTableServiceImpl implements RestaurantTableService {
         }
 
         table.setArea(area);
+        table.setFloor(floor);
         table.setTableNumber(tableNumber);
         table.setSeats(request.getSeats());
 
@@ -132,6 +141,25 @@ public class RestaurantTableServiceImpl implements RestaurantTableService {
                 .orElseThrow(() -> new AppException(ErrorCode.TABLE_AREA_NOT_FOUND));
     }
 
+    /**
+     * Resolve the floor for a table. Falls back to the first floor so that
+     * legacy requests without a floorId still work.
+     */
+    private TableFloor findFloorOrThrow(Long floorId) {
+        Long id = floorId;
+        if (id == null) {
+            id = tableFloorRepository.findAllByOrderByIdAsc().stream()
+                    .map(TableFloor::getId)
+                    .findFirst()
+                    .orElse(null);
+        }
+        if (id == null) {
+            throw new AppException(ErrorCode.TABLE_FLOOR_NOT_FOUND);
+        }
+        return tableFloorRepository.findById(id)
+                .orElseThrow(() -> new AppException(ErrorCode.TABLE_FLOOR_NOT_FOUND));
+    }
+
     private String normalizeShape(String shape) {
         if (shape == null || shape.isBlank()) {
             return "ROUND";
@@ -160,6 +188,8 @@ public class RestaurantTableServiceImpl implements RestaurantTableService {
         return RestaurantTableResponse.builder()
                 .id(table.getId())
                 .tableNumber(table.getTableNumber())
+                .floorId(table.getFloor() != null ? table.getFloor().getId() : null)
+                .floorName(table.getFloor() != null ? table.getFloor().getName() : null)
                 .areaId(table.getArea() != null ? table.getArea().getId() : null)
                 .areaName(table.getArea() != null ? table.getArea().getName() : null)
                 .seats(table.getSeats())

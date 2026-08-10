@@ -30,6 +30,11 @@ public class RestaurantTable extends BaseEntity {
     @JoinColumn(name = "area_id")
     private TableArea area;
 
+    /** Floor (tang) this table belongs to. All floors share one map. */
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "floor_id")
+    private TableFloor floor;
+
     /** Table 1, Table 2... */
     @Column(name = "table_number", nullable = false, unique = true, length = 20)
     private String tableNumber;

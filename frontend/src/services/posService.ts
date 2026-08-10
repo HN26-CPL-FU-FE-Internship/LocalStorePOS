@@ -14,6 +14,7 @@ export interface OptionItem {
 export interface TablePOS extends OptionItem {
     seats: number;
     areaName: string;
+    floorName: string | null;
     shape: TableShape;
 }
 
