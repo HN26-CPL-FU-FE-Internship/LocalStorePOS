@@ -7,7 +7,7 @@ export default defineConfig({
     resolve: {
         tsconfigPaths: true,
     },
-    base: '/restaurant-pos',
+    base: '/',
     test: {
         globals: true,
         environment: 'jsdom',

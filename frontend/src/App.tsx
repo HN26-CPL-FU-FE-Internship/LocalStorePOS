@@ -21,7 +21,7 @@ function App() {
         connectWebSocket();
     }, []);
     return (
-        <BrowserRouter basename="/restaurant-pos">
+        <BrowserRouter>
             <div className="app">
                 <Routes>
                     <Route path="/" element={<Navigate to={`/login`} />} />
