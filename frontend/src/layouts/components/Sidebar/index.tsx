@@ -42,14 +42,25 @@ const Sidebar = ({ onClose }: SidebarProps) => {
         return visibleTabs[0] ?? sidebarTabs[0];
     });
 
-    const { groups: allGroups, unreadGroups, unreadCount, markAsRead, markAsUnread, markAllAsRead, acceptAction, declineAction, isLoading, isError } = useNotifications();
+    const {
+        groups: allGroups,
+        unreadGroups,
+        unreadCount,
+        markAsRead,
+        markAsUnread,
+        markAllAsRead,
+        acceptAction,
+        declineAction,
+        isLoading,
+        isError,
+    } = useNotifications();
 
     return (
         <div className="two-col-sidebar" id="two-col-sidebar">
             <div className="sidebar sidebar-twocol">
                 <div className="twocol-mini">
                     <Link to={configs.routes.dashboard} className="logo-small">
-                        <img src="/restaurant-pos/src/assets/img/logo-small.svg" alt="Logo" />
+                        <img src="/src/assets/img/logo-small.svg" alt="Logo" />
                     </Link>
 
                     <div className="sidebar-left">

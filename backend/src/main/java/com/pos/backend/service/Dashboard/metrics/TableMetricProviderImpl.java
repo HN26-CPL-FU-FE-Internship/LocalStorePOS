@@ -19,7 +19,7 @@ import lombok.experimental.FieldDefaults;
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 public class TableMetricProviderImpl implements TableMetricProvider {
 
-    static final String DEFAULT_TABLE_IMAGE = "/restaurant-pos/src/assets/img/tables/tables-17.svg";
+    static final String DEFAULT_TABLE_IMAGE = "/src/assets/img/tables/tables-17.svg";
 
     RestaurantTableRepository restaurantTableRepository;
 

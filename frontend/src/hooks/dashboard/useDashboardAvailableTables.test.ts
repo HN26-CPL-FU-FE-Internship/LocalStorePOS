@@ -42,19 +42,17 @@ describe('useDashboardAvailableTables', () => {
             guests: 6,
             imageUrl: '/tables/01.svg',
         });
-        expect(result.current.data[1].imageUrl).toBe('/restaurant-pos/src/assets/img/tables/tables-17.svg');
+        expect(result.current.data[1].imageUrl).toBe('/src/assets/img/tables/tables-17.svg');
     });
 
     it('uses default image URL when imageUrl is missing', async () => {
-        vi.mocked(dashboardApi.getAvailableTables).mockResolvedValue([
-            { id: 3, name: 'Table 03', guests: 2 },
-        ] as any);
+        vi.mocked(dashboardApi.getAvailableTables).mockResolvedValue([{ id: 3, name: 'Table 03', guests: 2 }] as any);
 
         const { result } = renderHook(() => useDashboardAvailableTables(), { wrapper: createWrapper() });
 
         await waitFor(() => expect(result.current.isLoading).toBe(false));
 
-        expect(result.current.data[0].imageUrl).toBe('/restaurant-pos/src/assets/img/tables/tables-17.svg');
+        expect(result.current.data[0].imageUrl).toBe('/src/assets/img/tables/tables-17.svg');
     });
 
     it('returns empty array on empty response', async () => {

@@ -1,9 +1,4 @@
-import type {
-    CustomerSearchResult,
-    OrderSearchResult,
-    KitchenSearchResult,
-    NotificationGroup,
-} from '../types';
+import type { CustomerSearchResult, OrderSearchResult, KitchenSearchResult, NotificationGroup } from '../types';
 
 export const customerSearchResults: CustomerSearchResult[] = [
     {
@@ -11,21 +6,21 @@ export const customerSearchResults: CustomerSearchResult[] = [
         name: 'Adrian James',
         gender: 'Male',
         code: '#CR6569',
-        avatarUrl: '/restaurant-pos/src/assets/img/profiles/avatar-32.jpg',
+        avatarUrl: '/src/assets/img/profiles/avatar-32.jpg',
     },
     {
         id: 'c2',
         name: 'Sue Allen',
         gender: 'Female',
         code: '#CR6569',
-        avatarUrl: '/restaurant-pos/src/assets/img/profiles/avatar-33.jpg',
+        avatarUrl: '/src/assets/img/profiles/avatar-33.jpg',
     },
     {
         id: 'c3',
         name: 'Frank Barrett',
         gender: 'Male',
         code: '#CR4824',
-        avatarUrl: '/restaurant-pos/src/assets/img/profiles/avatar-31.jpg',
+        avatarUrl: '/src/assets/img/profiles/avatar-31.jpg',
     },
     { id: 'c4', name: 'Walkin Customer', gender: 'Male', code: '#CR8238' },
 ];

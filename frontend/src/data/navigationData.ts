@@ -25,15 +25,15 @@ export const headerQuickLinks: QuickLink[] = [
 ];
 
 export const storeOptions: StoreOption[] = [
-    { id: 'store-1', name: 'Streak House', imageUrl: '/restaurant-pos/src/assets/img/store/store-01.jpg' },
-    { id: 'store-2', name: 'Hotchilli Hub', imageUrl: '/restaurant-pos/src/assets/img/store/store-02.jpg' },
-    { id: 'store-3', name: 'The Flavor Lab', imageUrl: '/restaurant-pos/src/assets/img/store/store-03.jpg' },
+    { id: 'store-1', name: 'Streak House', imageUrl: '/src/assets/img/store/store-01.jpg' },
+    { id: 'store-2', name: 'Hotchilli Hub', imageUrl: '/src/assets/img/store/store-02.jpg' },
+    { id: 'store-3', name: 'The Flavor Lab', imageUrl: '/src/assets/img/store/store-03.jpg' },
 ];
 
 export const currentUser: UserProfile = {
     name: 'Adrian James',
     role: 'Administrator',
-    avatarUrl: '/restaurant-pos/src/assets/img/profiles/avatar-27.jpg',
+    avatarUrl: '/src/assets/img/profiles/avatar-27.jpg',
     plan: 'Pro',
 };
 
@@ -111,11 +111,7 @@ export const sidebarTabs: SidebarTab[] = [
         id: 'administration',
         title: 'Administration',
         icon: 'user-cog',
-        endpoints: [
-            routes.users,
-            routes['role-permissions'],
-            routes.reports,
-        ],
+        endpoints: [routes.users, routes['role-permissions'], routes.reports],
         sections: [
             {
                 id: 'administration',
@@ -124,7 +120,12 @@ export const sidebarTabs: SidebarTab[] = [
                     { id: 'users', label: 'Users', icon: 'users', href: routes.users },
                     { id: 'role-permission', label: 'Permissions', icon: 'shield', href: routes['role-permissions'] },
                     { id: 'reports', label: 'Reports', icon: 'file-spreadsheet', href: routes.reports },
-                    { id: 'approval-requests', label: 'Approval Requests', icon: 'clipboard-check', href: routes['approval-requests'] },
+                    {
+                        id: 'approval-requests',
+                        label: 'Approval Requests',
+                        icon: 'clipboard-check',
+                        href: routes['approval-requests'],
+                    },
                 ],
             },
         ],
