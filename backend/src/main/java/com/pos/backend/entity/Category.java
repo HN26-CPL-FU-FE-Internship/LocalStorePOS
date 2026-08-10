@@ -25,8 +25,14 @@ public class Category extends BaseEntity {
     @Column(name = "name", nullable = false, length = 100)
     private String name;
 
-    @Column(name = "image_path", length = 255)
+    @Column(name = "image_path", length = 1024)
     private String imagePath;
+
+    @Column(name = "image_public_id", length = 512)
+    private String imagePublicId;
+
+    @Column(name = "image_resource_type", length = 20)
+    private String imageResourceType;
 
     @Builder.Default
     @Enumerated(EnumType.STRING)

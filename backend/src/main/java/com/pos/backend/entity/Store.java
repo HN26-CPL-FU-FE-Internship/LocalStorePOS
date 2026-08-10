@@ -21,8 +21,14 @@ public class Store extends BaseEntity {
     @Column(nullable = false, length = 150)
     private String name;
 
-    @Column(name = "image_path", length = 255)
+    @Column(name = "image_path", length = 1024)
     private String imagePath;
+
+    @Column(name = "image_public_id", length = 512)
+    private String imagePublicId;
+
+    @Column(name = "image_resource_type", length = 20)
+    private String imageResourceType;
 
     @Column(name = "address_line1", nullable = false, length = 255)
     private String addressLine1;

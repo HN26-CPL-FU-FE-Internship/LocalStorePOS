@@ -12,9 +12,9 @@
 SET NAMES utf8mb4;
 SET FOREIGN_KEY_CHECKS = 0;
 
-CREATE DATABASE IF NOT EXISTS restaurant_pos_db
-  CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
-USE restaurant_pos_db;
+-- CREATE DATABASE IF NOT EXISTS restaurant_pos_db
+--   CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+-- USE restaurant_pos_db;
 
 -- =====================================================================
 -- 1. STORE / CẤU HÌNH CHUNG

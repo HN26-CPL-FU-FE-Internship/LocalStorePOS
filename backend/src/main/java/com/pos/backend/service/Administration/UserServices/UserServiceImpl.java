@@ -1,6 +1,6 @@
 package com.pos.backend.service.Administration.UserServices;
 
-import com.pos.backend.config.UploadPathResolver;
+import com.pos.backend.service.CloudinaryService.CloudinaryService;
 import com.pos.backend.constant.ErrorCode;
 import com.pos.backend.constant.enums.AuditAction;
 import com.pos.backend.constant.enums.CommonStatus;
@@ -31,12 +31,6 @@ import org.springframework.web.multipart.MultipartFile;
 
 import jakarta.persistence.criteria.Predicate;
 
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.StandardCopyOption;
-import java.util.Objects;
-import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
@@ -50,7 +44,7 @@ public class UserServiceImpl implements UserService {
     UserMapper userMapper;
     PasswordEncoder passwordEncoder;
     AuditLogService auditLogService;
-    UploadPathResolver uploadPathResolver;
+    CloudinaryService cloudinaryService;
 
     @Override
     public PageResponse<UserResponse> getAllUsers(int page, int size, String sortBy, String sortDir,
@@ -113,8 +107,10 @@ public class UserServiceImpl implements UserService {
 
         // Handle avatar upload
         if (avatarFile != null && !avatarFile.isEmpty()) {
-            String avatarPath = saveAvatarFile(avatarFile);
-            user.setAvatarPath(avatarPath);
+            var avatar = cloudinaryService.uploadImage(avatarFile, "restaurant-pos/avatars");
+            user.setAvatarPath(avatar.secureUrl());
+            user.setAvatarPublicId(avatar.publicId());
+            user.setAvatarResourceType(avatar.resourceType());
         }
 
         UserResponse response = toUserResponse(userRepository.save(user));
@@ -164,10 +160,12 @@ public class UserServiceImpl implements UserService {
         if (avatarFile != null && !avatarFile.isEmpty()) {
             // Delete old avatar if exists
             if (user.getAvatarPath() != null) {
-                deleteAvatarFile(user.getAvatarPath());
+                cloudinaryService.delete(user.getAvatarPath(), user.getAvatarPublicId(), user.getAvatarResourceType());
             }
-            String avatarPath = saveAvatarFile(avatarFile);
-            user.setAvatarPath(avatarPath);
+            var avatar = cloudinaryService.uploadImage(avatarFile, "restaurant-pos/avatars");
+            user.setAvatarPath(avatar.secureUrl());
+            user.setAvatarPublicId(avatar.publicId());
+            user.setAvatarResourceType(avatar.resourceType());
         }
 
         UserResponse response = toUserResponse(userRepository.save(user));
@@ -190,7 +188,7 @@ public class UserServiceImpl implements UserService {
 
         // Delete avatar file if exists
         if (user.getAvatarPath() != null) {
-            deleteAvatarFile(user.getAvatarPath());
+            cloudinaryService.delete(user.getAvatarPath(), user.getAvatarPublicId(), user.getAvatarResourceType());
         }
 
         userRepository.delete(user);
@@ -267,45 +265,5 @@ public class UserServiceImpl implements UserService {
                 .build();
     }
 
-    private String saveAvatarFile(MultipartFile file) {
-        String originalFilename = StringUtils.cleanPath(
-                Objects.requireNonNull(file.getOriginalFilename()));
 
-        if (originalFilename.isBlank()) {
-            throw new AppException(ErrorCode.INVALID_AVATAR_FILE);
-        }
-
-        // Generate unique filename
-        String extension = "";
-        int dotIndex = originalFilename.lastIndexOf('.');
-        if (dotIndex > 0) {
-            extension = originalFilename.substring(dotIndex);
-        }
-        String uniqueFilename = UUID.randomUUID().toString() + extension;
-
-        try {
-            Path uploadPath = uploadPathResolver.resolve(AVATAR_SUB_FOLDER);
-            if (!Files.exists(uploadPath)) {
-                Files.createDirectories(uploadPath);
-            }
-
-            Path filePath = uploadPath.resolve(uniqueFilename);
-            Files.copy(file.getInputStream(), filePath, StandardCopyOption.REPLACE_EXISTING);
-
-            return "/uploads/avatars/" + uniqueFilename;
-        } catch (IOException e) {
-            throw new AppException(ErrorCode.CAN_NOT_UPLOAD_FILE);
-        }
-    }
-
-    private void deleteAvatarFile(String avatarPath) {
-        try {
-            String filename = avatarPath.substring(avatarPath.lastIndexOf('/') + 1);
-            Path filePath = uploadPathResolver.resolve(AVATAR_SUB_FOLDER).resolve(filename);
-            Files.deleteIfExists(filePath);
-        } catch (IOException e) {
-            // Log error but don't throw — deleting avatar is not critical
-            System.err.println("Failed to delete avatar file: " + avatarPath);
-        }
-    }
 }
