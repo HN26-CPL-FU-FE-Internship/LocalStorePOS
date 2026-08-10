@@ -24,6 +24,13 @@ public interface OrderRepository extends JpaRepository<Order, Long>, JpaSpecific
 
     boolean existsByTableId(Long tableId);
 
+    /**
+     * Count orders on a table that are still in progress (i.e. not finished
+     * or cancelled) — used to decide whether a table can be released.
+     */
+    long countByTableIdAndStatusNotIn(Long tableId,
+            java.util.Collection<com.pos.backend.constant.enums.OrderStatus> statuses);
+
     @Query("""
             SELECT
                 o.status AS status,

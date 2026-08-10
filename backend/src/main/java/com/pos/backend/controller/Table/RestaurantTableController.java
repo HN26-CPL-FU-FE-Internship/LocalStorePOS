@@ -3,6 +3,7 @@ package com.pos.backend.controller.Table;
 import java.util.List;
 
 import org.springframework.http.HttpStatus;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
@@ -32,6 +33,7 @@ public class RestaurantTableController {
     private final RestaurantTableService restaurantTableService;
 
     @GetMapping
+    @PreAuthorize("@perm.hasPermission(authentication, 'Tables', 'view')")
     public ApiResponse<List<RestaurantTableResponse>> getTables(
             @RequestParam(required = false) Long areaId,
             @RequestParam(required = false) Long floorId,
@@ -44,6 +46,7 @@ public class RestaurantTableController {
     }
 
     @PostMapping
+    @PreAuthorize("@perm.hasPermission(authentication, 'Tables', 'add')")
     public ApiResponse<RestaurantTableResponse> createTable(@Valid @RequestBody RestaurantTableRequest request) {
         return ApiResponse.<RestaurantTableResponse>builder()
                 .message("Table created successfully")
@@ -52,6 +55,7 @@ public class RestaurantTableController {
     }
 
     @PutMapping("/{id}")
+    @PreAuthorize("@perm.hasPermission(authentication, 'Tables', 'edit')")
     public ApiResponse<RestaurantTableResponse> updateTable(
             @PathVariable Long id,
             @Valid @RequestBody RestaurantTableRequest request) {
@@ -63,6 +67,10 @@ public class RestaurantTableController {
     }
 
     @PatchMapping("/{id}/status")
+    // Table status is updated by table managers (Tables edit) AND by the
+    // reservation lifecycle (reserve → booked/occupied, cancel/free → available).
+    // Cashiers have Tables view + Reservation add, so allow either permission.
+    @PreAuthorize("@perm.hasPermission(authentication, 'Tables', 'edit') or @perm.hasPermission(authentication, 'Reservation', 'add')")
     public ApiResponse<RestaurantTableResponse> updateStatus(
             @PathVariable Long id,
             @RequestParam TableStatus status) {
@@ -73,7 +81,10 @@ public class RestaurantTableController {
                 .build();
     }
 
+    // Table deletion must go through the approval workflow for non-admins —
+    // only admins may delete tables directly.
     @DeleteMapping("/{id}")
+    @PreAuthorize("@perm.hasPermission(authentication, 'Tables', 'delete') and @perm.isAdmin(authentication)")
     @ResponseStatus(HttpStatus.OK)
     public ApiResponse<Void> deleteTable(@PathVariable Long id) {
         restaurantTableService.deleteTable(id);

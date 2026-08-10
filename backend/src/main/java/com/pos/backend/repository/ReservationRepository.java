@@ -15,6 +15,13 @@ public interface ReservationRepository extends JpaRepository<Reservation, Long> 
 
     boolean existsByTableId(Long tableId);
 
+    /**
+     * Active (booked/seated) reservations for a table — used for conflict
+     * detection and to decide whether the table can be freed.
+     */
+    List<Reservation> findByTableIdAndStatusIn(Long tableId,
+            java.util.Collection<ReservationStatus> statuses);
+
     @Query("""
             SELECT r FROM Reservation r
             LEFT JOIN FETCH r.customer

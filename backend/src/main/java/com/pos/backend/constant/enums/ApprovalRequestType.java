@@ -12,4 +12,5 @@ public enum ApprovalRequestType {
     PERMISSION_CHANGE,
     USER_CREATE_DELETE,
     DELETE_IMPORTANT_DATA,
+    CREATE_TABLE_FLOOR,
 }

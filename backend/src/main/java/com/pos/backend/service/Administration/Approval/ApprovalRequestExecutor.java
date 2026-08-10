@@ -24,6 +24,7 @@ import com.pos.backend.dto.request.Item.ItemRequest;
 import com.pos.backend.dto.request.Order.OrderPaymentRequest;
 import com.pos.backend.dto.request.Order.OrderUpdateStatusRequest;
 import com.pos.backend.dto.request.OrderItem.UpdateOrderItemRequest;
+import com.pos.backend.dto.request.TableFloor.TableFloorRequest;
 import com.pos.backend.dto.request.User.UserCreationRequest;
 import com.pos.backend.entity.ApprovalRequest;
 import com.pos.backend.exception.AppException;
@@ -45,6 +46,7 @@ import com.pos.backend.service.Settings.TaxSettingService;
 import com.pos.backend.service.Table.ReservationService;
 import com.pos.backend.service.Table.RestaurantTableService;
 import com.pos.backend.service.Table.TableAreaService;
+import com.pos.backend.service.Table.TableFloorService;
 
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
@@ -75,6 +77,7 @@ public class ApprovalRequestExecutor {
     TaxSettingService taxSettingService;
     RestaurantTableService restaurantTableService;
     TableAreaService tableAreaService;
+    TableFloorService tableFloorService;
     ReservationService reservationService;
     UserService userService;
     PermissionService permissionService;
@@ -119,6 +122,7 @@ public class ApprovalRequestExecutor {
                     case PERMISSION_CHANGE -> permissionChange(request);
                     case USER_CREATE_DELETE -> userCreateDelete(request);
                     case DELETE_IMPORTANT_DATA -> deleteImportantData(request);
+                    case CREATE_TABLE_FLOOR -> createTableFloor(request);
                     case REFUND_RETURN -> refundReturn(request);
                     case COMPLIMENTARY -> complimentary(request);
                     default -> log.warn("No executor for approval request type {}", request.getRequestType());
@@ -255,10 +259,22 @@ public class ApprovalRequestExecutor {
             case "TAX" -> taxSettingService.deleteTax(targetId);
             case "TABLE" -> restaurantTableService.deleteTable(targetId);
             case "TABLE_AREA" -> tableAreaService.deleteArea(targetId);
+            case "TABLE_FLOOR" -> tableFloorService.deleteFloor(targetId);
             case "RESERVATION" -> reservationService.deleteReservation(targetId);
             case "ROLE" -> permissionService.deleteRole(targetId);
             default -> throw new AppException(ErrorCode.APPROVAL_DATA_INVALID);
         }
+    }
+
+    private void createTableFloor(ApprovalRequest request) {
+        Map<String, Object> data = parseData(request);
+        Object name = data.get("name");
+        if (name == null || String.valueOf(name).isBlank()) {
+            throw new AppException(ErrorCode.APPROVAL_DATA_INVALID);
+        }
+        TableFloorRequest floorRequest = new TableFloorRequest();
+        floorRequest.setName(String.valueOf(name));
+        tableFloorService.createFloor(floorRequest);
     }
 
     private void refundReturn(ApprovalRequest request) {

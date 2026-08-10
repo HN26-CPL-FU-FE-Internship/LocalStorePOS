@@ -3,6 +3,7 @@ package com.pos.backend.controller.Table;
 import java.util.List;
 
 import org.springframework.http.HttpStatus;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -28,6 +29,7 @@ public class TableFloorController {
     private final TableFloorService tableFloorService;
 
     @GetMapping
+    @PreAuthorize("@perm.hasPermission(authentication, 'Tables', 'view')")
     public ApiResponse<List<OptionResponse>> getFloors() {
         return ApiResponse.<List<OptionResponse>>builder()
                 .message("Success")
@@ -35,7 +37,10 @@ public class TableFloorController {
                 .build();
     }
 
+    // Non-admin floor changes must go through the approval workflow — only
+    // admins may apply them directly.
     @PostMapping
+    @PreAuthorize("@perm.hasPermission(authentication, 'Tables', 'add') and @perm.isAdmin(authentication)")
     public ApiResponse<OptionResponse> createFloor(@Valid @RequestBody TableFloorRequest request) {
         return ApiResponse.<OptionResponse>builder()
                 .message("Floor created successfully")
@@ -43,7 +48,10 @@ public class TableFloorController {
                 .build();
     }
 
+    // Non-admin floor changes must go through the approval workflow — only
+    // admins may apply them directly.
     @DeleteMapping("/{id}")
+    @PreAuthorize("@perm.hasPermission(authentication, 'Tables', 'delete') and @perm.isAdmin(authentication)")
     @ResponseStatus(HttpStatus.OK)
     public ApiResponse<Void> deleteFloor(@PathVariable Long id) {
         tableFloorService.deleteFloor(id);

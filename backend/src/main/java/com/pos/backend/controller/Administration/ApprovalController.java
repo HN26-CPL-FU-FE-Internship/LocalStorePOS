@@ -184,6 +184,8 @@ public class ApprovalController {
                                 new PermissionRequirement("Products", "edit");
                         case PERMISSION_CHANGE, USER_CREATE_DELETE ->
                                 new PermissionRequirement("Manage Staffs", "edit");
+                        case CREATE_TABLE_FLOOR ->
+                                new PermissionRequirement("Tables", "add");
                         case DELETE_IMPORTANT_DATA -> switch (targetType == null ? "" : targetType.toUpperCase()) {
                                 case "ITEM" -> new PermissionRequirement("Products", "delete");
                                 case "ADDON" -> new PermissionRequirement("Addons", "delete");
@@ -192,7 +194,11 @@ public class ApprovalController {
                                 case "COUPON" -> new PermissionRequirement("Coupons", "delete");
                                 case "INVOICE" -> new PermissionRequirement("Invoices", "delete");
                                 case "TAX" -> new PermissionRequirement("Settings", "delete");
-                                case "TABLE", "TABLE_AREA" -> new PermissionRequirement("Tables", "delete");
+                                // Table/floor deletion is open to anyone who can VIEW the
+                                // Tables page (admin applies directly, everyone else's
+                                // request must be approved by an admin).
+                                case "TABLE", "TABLE_AREA", "TABLE_FLOOR" ->
+                                        new PermissionRequirement("Tables", "view");
                                 case "RESERVATION" -> new PermissionRequirement("Reservation", "delete");
                                 case "ROLE" -> new PermissionRequirement("Manage Staffs", "delete");
                                 // Fail closed: unknown/omitted target types are rejected.
