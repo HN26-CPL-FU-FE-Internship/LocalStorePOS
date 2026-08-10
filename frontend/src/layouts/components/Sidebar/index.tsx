@@ -60,7 +60,10 @@ const Sidebar = ({ onClose }: SidebarProps) => {
             <div className="sidebar sidebar-twocol">
                 <div className="twocol-mini">
                     <Link to={configs.routes.dashboard} className="logo-small">
-                        <img src="/src/assets/img/logo-small.svg" alt="Logo" />
+                        <img
+                            src="https://restaurant-pos-backend-kfk1.onrender.com/src/assets/img/logo-small.svg"
+                            alt="Logo"
+                        />
                     </Link>
 
                     <div className="sidebar-left">

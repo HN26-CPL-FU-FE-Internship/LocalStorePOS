@@ -42,7 +42,9 @@ describe('useDashboardAvailableTables', () => {
             guests: 6,
             imageUrl: '/tables/01.svg',
         });
-        expect(result.current.data[1].imageUrl).toBe('/src/assets/img/tables/tables-17.svg');
+        expect(result.current.data[1].imageUrl).toBe(
+            'https://restaurant-pos-backend-kfk1.onrender.com/src/assets/img/tables/tables-17.svg',
+        );
     });
 
     it('uses default image URL when imageUrl is missing', async () => {
@@ -52,7 +54,9 @@ describe('useDashboardAvailableTables', () => {
 
         await waitFor(() => expect(result.current.isLoading).toBe(false));
 
-        expect(result.current.data[0].imageUrl).toBe('/src/assets/img/tables/tables-17.svg');
+        expect(result.current.data[0].imageUrl).toBe(
+            'https://restaurant-pos-backend-kfk1.onrender.com/src/assets/img/tables/tables-17.svg',
+        );
     });
 
     it('returns empty array on empty response', async () => {

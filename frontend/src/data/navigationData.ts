@@ -25,15 +25,27 @@ export const headerQuickLinks: QuickLink[] = [
 ];
 
 export const storeOptions: StoreOption[] = [
-    { id: 'store-1', name: 'Streak House', imageUrl: '/src/assets/img/store/store-01.jpg' },
-    { id: 'store-2', name: 'Hotchilli Hub', imageUrl: '/src/assets/img/store/store-02.jpg' },
-    { id: 'store-3', name: 'The Flavor Lab', imageUrl: '/src/assets/img/store/store-03.jpg' },
+    {
+        id: 'store-1',
+        name: 'Streak House',
+        imageUrl: 'https://restaurant-pos-backend-kfk1.onrender.com/src/assets/img/store/store-01.jpg',
+    },
+    {
+        id: 'store-2',
+        name: 'Hotchilli Hub',
+        imageUrl: 'https://restaurant-pos-backend-kfk1.onrender.com/src/assets/img/store/store-02.jpg',
+    },
+    {
+        id: 'store-3',
+        name: 'The Flavor Lab',
+        imageUrl: 'https://restaurant-pos-backend-kfk1.onrender.com/src/assets/img/store/store-03.jpg',
+    },
 ];
 
 export const currentUser: UserProfile = {
     name: 'Adrian James',
     role: 'Administrator',
-    avatarUrl: '/src/assets/img/profiles/avatar-27.jpg',
+    avatarUrl: 'https://restaurant-pos-backend-kfk1.onrender.com/src/assets/img/profiles/avatar-27.jpg',
     plan: 'Pro',
 };
 

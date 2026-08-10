@@ -15,7 +15,8 @@ const useDashboardAvailableTables = (limit = 6) => {
         id: String(item.id),
         name: item.name,
         guests: item.guests,
-        imageUrl: item.imageUrl ?? '/src/assets/img/tables/tables-17.svg',
+        imageUrl:
+            item.imageUrl ?? 'https://restaurant-pos-backend-kfk1.onrender.com/src/assets/img/tables/tables-17.svg',
     }));
 
     return { data: tables, isLoading, isError, isFetching };
