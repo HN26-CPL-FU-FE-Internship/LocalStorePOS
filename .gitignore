@@ -64,6 +64,5 @@ backend/src/main/resources/application-local.yml
 Inventory-Management-Admin-Dashboard-main/
 
 # Uploaded media assets
-/uploads/
 data.sql
 CONTEXT.md
