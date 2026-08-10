@@ -4,6 +4,7 @@ import React from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import useDashboardUserStatistics from './useDashboardUserStatistics';
 import * as dashboardApi from '@/api/dashboard.api';
+import { api } from '@/lib/axios';
 
 vi.mock('@/api/dashboard.api', () => ({
     getUserStatistics: vi.fn(),
@@ -21,6 +22,7 @@ function createWrapper() {
 describe('useDashboardUserStatistics', () => {
     beforeEach(() => {
         vi.clearAllMocks();
+        api.defaults.baseURL = 'http://localhost:8080/restaurant-pos/api';
     });
 
     const mockResponse = {
@@ -30,7 +32,7 @@ describe('useDashboardUserStatistics', () => {
         totalNewUsers: '986',
         newUsersChange: '+12.6%',
         newUserAvatars: [
-            { id: 1, imageUrl: '/avatars/27.jpg', alt: 'user1' },
+            { id: 1, imageUrl: '/uploads/avatars/27.jpg', alt: 'user1' },
             { id: 2, imageUrl: '/avatars/33.jpg', alt: 'user2' },
         ],
     };
@@ -52,7 +54,7 @@ describe('useDashboardUserStatistics', () => {
         expect(result.current.data.newUserAvatars).toHaveLength(2);
         expect(result.current.data.newUserAvatars[0]).toEqual({
             id: '1',
-            imageUrl: '/avatars/27.jpg',
+            imageUrl: 'http://localhost:8080/restaurant-pos/uploads/avatars/27.jpg',
             alt: 'user1',
         });
     });

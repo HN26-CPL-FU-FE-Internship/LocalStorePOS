@@ -1,5 +1,10 @@
 package com.pos.backend.util;
 
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+
+import com.pos.backend.config.UploadPathResolver;
 import com.pos.backend.service.CloudinaryService.CloudinaryService;
 
 import lombok.RequiredArgsConstructor;
@@ -11,6 +16,7 @@ import org.springframework.web.multipart.MultipartFile;
 public class FileStorageUtil {
 
     private final CloudinaryService cloudinaryService;
+    private final UploadPathResolver uploadPathResolver;
 
     public CloudinaryService.Asset storeImageAsset(MultipartFile file, String subFolder) {
         if (file == null || file.isEmpty()) {
@@ -26,9 +32,27 @@ public class FileStorageUtil {
 
     public void deleteFile(String publicPath) {
         cloudinaryService.delete(publicPath);
+        deleteLegacyLocalFile(publicPath);
     }
 
     public void deleteFile(String publicPath, String publicId, String resourceType) {
         cloudinaryService.delete(publicPath, publicId, resourceType);
+        deleteLegacyLocalFile(publicPath);
+    }
+
+    private void deleteLegacyLocalFile(String publicPath) {
+        if (publicPath == null || !publicPath.startsWith("/uploads/")) {
+            return;
+        }
+
+        try {
+            Path uploadRoot = uploadPathResolver.resolve("");
+            Path file = uploadPathResolver.resolve(publicPath.substring("/uploads/".length()));
+            if (file.startsWith(uploadRoot)) {
+                Files.deleteIfExists(file);
+            }
+        } catch (IOException ignored) {
+            // Legacy cleanup must not fail an otherwise successful mutation.
+        }
     }
 }

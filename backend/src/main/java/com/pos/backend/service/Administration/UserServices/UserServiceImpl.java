@@ -1,6 +1,6 @@
 package com.pos.backend.service.Administration.UserServices;
 
-import com.pos.backend.service.CloudinaryService.CloudinaryService;
+import com.pos.backend.util.FileStorageUtil;
 import com.pos.backend.constant.ErrorCode;
 import com.pos.backend.constant.enums.AuditAction;
 import com.pos.backend.constant.enums.CommonStatus;
@@ -44,7 +44,7 @@ public class UserServiceImpl implements UserService {
     UserMapper userMapper;
     PasswordEncoder passwordEncoder;
     AuditLogService auditLogService;
-    CloudinaryService cloudinaryService;
+    FileStorageUtil fileStorageUtil;
 
     @Override
     public PageResponse<UserResponse> getAllUsers(int page, int size, String sortBy, String sortDir,
@@ -107,7 +107,7 @@ public class UserServiceImpl implements UserService {
 
         // Handle avatar upload
         if (avatarFile != null && !avatarFile.isEmpty()) {
-            var avatar = cloudinaryService.uploadImage(avatarFile, "restaurant-pos/avatars");
+            var avatar = fileStorageUtil.storeImageAsset(avatarFile, AVATAR_SUB_FOLDER);
             user.setAvatarPath(avatar.secureUrl());
             user.setAvatarPublicId(avatar.publicId());
             user.setAvatarResourceType(avatar.resourceType());
@@ -156,19 +156,28 @@ public class UserServiceImpl implements UserService {
             user.setPasswordHash(passwordEncoder.encode(request.getPassword()));
         }
 
-        // Handle avatar upload
+        String oldAvatarPath = null;
+        String oldAvatarPublicId = null;
+        String oldAvatarResourceType = null;
+
+        // Upload and persist the replacement before deleting the old asset.
+        // This keeps the existing avatar available if upload or save fails.
         if (avatarFile != null && !avatarFile.isEmpty()) {
-            // Delete old avatar if exists
-            if (user.getAvatarPath() != null) {
-                cloudinaryService.delete(user.getAvatarPath(), user.getAvatarPublicId(), user.getAvatarResourceType());
-            }
-            var avatar = cloudinaryService.uploadImage(avatarFile, "restaurant-pos/avatars");
+            oldAvatarPath = user.getAvatarPath();
+            oldAvatarPublicId = user.getAvatarPublicId();
+            oldAvatarResourceType = user.getAvatarResourceType();
+
+            var avatar = fileStorageUtil.storeImageAsset(avatarFile, AVATAR_SUB_FOLDER);
             user.setAvatarPath(avatar.secureUrl());
             user.setAvatarPublicId(avatar.publicId());
             user.setAvatarResourceType(avatar.resourceType());
         }
 
         UserResponse response = toUserResponse(userRepository.save(user));
+
+        if (oldAvatarPath != null) {
+            fileStorageUtil.deleteFile(oldAvatarPath, oldAvatarPublicId, oldAvatarResourceType);
+        }
 
         auditLogService.log(user, AuditAction.USER_UPDATED, "USER_MANAGEMENT", "User", id,
                 "User updated: " + user.getEmail(),
@@ -187,8 +196,7 @@ public class UserServiceImpl implements UserService {
         String userEmail = user.getEmail();
 
         // Delete avatar file if exists
-        if (user.getAvatarPath() != null) {
-            cloudinaryService.delete(user.getAvatarPath(), user.getAvatarPublicId(), user.getAvatarResourceType());
+        if (user.getAvatarPath() != null) {                fileStorageUtil.deleteFile(user.getAvatarPath(), user.getAvatarPublicId(), user.getAvatarResourceType());
         }
 
         userRepository.delete(user);

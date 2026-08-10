@@ -17,3 +17,7 @@ services:
       CLOUDINARY_API_SECRET: ${CLOUDINARY_API_SECRET:?CLOUDINARY_API_SECRET is required}
     ports:
       - "${PORT:-8080}:8080"
+    volumes:
+      # Optional read-only compatibility for legacy /uploads/** database paths.
+      # New uploads are stored in Cloudinary and do not use this mount.
+      - ./uploads:/app/uploads:ro
