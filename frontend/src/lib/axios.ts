@@ -65,7 +65,7 @@ api.interceptors.response.use(
         const refreshToken = tokenUtils.getRefreshToken();
         if (!refreshToken) {
             tokenUtils.clearTokens();
-            window.location.href = '/restaurant-pos/login';
+            window.location.href = '/login';
             return Promise.reject(error);
         }
 
@@ -96,7 +96,7 @@ api.interceptors.response.use(
         } catch (refreshError) {
             processQueue(refreshError, null);
             tokenUtils.clearTokens();
-            window.location.href = '/restaurant-pos/login';
+            window.location.href = '/login';
             return Promise.reject(refreshError);
         } finally {
             isRefreshing = false;

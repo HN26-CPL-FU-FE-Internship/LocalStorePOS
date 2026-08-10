@@ -43,7 +43,7 @@ const AuthProvider = ({ children }: AuthProviderProps) => {
         }
         tokenUtils.clearTokens();
         setUser(null);
-        window.location.href = '/restaurant-pos/login';
+        window.location.href = '/login';
     }, []);
 
     const hasPermission = useCallback(
