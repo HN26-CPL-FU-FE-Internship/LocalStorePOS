@@ -1,6 +1,7 @@
 package com.pos.backend.service.Kitchen;
 
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -32,6 +33,7 @@ import com.pos.backend.service.NotificationService;
 import com.pos.backend.service.Order.OrderCommonService;
 import com.pos.backend.service.WebSocket.WebSocketService;
 import com.pos.backend.specification.OrderSpecification;
+import com.pos.backend.util.LocalDateTimeUtil;
 import com.pos.backend.ws.WebSocketEvent;
 
 import lombok.AccessLevel;
@@ -121,7 +123,7 @@ public class KitchenService {
 
         order.setKitchenStatus(KitchenStatus.in_kitchen);
         order.setEstimatedMinutes(request.getEstimatedMinutes());
-        order.setCookingStartedAt(LocalDateTime.now());
+        order.setCookingStartedAt(LocalDateTimeUtil.getTimeNow());
         order.setStatus(OrderStatus.preparing);
         order = orderRepository.save(order);
 
@@ -133,7 +135,8 @@ public class KitchenService {
 
         notificationService.notifyOrderEvent(
                 "Cooking Started",
-                "Order #" + order.getOrderNumber() + " started cooking - Estimated " + request.getEstimatedMinutes() + " minutes",
+                "Order #" + order.getOrderNumber() + " started cooking - Estimated " + request.getEstimatedMinutes()
+                        + " minutes",
                 order.getId());
 
         return response;
