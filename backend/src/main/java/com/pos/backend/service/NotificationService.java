@@ -17,6 +17,7 @@ import com.pos.backend.exception.AppException;
 import com.pos.backend.repository.NotificationRepository;
 import com.pos.backend.service.Common.PageResponse;
 import com.pos.backend.service.WebSocket.WebSocketService;
+import com.pos.backend.util.LocalDateTimeUtil;
 
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
@@ -77,8 +78,8 @@ public class NotificationService {
      */
     @Transactional(readOnly = true)
     public List<NotificationResponse> getRecentNotifications(Long userId) {
-        LocalDateTime from = LocalDateTime.now().minusDays(2);
-        LocalDateTime to = LocalDateTime.now().plusDays(1);
+        LocalDateTime from = LocalDateTimeUtil.getTimeNow().minusDays(2);
+        LocalDateTime to = LocalDateTimeUtil.getTimeNow().plusDays(1);
 
         List<Notification> notifications;
         if (userId != null) {

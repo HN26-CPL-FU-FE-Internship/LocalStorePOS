@@ -11,6 +11,7 @@ import org.springframework.stereotype.Service;
 import com.pos.backend.dto.response.Dashboard.ReservationResponse;
 import com.pos.backend.entity.Reservation;
 import com.pos.backend.repository.ReservationRepository;
+import com.pos.backend.util.LocalDateTimeUtil;
 
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
@@ -34,7 +35,7 @@ public class ReservationMetricProviderImpl implements ReservationMetricProvider 
 
     @Override
     public List<ReservationResponse> getUpcomingReservations(LocalDateTime fromDate, LocalDateTime toDate, int limit) {
-        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime now = LocalDateTimeUtil.getTimeNow();
         LocalDateTime effectiveFrom = fromDate != null ? fromDate : now;
         LocalDateTime effectiveTo = toDate != null ? toDate : now.plusDays(30);
         List<Reservation> reservations = reservationRepository.findUpcomingReservationsBetween(effectiveFrom,

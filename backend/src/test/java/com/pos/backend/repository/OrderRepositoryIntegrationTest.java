@@ -24,6 +24,7 @@ import com.pos.backend.entity.Order;
 import com.pos.backend.entity.RestaurantTable;
 import com.pos.backend.entity.Role;
 import com.pos.backend.entity.User;
+import com.pos.backend.util.LocalDateTimeUtil;
 
 @SpringBootTest
 @Transactional
@@ -109,7 +110,7 @@ class OrderRepositoryIntegrationTest {
 
     @Test
     void countCompletedPaidOrdersBetween_shouldReturnZeroWhenNoMatchingOrders() {
-        LocalDateTime emptyStart = LocalDateTime.now().plusYears(1);
+        LocalDateTime emptyStart = LocalDateTimeUtil.getTimeNow().plusYears(1);
         LocalDateTime emptyEnd = emptyStart.plusDays(1);
 
         long count = orderRepository.countCompletedPaidOrdersBetween(emptyStart, emptyEnd, OrderStatus.completed,

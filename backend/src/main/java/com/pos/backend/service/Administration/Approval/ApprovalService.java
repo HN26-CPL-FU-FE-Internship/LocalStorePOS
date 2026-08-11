@@ -22,6 +22,7 @@ import com.pos.backend.constant.ErrorCode;
 import com.pos.backend.repository.ApprovalRequestRepository;
 import com.pos.backend.service.Audit.AuditLogService;
 import com.pos.backend.service.Common.PageResponse;
+import com.pos.backend.util.LocalDateTimeUtil;
 import com.pos.backend.service.NotificationService;
 
 import lombok.AccessLevel;
@@ -96,7 +97,7 @@ public class ApprovalService {
 
         request.setStatus(ApprovalStatus.APPROVED);
         request.setApprovedBy(approver);
-        request.setResolvedAt(LocalDateTime.now());
+        request.setResolvedAt(LocalDateTimeUtil.getTimeNow());
         request.setRejectionReason(actionRequest.getReason());
         approvalRequestRepository.save(request);
 
@@ -169,7 +170,7 @@ public class ApprovalService {
         request.setStatus(targetStatus);
         request.setApprovedBy(actor);
         request.setRejectionReason(actionRequest.getReason());
-        request.setResolvedAt(LocalDateTime.now());
+        request.setResolvedAt(LocalDateTimeUtil.getTimeNow());
         approvalRequestRepository.save(request);
 
         String verb = approved ? "approved" : "rejected";

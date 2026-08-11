@@ -33,6 +33,7 @@ import com.pos.backend.repository.PaymentRepository;
 import com.pos.backend.repository.RestaurantTableRepository;
 import com.pos.backend.service.NotificationService;
 import com.pos.backend.service.WebSocket.WebSocketService;
+import com.pos.backend.util.LocalDateTimeUtil;
 
 @ExtendWith(MockitoExtension.class)
 class QrPaymentServiceImplTest {
@@ -73,7 +74,8 @@ class QrPaymentServiceImplTest {
         verify(paymentRepository).save(captor.capture());
         Payment created = captor.getValue();
         assertEquals(PaymentStatus.pending, created.getStatus());
-        long expirationSeconds = java.time.Duration.between(LocalDateTime.now(), created.getExpiresAt()).getSeconds();
+        long expirationSeconds = java.time.Duration.between(LocalDateTimeUtil.getTimeNow(), created.getExpiresAt())
+                .getSeconds();
         assertEquals(900L, expirationSeconds, 2L);
     }
 
@@ -86,7 +88,7 @@ class QrPaymentServiceImplTest {
                 .paymentMethod(PaymentMethod.builder().code("qr").name("QR Payment").build())
                 .amount(new BigDecimal("100.00"))
                 .status(PaymentStatus.pending)
-                .expiresAt(LocalDateTime.now().minusSeconds(1))
+                .expiresAt(LocalDateTimeUtil.getTimeNow().minusSeconds(1))
                 .build();
         when(paymentRepository.findByPaymentCodeForUpdate("PAY-EXPIRED")).thenReturn(Optional.of(payment));
 

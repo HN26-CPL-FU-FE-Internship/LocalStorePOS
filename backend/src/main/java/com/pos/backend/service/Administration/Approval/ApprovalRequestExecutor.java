@@ -47,6 +47,7 @@ import com.pos.backend.service.Table.ReservationService;
 import com.pos.backend.service.Table.RestaurantTableService;
 import com.pos.backend.service.Table.TableAreaService;
 import com.pos.backend.service.Table.TableFloorService;
+import com.pos.backend.util.LocalDateTimeUtil;
 
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
@@ -105,9 +106,11 @@ public class ApprovalRequestExecutor {
      * transaction (which would otherwise end in an UnexpectedRollbackException
      * or leave the request silently marked APPROVED).
      *
-     * <p>If the action fails, the request is flipped to FAILED and the failure
+     * <p>
+     * If the action fails, the request is flipped to FAILED and the failure
      * is audit-logged, so the outcome is visible to the approver and the
-     * requester instead of showing as a successful approval.</p>
+     * requester instead of showing as a successful approval.
+     * </p>
      */
     public void execute(ApprovalRequest request) {
         try {
@@ -135,7 +138,7 @@ public class ApprovalRequestExecutor {
             log.error("Failed to execute approval request {} ({})",
                     request.getId(), request.getRequestType(), e);
             request.setStatus(ApprovalStatus.FAILED);
-            request.setResolvedAt(LocalDateTime.now());
+            request.setResolvedAt(LocalDateTimeUtil.getTimeNow());
             approvalRequestRepository.save(request);
             auditLogService.log(null, AuditAction.APPROVAL_REQUEST_APPROVED,
                     "ADMINISTRATION", "ApprovalRequest", request.getId(),
@@ -146,7 +149,7 @@ public class ApprovalRequestExecutor {
     }
 
     /* ------------------------------------------------------------------ */
-    /*  Per-type executors                                                */
+    /* Per-type executors */
     /* ------------------------------------------------------------------ */
 
     private void cancelInvoice(ApprovalRequest request) {
@@ -293,7 +296,7 @@ public class ApprovalRequestExecutor {
     }
 
     /* ------------------------------------------------------------------ */
-    /*  Helpers                                                           */
+    /* Helpers */
     /* ------------------------------------------------------------------ */
 
     private Long targetId(ApprovalRequest request, Map<String, Object> data) {

@@ -21,6 +21,7 @@ import com.pos.backend.repository.OrderRepository;
 import com.pos.backend.repository.ReservationRepository;
 import com.pos.backend.repository.RestaurantTableRepository;
 import com.pos.backend.service.Notification.EsmsSmsService;
+import com.pos.backend.util.LocalDateTimeUtil;
 import com.pos.backend.service.NotificationService;
 
 import lombok.RequiredArgsConstructor;
@@ -47,12 +48,12 @@ public class ReservationServiceImpl implements ReservationService {
     private static final int OVERRUN_BUFFER_MINUTES = 60;
 
     /** Reservations that still hold the table (booked or seated). */
-    private static final List<ReservationStatus> ACTIVE_STATUSES =
-            List.of(ReservationStatus.booked, ReservationStatus.seated);
+    private static final List<ReservationStatus> ACTIVE_STATUSES = List.of(ReservationStatus.booked,
+            ReservationStatus.seated);
 
     /** Order statuses that no longer hold the table (finished or voided). */
-    private static final List<OrderStatus> RESOLVED_ORDER_STATUSES =
-            List.of(OrderStatus.completed, OrderStatus.cancelled);
+    private static final List<OrderStatus> RESOLVED_ORDER_STATUSES = List.of(OrderStatus.completed,
+            OrderStatus.cancelled);
 
     @Override
     @Transactional(readOnly = true)
@@ -145,7 +146,7 @@ public class ReservationServiceImpl implements ReservationService {
     }
 
     private void validateFutureTime(LocalDateTime time) {
-        if (time == null || time.isBefore(LocalDateTime.now())) {
+        if (time == null || time.isBefore(LocalDateTimeUtil.getTimeNow())) {
             throw new AppException(ErrorCode.RESERVATION_TIME_IN_PAST);
         }
     }

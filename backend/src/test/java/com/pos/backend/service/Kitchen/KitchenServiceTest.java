@@ -39,6 +39,7 @@ import com.pos.backend.repository.OrderRepository;
 import com.pos.backend.service.NotificationService;
 import com.pos.backend.service.Order.OrderCommonService;
 import com.pos.backend.service.WebSocket.WebSocketService;
+import com.pos.backend.util.LocalDateTimeUtil;
 import com.pos.backend.ws.WebSocketEvent;
 
 @ExtendWith(MockitoExtension.class)
@@ -61,7 +62,7 @@ class KitchenServiceTest {
     private KitchenService service;
 
     /* ------------------------------------------------------------ */
-    /*  startCooking                                                 */
+    /* startCooking */
     /* ------------------------------------------------------------ */
 
     @Test
@@ -94,7 +95,7 @@ class KitchenServiceTest {
     }
 
     /* ------------------------------------------------------------ */
-    /*  markComplete                                                 */
+    /* markComplete */
     /* ------------------------------------------------------------ */
 
     @Test
@@ -113,11 +114,10 @@ class KitchenServiceTest {
         verify(orderItemRepository).updateStatusByOrderId(1L, OrderItemStatus.ready);
         // Realtime contract: the push is an ORDER_UPDATED event whose payload
         // carries the promoted status (see buildOrderResponse).
-        verify(webSocketService).sendTopic(eq("/orders"), argThat(event ->
-                event instanceof WebSocketEvent<?> we
-                        && we.getType() == EventType.ORDER_UPDATED
-                        && we.getData() instanceof OrderResponse data
-                        && "preparing".equals(data.getStatus())));
+        verify(webSocketService).sendTopic(eq("/orders"), argThat(event -> event instanceof WebSocketEvent<?> we
+                && we.getType() == EventType.ORDER_UPDATED
+                && we.getData() instanceof OrderResponse data
+                && "preparing".equals(data.getStatus())));
         verify(notificationService).notifyOrderEvent(eq("Order Ready"), anyString(), eq(1L));
     }
 
@@ -186,7 +186,7 @@ class KitchenServiceTest {
     }
 
     /* ------------------------------------------------------------ */
-    /*  cancel                                                       */
+    /* cancel */
     /* ------------------------------------------------------------ */
 
     @Test
@@ -205,7 +205,7 @@ class KitchenServiceTest {
     }
 
     /* ------------------------------------------------------------ */
-    /*  markDelayed                                                  */
+    /* markDelayed */
     /* ------------------------------------------------------------ */
 
     @Test
@@ -224,7 +224,7 @@ class KitchenServiceTest {
     }
 
     /* ------------------------------------------------------------ */
-    /*  getKitchenStats                                              */
+    /* getKitchenStats */
     /* ------------------------------------------------------------ */
 
     @Test
@@ -244,7 +244,7 @@ class KitchenServiceTest {
     }
 
     /* ------------------------------------------------------------ */
-    /*  Helpers                                                      */
+    /* Helpers */
     /* ------------------------------------------------------------ */
 
     private Order order(Long id, OrderStatus status, KitchenStatus kitchenStatus) {
@@ -255,7 +255,7 @@ class KitchenServiceTest {
                 .orderType(OrderType.take_away)
                 .status(status)
                 .kitchenStatus(kitchenStatus)
-                .orderedAt(LocalDateTime.now())
+                .orderedAt(LocalDateTimeUtil.getTimeNow())
                 .build();
     }
 

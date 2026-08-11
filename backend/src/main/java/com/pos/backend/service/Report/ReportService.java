@@ -40,10 +40,11 @@ public class ReportService {
      * Earning Report: list all completed/paid orders as earning entries.
      */
     public PageResponse<EarningReportResponse> getEarningReport(LocalDate fromDate, LocalDate toDate,
-                    String customerName, String paymentMethod, int page, int size) {
+            String customerName, String paymentMethod, int page, int size) {
 
         LocalDateTime from = fromDate != null ? fromDate.atStartOfDay() : LocalDateTime.of(2020, 1, 1, 0, 0);
-        LocalDateTime to = toDate != null ? toDate.plusDays(1).atStartOfDay() : LocalDateTime.now().plusDays(1);
+        LocalDateTime to = toDate != null ? toDate.plusDays(1).atStartOfDay()
+                : LocalDateTimeUtil.getTimeNow().plusDays(1);
 
         List<Order> orders = orderRepository.findCompletedOrdersInRange(from, to, OrderStatus.completed,
                 OrderPaymentStatus.paid);
@@ -53,41 +54,41 @@ public class ReportService {
                 return true;
             String lowerCustomer = customerName.toLowerCase();
             if (o.getCustomer() != null && o.getCustomer().getName() != null
-                            && o.getCustomer().getName().toLowerCase().contains(lowerCustomer)) {
+                    && o.getCustomer().getName().toLowerCase().contains(lowerCustomer)) {
                 return true;
             }
             return o.getCustomer() == null
-                            && (lowerCustomer.contains("walk") || lowerCustomer.contains("walk-in"));
+                    && (lowerCustomer.contains("walk") || lowerCustomer.contains("walk-in"));
         })
-                        .filter(o -> {
-                            if (paymentMethod == null || paymentMethod.isBlank())
-                                return true;
-                            return o.getPaymentType() != null
-                                            && o.getPaymentType().equalsIgnoreCase(paymentMethod);
-                        })
-                        .map(order -> {
-                            String customer = order.getCustomer() != null ? order.getCustomer().getName()
-                                            : "Walk-in Customer";
-                            String paymentType = order.getPaymentType() != null ? order.getPaymentType()
-                                            : "N/A";
-                            String status = order.getPaymentStatus() != null
-                                            ? order.getPaymentStatus().name()
-                                            : "paid";
+                .filter(o -> {
+                    if (paymentMethod == null || paymentMethod.isBlank())
+                        return true;
+                    return o.getPaymentType() != null
+                            && o.getPaymentType().equalsIgnoreCase(paymentMethod);
+                })
+                .map(order -> {
+                    String customer = order.getCustomer() != null ? order.getCustomer().getName()
+                            : "Walk-in Customer";
+                    String paymentType = order.getPaymentType() != null ? order.getPaymentType()
+                            : "N/A";
+                    String status = order.getPaymentStatus() != null
+                            ? order.getPaymentStatus().name()
+                            : "paid";
 
-                            return EarningReportResponse.builder()
-                                            .earningId("ERN" + String.format("%04d", order.getId()))
-                                            .date(order.getOrderedAt())
-                                            .orderNumber(order.getOrderNumber())
-                                            .customerName(customer)
-                                            .orderType(order.getOrderType() != null
-                                                            ? order.getOrderType().name().replace("_", " ")
-                                                            : "N/A")
-                                            .paymentMethod(paymentType)
-                                            .grandTotal(order.getGrandTotal())
-                                            .status(status)
-                                            .build();
-                        })
-                        .collect(Collectors.toList());
+                    return EarningReportResponse.builder()
+                            .earningId("ERN" + String.format("%04d", order.getId()))
+                            .date(order.getOrderedAt())
+                            .orderNumber(order.getOrderNumber())
+                            .customerName(customer)
+                            .orderType(order.getOrderType() != null
+                                    ? order.getOrderType().name().replace("_", " ")
+                                    : "N/A")
+                            .paymentMethod(paymentType)
+                            .grandTotal(order.getGrandTotal())
+                            .status(status)
+                            .build();
+                })
+                .collect(Collectors.toList());
 
         return paginate(allItems, page, size);
     }
@@ -96,55 +97,56 @@ public class ReportService {
      * Order Report: list all orders with item count.
      */
     public PageResponse<OrderReportResponse> getOrderReport(LocalDate fromDate, LocalDate toDate,
-                    String customerName, int page, int size) {
+            String customerName, int page, int size) {
 
         LocalDateTime from = fromDate != null ? fromDate.atStartOfDay() : LocalDateTime.of(2020, 1, 1, 0, 0);
-        LocalDateTime to = toDate != null ? toDate.plusDays(1).atStartOfDay() : LocalDateTime.now().plusDays(1);
+        LocalDateTime to = toDate != null ? toDate.plusDays(1).atStartOfDay()
+                : LocalDateTimeUtil.getTimeNow().plusDays(1);
 
         List<Order> orders = orderRepository.findOrdersInRange(from, to);
 
         // Get item counts per order
         List<Long> orderIds = orders.stream().map(Order::getId).collect(Collectors.toList());
         Map<Long, Long> itemCountByOrder = orderIds.isEmpty() ? Map.of()
-                        : orderItemRepository.countItemsByOrderIds(orderIds).stream()
-                                        .collect(Collectors.toMap(
-                                                        arr -> (Long) arr[0],
-                                                        arr -> (Long) arr[1]));
+                : orderItemRepository.countItemsByOrderIds(orderIds).stream()
+                        .collect(Collectors.toMap(
+                                arr -> (Long) arr[0],
+                                arr -> (Long) arr[1]));
 
         List<OrderReportResponse> allItems = orders.stream()
-                        .filter(o -> {
-                            if (customerName == null || customerName.isBlank())
-                                return true;
-                            String lowerCustomer = customerName.toLowerCase();
-                            if (o.getCustomer() != null && o.getCustomer().getName() != null
-                                            && o.getCustomer().getName().toLowerCase()
-                                                            .contains(lowerCustomer)) {
-                                return true;
-                            }
-                            return o.getCustomer() == null && (lowerCustomer.contains("walk")
-                                            || lowerCustomer.contains("walk-in"));
-                        })
-                        .map(order -> {
-                            String customer = order.getCustomer() != null ? order.getCustomer().getName()
-                                            : "Walk-in Customer";
-                            Long menus = itemCountByOrder.getOrDefault(order.getId(), 0L);
-                            String status = order.getStatus() != null ? order.getStatus().name()
-                                            : "pending";
+                .filter(o -> {
+                    if (customerName == null || customerName.isBlank())
+                        return true;
+                    String lowerCustomer = customerName.toLowerCase();
+                    if (o.getCustomer() != null && o.getCustomer().getName() != null
+                            && o.getCustomer().getName().toLowerCase()
+                                    .contains(lowerCustomer)) {
+                        return true;
+                    }
+                    return o.getCustomer() == null && (lowerCustomer.contains("walk")
+                            || lowerCustomer.contains("walk-in"));
+                })
+                .map(order -> {
+                    String customer = order.getCustomer() != null ? order.getCustomer().getName()
+                            : "Walk-in Customer";
+                    Long menus = itemCountByOrder.getOrDefault(order.getId(), 0L);
+                    String status = order.getStatus() != null ? order.getStatus().name()
+                            : "pending";
 
-                            return OrderReportResponse.builder()
-                                            .orderNumber(order.getOrderNumber())
-                                            .date(order.getOrderedAt())
-                                            .customerName(customer)
-                                            .tokenNo(order.getTokenNo() != null ? order.getTokenNo() : "")
-                                            .orderType(order.getOrderType() != null
-                                                            ? order.getOrderType().name().replace("_", " ")
-                                                            : "N/A")
-                                            .menus(menus)
-                                            .grandTotal(order.getGrandTotal())
-                                            .status(status)
-                                            .build();
-                        })
-                        .collect(Collectors.toList());
+                    return OrderReportResponse.builder()
+                            .orderNumber(order.getOrderNumber())
+                            .date(order.getOrderedAt())
+                            .customerName(customer)
+                            .tokenNo(order.getTokenNo() != null ? order.getTokenNo() : "")
+                            .orderType(order.getOrderType() != null
+                                    ? order.getOrderType().name().replace("_", " ")
+                                    : "N/A")
+                            .menus(menus)
+                            .grandTotal(order.getGrandTotal())
+                            .status(status)
+                            .build();
+                })
+                .collect(Collectors.toList());
 
         return paginate(allItems, page, size);
     }
@@ -153,10 +155,11 @@ public class ReportService {
      * Sales Report: aggregate sales by category.
      */
     public PageResponse<SalesReportResponse> getSalesReport(LocalDate fromDate, LocalDate toDate,
-                    String categoryName, int page, int size) {
+            String categoryName, int page, int size) {
 
         LocalDateTime from = fromDate != null ? fromDate.atStartOfDay() : LocalDateTime.of(2020, 1, 1, 0, 0);
-        LocalDateTime to = toDate != null ? toDate.plusDays(1).atStartOfDay() : LocalDateTime.now().plusDays(1);
+        LocalDateTime to = toDate != null ? toDate.plusDays(1).atStartOfDay()
+                : LocalDateTimeUtil.getTimeNow().plusDays(1);
 
         List<Order> orders = orderRepository.findCompletedOrdersInRange(from, to, OrderStatus.completed,
                 OrderPaymentStatus.paid);
@@ -170,7 +173,7 @@ public class ReportService {
 
             // Map: categoryId -> { totalOrders, itemsSold, grandTotal }
             Map<Long, List<Object[]>> groupedByCategory = categorySales.stream()
-                            .collect(Collectors.groupingBy(arr -> (Long) arr[0]));
+                    .collect(Collectors.groupingBy(arr -> (Long) arr[0]));
 
             for (Map.Entry<Long, List<Object[]>> entry : groupedByCategory.entrySet()) {
                 Long categoryId = entry.getKey();
@@ -178,30 +181,30 @@ public class ReportService {
 
                 // Get category name
                 String catName = categoryRepository.findById(categoryId)
-                                .map(Category::getName)
-                                .orElse("Unknown");
+                        .map(Category::getName)
+                        .orElse("Unknown");
 
                 // Filter by category name if specified
                 if (categoryName != null && !categoryName.isBlank()
-                                && !catName.toLowerCase().contains(categoryName.toLowerCase())) {
+                        && !catName.toLowerCase().contains(categoryName.toLowerCase())) {
                     continue;
                 }
 
                 long itemsSold = rows.stream().mapToLong(arr -> ((Number) arr[2]).longValue()).sum();
                 long totalOrders = rows.stream().map(arr -> (Long) arr[3]).distinct().count();
                 BigDecimal grandTotal = rows.stream()
-                                .map(arr -> (BigDecimal) arr[4])
-                                .reduce(BigDecimal.ZERO, BigDecimal::add);
+                        .map(arr -> (BigDecimal) arr[4])
+                        .reduce(BigDecimal.ZERO, BigDecimal::add);
 
                 allItems.add(SalesReportResponse.builder()
-                                .salesId("SA" + String.format("%04d", categoryId))
-                                .date(orders.stream().findFirst().map(Order::getOrderedAt).orElse(null))
-                                .categoryName(catName)
-                                .itemsSold(itemsSold)
-                                .totalOrders(totalOrders)
-                                .grandTotal(grandTotal)
-                                .status("completed")
-                                .build());
+                        .salesId("SA" + String.format("%04d", categoryId))
+                        .date(orders.stream().findFirst().map(Order::getOrderedAt).orElse(null))
+                        .categoryName(catName)
+                        .itemsSold(itemsSold)
+                        .totalOrders(totalOrders)
+                        .grandTotal(grandTotal)
+                        .status("completed")
+                        .build());
             }
         }
 
@@ -212,36 +215,37 @@ public class ReportService {
      * Customer Report: aggregate order data per customer.
      */
     public PageResponse<CustomerReportResponse> getCustomerReport(LocalDate fromDate, LocalDate toDate,
-                    String customerName, int page, int size) {
+            String customerName, int page, int size) {
 
         LocalDateTime from = fromDate != null ? fromDate.atStartOfDay() : LocalDateTime.of(2020, 1, 1, 0, 0);
-        LocalDateTime to = toDate != null ? toDate.plusDays(1).atStartOfDay() : LocalDateTime.now().plusDays(1);
+        LocalDateTime to = toDate != null ? toDate.plusDays(1).atStartOfDay()
+                : LocalDateTimeUtil.getTimeNow().plusDays(1);
 
         List<Object[]> customerSales = orderRepository.findCustomerSalesInRange(from, to, OrderStatus.completed);
 
         List<CustomerReportResponse> allItems = customerSales.stream()
-                        .map(arr -> {
-                            Long customerId = (Long) arr[0];
-                            String name = (String) arr[1];
-                            String avatar = (String) arr[2];
-                            Long totalOrders = (Long) arr[3];
-                            BigDecimal grandTotal = (BigDecimal) arr[4];
+                .map(arr -> {
+                    Long customerId = (Long) arr[0];
+                    String name = (String) arr[1];
+                    String avatar = (String) arr[2];
+                    Long totalOrders = (Long) arr[3];
+                    BigDecimal grandTotal = (BigDecimal) arr[4];
 
-                            if (customerName != null && !customerName.isBlank()
-                                            && !name.toLowerCase().contains(customerName.toLowerCase())) {
-                                return null;
-                            }
+                    if (customerName != null && !customerName.isBlank()
+                            && !name.toLowerCase().contains(customerName.toLowerCase())) {
+                        return null;
+                    }
 
-                            return CustomerReportResponse.builder()
-                                            .customerId("CUS" + String.format("%04d", customerId))
-                                            .customerName(name)
-                                            .avatarPath(avatar)
-                                            .totalOrders(totalOrders)
-                                            .grandTotal(grandTotal)
-                                            .build();
-                        })
-                        .filter(r -> r != null)
-                        .collect(Collectors.toList());
+                    return CustomerReportResponse.builder()
+                            .customerId("CUS" + String.format("%04d", customerId))
+                            .customerName(name)
+                            .avatarPath(avatar)
+                            .totalOrders(totalOrders)
+                            .grandTotal(grandTotal)
+                            .build();
+                })
+                .filter(r -> r != null)
+                .collect(Collectors.toList());
 
         return paginate(allItems, page, size);
     }
@@ -252,7 +256,8 @@ public class ReportService {
     private <T> PageResponse<T> paginate(List<T> items, int page, int size) {
         int totalElements = items.size();
         int totalPages = (int) Math.ceil((double) totalElements / size);
-        if (totalPages == 0) totalPages = 1;
+        if (totalPages == 0)
+            totalPages = 1;
 
         int fromIndex = page * size;
         int toIndex = Math.min(fromIndex + size, totalElements);

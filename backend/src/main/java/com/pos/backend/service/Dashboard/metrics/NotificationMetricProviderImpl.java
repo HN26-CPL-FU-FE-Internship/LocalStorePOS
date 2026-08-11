@@ -45,7 +45,7 @@ public class NotificationMetricProviderImpl implements NotificationMetricProvide
     }
 
     private List<ActivityLogResponse> groupByRelativeTime(List<LogEntry> entries) {
-        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime now = LocalDateTimeUtil.getTimeNow();
         LocalDateTime todayStart = now.toLocalDate().atStartOfDay();
         LocalDateTime yesterdayStart = todayStart.minusDays(1);
 
@@ -102,15 +102,15 @@ public class NotificationMetricProviderImpl implements NotificationMetricProvide
             return "Unknown";
         }
 
-        long minutes = ChronoUnit.MINUTES.between(createdAt, LocalDateTime.now());
+        long minutes = ChronoUnit.MINUTES.between(createdAt, LocalDateTimeUtil.getTimeNow());
         if (minutes < 60) {
             return minutes + " min ago";
         }
-        long hours = ChronoUnit.HOURS.between(createdAt, LocalDateTime.now());
+        long hours = ChronoUnit.HOURS.between(createdAt, LocalDateTimeUtil.getTimeNow());
         if (hours < 24) {
             return hours + " hrs ago";
         }
-        long days = ChronoUnit.DAYS.between(createdAt, LocalDateTime.now());
+        long days = ChronoUnit.DAYS.between(createdAt, LocalDateTimeUtil.getTimeNow());
         return days + " days ago";
     }
 }

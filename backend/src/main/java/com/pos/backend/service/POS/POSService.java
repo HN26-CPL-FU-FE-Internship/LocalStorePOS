@@ -319,7 +319,7 @@ public class POSService {
                 .grandTotal(totals.grandTotal())
                 .paymentStatus(OrderPaymentStatus.unpaid)
                 .note(request.getNote())
-                .orderedAt(LocalDateTime.now())
+                .orderedAt(LocalDateTimeUtil.getTimeNow())
                 .build();
 
         return orderRepository.save(order);

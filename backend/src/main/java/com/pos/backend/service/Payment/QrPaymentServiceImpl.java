@@ -94,7 +94,7 @@ public class QrPaymentServiceImpl implements QrPaymentService {
 
         String paymentCode = generatePaymentCode();
         String transactionId = "TXN-" + UUID.randomUUID().toString().substring(0, 8).toUpperCase();
-        LocalDateTime expiresAt = LocalDateTime.now().plusMinutes(QR_PAYMENT_EXPIRATION_MINUTES);
+        LocalDateTime expiresAt = LocalDateTimeUtil.getTimeNow().plusMinutes(QR_PAYMENT_EXPIRATION_MINUTES);
 
         Payment payment = Payment.builder()
                 .transactionId(transactionId)
@@ -172,7 +172,7 @@ public class QrPaymentServiceImpl implements QrPaymentService {
         }
 
         payment.setStatus(PaymentStatus.success);
-        payment.setPaidAt(LocalDateTime.now());
+        payment.setPaidAt(LocalDateTimeUtil.getTimeNow());
 
         orderRepository.save(order);
         paymentRepository.save(payment);
@@ -320,7 +320,7 @@ public class QrPaymentServiceImpl implements QrPaymentService {
     private boolean expireIfNeeded(Payment payment) {
         if (payment.getStatus() == PaymentStatus.pending
                 && payment.getExpiresAt() != null
-                && !LocalDateTime.now().isBefore(payment.getExpiresAt())) {
+                && !LocalDateTimeUtil.getTimeNow().isBefore(payment.getExpiresAt())) {
             payment.setStatus(PaymentStatus.failed);
             paymentRepository.save(payment);
             return true;

@@ -1,4 +1,4 @@
-    package com.pos.backend.service.Order;
+package com.pos.backend.service.Order;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
@@ -55,6 +55,7 @@ import com.pos.backend.repository.RestaurantTableRepository;
 import com.pos.backend.service.NotificationService;
 import com.pos.backend.service.WebSocket.WebSocketService;
 import com.pos.backend.specification.OrderSpecification;
+import com.pos.backend.util.LocalDateTimeUtil;
 import com.pos.backend.util.OrderUtil;
 import com.pos.backend.ws.WebSocketEvent;
 
@@ -378,7 +379,7 @@ public class OrderService {
                 .paymentMethod(paymentMethod)
                 .amount(order.getGrandTotal())
                 .status(PaymentStatus.success)
-                .paidAt(LocalDateTime.now())
+                .paidAt(LocalDateTimeUtil.getTimeNow())
                 .build();
 
         return paymentRepository.save(payment);

@@ -28,6 +28,7 @@ import com.pos.backend.service.Dashboard.metrics.ReservationMetricProvider;
 import com.pos.backend.service.Dashboard.metrics.SalesMetricProvider;
 import com.pos.backend.service.Dashboard.metrics.TableMetricProvider;
 import com.pos.backend.service.Dashboard.metrics.UserMetricProvider;
+import com.pos.backend.util.LocalDateTimeUtil;
 
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
@@ -112,7 +113,7 @@ public class DashboardServiceImpl implements DashboardService {
     @Override
     @Transactional(readOnly = true)
     public List<ReservationResponse> getReservations(int limit) {
-        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime now = LocalDateTimeUtil.getTimeNow();
         return reservationMetricProvider.getUpcomingReservations(now, now.plusDays(30), limit);
     }
 
