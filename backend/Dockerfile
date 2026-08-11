@@ -30,4 +30,4 @@ EXPOSE 8080
 #  - ReservedCodeCacheSize 64m: default is 240m, which competes with metaspace for RAM.
 #  - UseSerialGC: lowest native-memory GC for small heaps (vs G1's region metadata).
 #  - ActiveProcessorCount=2: stop JVM sizing thread pools from the host core count.
-ENTRYPOINT ["java", "-Xms128m", "-Xmx256m", "-XX:MaxMetaspaceSize=128m", "-XX:ReservedCodeCacheSize=64m", "-XX:+UseSerialGC", "-XX:ActiveProcessorCount=2", "-XX:+ExitOnOutOfMemoryError", "-jar", "app.jar"]
+ENTRYPOINT ["java","-Duser.timezone=Asia/Ho_Chi_Minh", "-Xms128m", "-Xmx256m", "-XX:MaxMetaspaceSize=128m", "-XX:ReservedCodeCacheSize=64m", "-XX:+UseSerialGC", "-XX:ActiveProcessorCount=2", "-XX:+ExitOnOutOfMemoryError", "-jar", "app.jar"]
